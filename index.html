@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#08090D" />
-  <meta name="description" content="PI COMMUNITY HUB — Platform Komunitas Independen Mobile-First. Connect, Collaborate, Grow Together." />
+  <meta name="description" content="PANUA COMMUNITY — Pi Network Gorontalo - Indonesia. Platform Komunitas Independen Mobile-First." />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>PI COMMUNITY HUB — Black Gold × Sharp Purple</title>
+  <title>PANUA COMMUNITY — Pi Network Gorontalo - Indonesia</title>
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -26,6 +26,7 @@
               goldLight: '#F5D77A',
               purple: '#8B2CFF',
               purpleLight: '#B66CFF',
+              purpleDark: '#3D105A',
               text: '#F7F5FA',
               muted: '#AAA6B5',
               success: '#35D49A',
@@ -37,22 +38,21 @@
             sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
           },
           boxShadow: {
-            'gold-glow': '0 0 20px -3px rgba(212, 175, 55, 0.25)',
-            'purple-glow': '0 0 20px -3px rgba(139, 44, 255, 0.3)',
-            'card-elevated': '0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.4)',
+            'gold-glow': '0 0 20px -3px rgba(212, 175, 55, 0.35)',
+            'purple-glow': '0 0 20px -3px rgba(139, 44, 255, 0.4)',
+            'card-elevated': '0 10px 25px -5px rgba(0, 0, 0, 0.7), 0 8px 10px -6px rgba(0, 0, 0, 0.5)',
           }
         }
       }
     }
   </script>
 
-  <!-- React, ReactDOM, Babel (Supabase CDN removed, purely GAS & WebRTC driven) -->
+  <!-- React, ReactDOM, Babel -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    /* Safe-area spacing for modern mobile devices */
     :root {
       --sat: env(safe-area-inset-top, 0px);
       --sab: env(safe-area-inset-bottom, 0px);
@@ -64,7 +64,6 @@
       overflow-x: hidden;
       -webkit-tap-highlight-color: transparent;
     }
-    /* Custom Scrollbars */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -89,23 +88,19 @@
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
-    .gold-purple-border {
-      border-image: linear-gradient(to right, #D4AF37, #8B2CFF) 1;
-    }
   </style>
 
-  <!-- Web App Manifest Definition via Data URI -->
   <link rel="manifest" id="pwa-manifest-link" />
 </head>
 <body class="bg-pch-bg text-pch-text antialiased selection:bg-pch-purple selection:text-white">
   <div id="root"></div>
 
-  <!-- PWA Manifest & Service Worker Registration Script -->
+  <!-- PWA Manifest & Service Worker -->
   <script>
     const manifestObject = {
-      name: "PI COMMUNITY HUB",
-      short_name: "PiHub",
-      description: "Independent Community Platform — Connect, Collaborate, Grow Together",
+      name: "PANUA COMMUNITY",
+      short_name: "PanuaPi",
+      description: "PANUA COMMUNITY — Pi Network Gorontalo - Indonesia. Platform Komunitas Independen",
       start_url: "./",
       display: "standalone",
       background_color: "#08090D",
@@ -113,15 +108,10 @@
       orientation: "portrait",
       icons: [
         {
-          src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,5 90,25 90,75 50,95 10,75 10,25' fill='%23111218' stroke='%23D4AF37' strokeWidth='4'/%3E%3Cpath d='M35,35 L65,35 M50,35 L50,68 M38,68 L62,68' stroke='%238B2CFF' strokeWidth='6' strokeLinecap='round'/%3E%3Ccircle cx='50' cy='35' r='4' fill='%23F5D77A'/%3E%3C/svg%3E",
+          src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%2308090D' stroke='%23D4AF37' stroke-width='4'/%3E%3Ccircle cx='50' cy='50' r='38' fill='%23181922' stroke='%238B2CFF' stroke-width='2'/%3E%3Ctext x='50' y='57' font-family='sans-serif' font-weight='bold' font-size='22' fill='%23F5D77A' text-anchor='middle'%3E%CF%80%3C/text%3E%3C/svg%3E",
           sizes: "192x192",
           type: "image/svg+xml",
           purpose: "any maskable"
-        },
-        {
-          src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,5 90,25 90,75 50,95 10,75 10,25' fill='%23111218' stroke='%23D4AF37' strokeWidth='4'/%3E%3Cpath d='M35,35 L65,35 M50,35 L50,68 M38,68 L62,68' stroke='%238B2CFF' strokeWidth='6' strokeLinecap='round'/%3E%3Ccircle cx='50' cy='35' r='4' fill='%23F5D77A'/%3E%3C/svg%3E",
-          sizes: "512x512",
-          type: "image/svg+xml"
         }
       ]
     };
@@ -130,44 +120,30 @@
     const manifestURL = URL.createObjectURL(blobManifest);
     document.getElementById('pwa-manifest-link').setAttribute('href', manifestURL);
 
-    // Register Safe Service Worker (Static assets only, strict NO-CACHE for Vault & API)
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         const swBlob = new Blob([`
-          const CACHE_NAME = 'pch-static-v1.0';
-          const STATIC_ASSETS = ['/'];
-          self.addEventListener('install', (e) => {
-            e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(STATIC_ASSETS)));
-            self.skipWaiting();
-          });
-          self.addEventListener('activate', (e) => {
-            e.waitUntil(caches.keys().then(keys => Promise.all(
-              keys.map(k => { if(k !== CACHE_NAME) return caches.delete(k); })
-            )));
-            self.clients.claim();
-          });
+          const CACHE_NAME = 'panua-static-v4.2';
+          self.addEventListener('install', (e) => self.skipWaiting());
+          self.addEventListener('activate', (e) => self.clients.claim());
           self.addEventListener('fetch', (e) => {
             const url = new URL(e.request.url);
-            // STRICT RULE: Never cache private documents, API requests or auth tokens
-            if (url.pathname.includes('/vault') || url.pathname.includes('/rest/v1') || url.pathname.includes('/auth/')) {
+            if (url.pathname.includes('/vault') || url.pathname.includes('/macros/s/') || url.search.includes('action=')) {
               return;
             }
-            e.respondWith(
-              caches.match(e.request).then(res => res || fetch(e.request).catch(() => res))
-            );
+            e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
           });
         `], { type: 'application/javascript' });
-        const swURL = URL.createObjectURL(swBlob);
-        navigator.serviceWorker.register(swURL).catch(err => console.log('SW registration note:', err));
+        navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(err => console.log('SW Note:', err));
       });
     }
   </script>
 
-  <!-- React Application Logic -->
+  <!-- React Application -->
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef } = React;
 
-    // --- ICONS (Lucide Compatible Vector Pack) ---
+    // --- ICONS PACK ---
     const Icons = {
       Home: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
       Users: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
@@ -175,38 +151,30 @@
       Video: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>,
       Shield: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
       User: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-      Settings: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
       Lock: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
-      ShieldAlert: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+      Key: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21 2-2 2m-1.5 1.5L14 9l-2-2-4 4 2 2-3 3-2-2-3 3 5 5 13-13z"/><circle cx="7.5" cy="16.5" r="1.5"/></svg>,
       Search: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
-      Bell: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
-      Plus: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-      Download: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
-      Trash: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
       Send: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
-      Paperclip: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>,
       Check: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
-      AlertTriangle: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
       Copy: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
       ExternalLink: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>,
       X: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-      Database: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,
       LogOut: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
-      FileText: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
-      Image: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>,
-      Edit: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+      FileText: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+      Plus: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+      Upload: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>,
+      Trash: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
+      Phone: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
       Cloud: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>,
       Eye: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>,
       EyeOff: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>,
-      Mail: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>,
       ArrowLeft: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>,
-      Phone: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
-      Key: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21 2-2 2m-1.5 1.5L14 9l-2-2-4 4 2 2-3 3-2-2-3 3 5 5 13-13z"/><circle cx="7.5" cy="16.5" r="1.5"/></svg>,
-      Upload: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>,
-      Share2: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      Edit: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+      Database: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,
+      AlertTriangle: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
     };
 
-    // Safe clipboard copy helper for iframe sandbox environments
+    // Safe clipboard copy helper for sandboxed iframe
     function safeCopyToClipboard(text) {
       try {
         const textArea = document.createElement("textarea");
@@ -225,257 +193,111 @@
       }
     }
 
-    // Full Google Apps Script Code for Copying in GAS Studio
-    const COMPLETE_GAS_SCRIPT = `/**
- * PI COMMUNITY HUB (PCH) — GOOGLE APPS SCRIPT PRODUCTION BACKEND
- * File: Code.gs
- */
-function getVaultFolder() {
-  const scriptProps = PropertiesService.getScriptProperties();
-  const folderId = scriptProps.getProperty("VAULT_FOLDER_ID");
-  if (folderId) {
-    try { return DriveApp.getFolderById(folderId); } catch (e) {}
-  }
-  const folders = DriveApp.getFoldersByName("PCH_SECURE_VAULT_ISOLATED");
-  if (folders.hasNext()) return folders.next();
-  const newFolder = DriveApp.createFolder("PCH_SECURE_VAULT_ISOLATED");
-  newFolder.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
-  return newFolder;
-}
+    // --- OFFICIAL PANUA COMMUNITY SEAL SVG (REPLICA) ---
+    function PanuaCommunitySealSVG({ className = "w-full h-full" }) {
+      return (
+        <svg viewBox="0 0 300 300" className={className} xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="panuaGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#FDEAA8" />
+              <stop offset="35%" stopColor="#D4AF37" />
+              <stop offset="70%" stopColor="#B38B21" />
+              <stop offset="100%" stopColor="#876510" />
+            </linearGradient>
+            <path id="panuaTopArc" d="M 38 150 A 112 112 0 0 1 262 150" fill="none" />
+            <path id="panuaBottomArc" d="M 262 150 A 112 112 0 0 1 38 150" fill="none" />
+          </defs>
 
-function getDatabaseSpreadsheet() {
-  const scriptProps = PropertiesService.getScriptProperties();
-  const ssId = scriptProps.getProperty("DB_SPREADSHEET_ID");
-  if (ssId) {
-    try { return SpreadsheetApp.openById(ssId); } catch (e) {}
-  }
-  const files = DriveApp.getFilesByName("PCH_COMMUNITY_DATABASE");
-  if (files.hasNext()) return SpreadsheetApp.open(files.next());
-  return SpreadsheetApp.create("PCH_COMMUNITY_DATABASE");
-}
+          {/* Outer Gold Border Ring */}
+          <circle cx="150" cy="150" r="146" fill="#FDFBFF" stroke="url(#panuaGoldGrad)" strokeWidth="8" />
+          <circle cx="150" cy="150" r="139" fill="none" stroke="#C59B27" strokeWidth="1.5" strokeDasharray="3 2" />
 
-function doGet(e) {
-  try {
-    const params = e ? e.parameter : {};
-    const action = params.action || 'ping';
+          {/* Background Network Mesh Lines */}
+          <g stroke="#E8DDF4" strokeWidth="1" opacity="0.8">
+            <line x1="80" y1="80" x2="220" y2="220" />
+            <line x1="220" y1="80" x2="80" y2="220" />
+            <line x1="50" y1="150" x2="250" y2="150" />
+            <line x1="150" y1="50" x2="150" y2="250" />
+            <circle cx="90" cy="90" r="3" fill="#D4AF37" />
+            <circle cx="210" cy="90" r="3" fill="#D4AF37" />
+            <circle cx="90" cy="210" r="3" fill="#D4AF37" />
+            <circle cx="210" cy="210" r="3" fill="#D4AF37" />
+          </g>
 
-    if (action === 'ping') {
-      return responseJSON({ status: 'ok', version: '3.0.0', timestamp: new Date().toISOString() });
+          {/* Curved Arched Text: PANUA COMMUNITY */}
+          <text fill="#3D105A" fontFamily="Impact, Arial Black, sans-serif" fontSize="26" fontWeight="bold" letterSpacing="4">
+            <textPath href="#panuaTopArc" startOffset="50%" textAnchor="middle">
+              PANUA COMMUNITY
+            </textPath>
+          </text>
+
+          {/* Curved Arched Text: PI NETWORK GORONTALO - INDONESIA */}
+          <text fill="#3D105A" fontFamily="Arial, sans-serif" fontSize="11" fontWeight="bold" letterSpacing="1.8">
+            <textPath href="#panuaBottomArc" startOffset="50%" textAnchor="middle">
+              ★ PI NETWORK GORONTALO - INDONESIA ★
+            </textPath>
+          </text>
+
+          {/* Middle Decorative Ring */}
+          <circle cx="150" cy="148" r="74" fill="none" stroke="url(#panuaGoldGrad)" strokeWidth="3" />
+
+          {/* Interconnected People Figures (7 linked unity nodes) */}
+          <g fill="#431363" stroke="#FDFBFF" strokeWidth="2.5">
+            <circle cx="150" cy="88" r="9" />
+            <circle cx="198" cy="106" r="9" />
+            <circle cx="218" cy="154" r="9" />
+            <circle cx="192" cy="198" r="9" />
+            <circle cx="108" cy="198" r="9" />
+            <circle cx="82" cy="154" r="9" />
+            <circle cx="102" cy="106" r="9" />
+
+            <path d="M150,97 C165,110 185,110 198,115 C185,130 190,145 218,163 C195,168 185,180 192,207 C170,195 155,198 150,192 C145,198 130,195 108,207 C115,180 105,168 82,163 C110,145 115,130 102,115 C115,110 135,110 150,97 Z" />
+          </g>
+
+          {/* Inner Light Ring */}
+          <circle cx="150" cy="146" r="33" fill="#FDFBFF" stroke="url(#panuaGoldGrad)" strokeWidth="2" />
+
+          {/* Pi Shield at Center Bottom */}
+          <g transform="translate(150, 184)">
+            <path d="M-22,-14 L22,-14 C22,12 0,26 0,26 C0,26 -22,12 -22,-14 Z" fill="#380D53" stroke="url(#panuaGoldGrad)" strokeWidth="3" />
+            <text x="0" y="8" fill="#F5D77A" fontFamily="serif" fontSize="24" fontWeight="bold" textAnchor="middle">π</text>
+          </g>
+
+          {/* Central Moto: UNITY CONNECTIVITY */}
+          <text x="150" y="222" fill="#B38B21" fontFamily="Arial Black, sans-serif" fontSize="10" fontWeight="900" letterSpacing="1.2" textAnchor="middle">UNITY</text>
+          <text x="150" y="233" fill="#B38B21" fontFamily="Arial Black, sans-serif" fontSize="8.5" fontWeight="900" letterSpacing="1" textAnchor="middle">CONNECTIVITY</text>
+        </svg>
+      );
     }
 
-    if (action === 'getAppConfig') {
-      const scriptProps = PropertiesService.getScriptProperties();
-      return responseJSON({
-        status: 'ok',
-        config: {
-          title: scriptProps.getProperty('APP_TITLE') || 'PI COMMUNITY HUB',
-          tagline: scriptProps.getProperty('APP_TAGLINE') || 'Connect • Collaborate • Grow Together',
-          logoType: scriptProps.getProperty('LOGO_TYPE') || 'default',
-          customLogoUrl: scriptProps.getProperty('CUSTOM_LOGO_URL') || '',
-          adminWhatsapp: scriptProps.getProperty('ADMIN_WHATSAPP') || '6281299887766',
-          meetingProvider: scriptProps.getProperty('MEETING_PROVIDER') || 'meet.jit.si'
-        }
-      });
-    }
-
-    if (action === 'verifyRedeemCode') {
-      const code = (params.code || '').trim().toUpperCase();
-      const username = (params.username || '').trim().toLowerCase();
-      const ss = getDatabaseSpreadsheet();
-      const sheet = ss.getSheetByName("RedeemCodes");
-      if (!sheet) return responseJSON({ status: 'error', message: 'Tabel RedeemCodes belum tersedia' });
-
-      const data = sheet.getDataRange().getValues();
-      let isValid = false;
-      let isExpired = false;
-      const now = new Date().getTime();
-
-      for (let i = 1; i < data.length; i++) {
-        const rowCode = String(data[i][0]).trim().toUpperCase();
-        const target = String(data[i][1]).trim().toLowerCase();
-        const createdTime = new Date(data[i][4]).getTime();
-        const isActive = data[i][5] === true || String(data[i][5]).toLowerCase() === "true";
-
-        if (rowCode === code && isActive && (target === 'all' || target === username)) {
-          if (now - createdTime > 60000) { // Validasi 60 detik (1 menit)
-            isExpired = true;
-            sheet.getRange(i + 1, 6).setValue(false);
-          } else {
-            isValid = true;
-          }
-          break;
-        }
-      }
-
-      if (isExpired) {
-        return responseJSON({ status: 'expired', valid: false, message: 'Kode akses telah kedaluwarsa (> 60 detik). Minta kode baru ke Admin.' });
-      }
-      return responseJSON({ status: 'ok', valid: isValid });
-    }
-
-    return responseJSON({ status: 'error', message: 'Action tidak dikenal' });
-  } catch (err) {
-    return responseJSON({ status: 'error', message: err.toString() });
-  }
-}
-
-function doPost(e) {
-  try {
-    const rawData = e.postData ? e.postData.contents : "{}";
-    const data = JSON.parse(rawData);
-    const action = data.action;
-
-    if (action === 'saveAppConfig') {
-      const scriptProps = PropertiesService.getScriptProperties();
-      const c = data.config || {};
-      if (c.title) scriptProps.setProperty('APP_TITLE', c.title);
-      if (c.tagline) scriptProps.setProperty('APP_TAGLINE', c.tagline);
-      if (c.logoType) scriptProps.setProperty('LOGO_TYPE', c.logoType);
-      if (c.customLogoUrl !== undefined) scriptProps.setProperty('CUSTOM_LOGO_URL', c.customLogoUrl);
-      if (c.adminWhatsapp) scriptProps.setProperty('ADMIN_WHATSAPP', c.adminWhatsapp);
-      if (c.meetingProvider) scriptProps.setProperty('MEETING_PROVIDER', c.meetingProvider);
-
-      logAudit(data.actor || 'admin', 'UPDATE_APP_CONFIG', 'Branding', 'Pembaruan judul/logo aplikasi');
-      return responseJSON({ status: 'ok', message: 'Branding aplikasi berhasil disimpan ke cloud' });
-    }
-
-    if (action === 'saveMemberDossier') {
-      const result = saveMemberDossierRecord(data);
-      logAudit(data.username || data.userId, 'SYNC_DOSSIER', data.userId, 'Sinkronisasi master data dan berkas');
-      return responseJSON({ status: 'ok', message: 'Dossier berhasil disimpan di Google Drive & Sheets', result: result });
-    }
-
-    if (action === 'generateRedeemCode') {
-      const ss = getDatabaseSpreadsheet();
-      let sheet = ss.getSheetByName("RedeemCodes");
-      sheet.appendRow([
-        data.code.trim().toUpperCase(),
-        data.userTarget.trim().toLowerCase(),
-        data.actor || 'Admin',
-        data.note || '',
-        new Date().toISOString(),
-        true
-      ]);
-      logAudit(data.actor || 'admin', 'GENERATE_REDEEM_CODE', data.code, 'Pembuatan kode untuk ' + data.userTarget);
-      return responseJSON({ status: 'ok', message: 'Redeem code berhasil dibuat' });
-    }
-
-    if (action === 'sendChatMessage') {
-      const ss = getDatabaseSpreadsheet();
-      let sheet = ss.getSheetByName("ChatMessages");
-      sheet.appendRow([new Date().toISOString(), data.sender, data.userId, data.text, data.replyTo || ""]);
-      return responseJSON({ status: 'ok', message: 'Pesan tersimpan' });
-    }
-
-    return responseJSON({ status: 'error', message: 'Aksi POST tidak didukung: ' + action });
-  } catch (err) {
-    return responseJSON({ status: 'error', message: err.toString() });
-  }
-}
-
-function saveMemberDossierRecord(payload) {
-  const ss = getDatabaseSpreadsheet();
-  let sheet = ss.getSheetByName("Dossiers");
-  const d = payload.dossier || {};
-  const userId = payload.userId;
-  const username = payload.username;
-
-  const values = sheet.getDataRange().getValues();
-  let rowIndex = -1;
-  for (let i = 1; i < values.length; i++) {
-    if (String(values[i][0]) === String(userId)) {
-      rowIndex = i + 1;
-      break;
-    }
-  }
-
-  const rowData = [
-    userId,
-    username,
-    d.namaLengkap || "",
-    d.email || "",
-    d.noHp || "",
-    d.usernamePi || "",
-    d.ttl || "",
-    d.nik || "",
-    d.alamatLengkap || "",
-    d.namaRekening || "",
-    d.noRekening || "",
-    d.walletPi || "",
-    d.walletOkx || "",
-    d.fotoKtp ? d.fotoKtp.name : "",
-    d.fotoKk ? d.fotoKk.name : "",
-    d.fotoNpwp ? d.fotoNpwp.name : "",
-    d.pasfoto ? d.pasfoto.name : "",
-    d.kartuKeanggotaan ? d.kartuKeanggotaan.name : "",
-    JSON.stringify(d.extraDocs || []),
-    new Date().toISOString()
-  ];
-
-  if (rowIndex > 0) {
-    sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
-  } else {
-    sheet.appendRow(rowData);
-  }
-
-  return { success: true, userId: userId };
-}
-
-function logAudit(actor, action, target, note) {
-  try {
-    const ss = getDatabaseSpreadsheet();
-    let sheet = ss.getSheetByName("AuditTrail");
-    sheet.appendRow([new Date().toISOString(), actor, action, target, note]);
-  } catch (e) {}
-}
-
-function responseJSON(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
-}`;
-
-    // --- DYNAMIC BRAND LOGO COMPONENT ---
+    // --- BRAND LOGO COMPONENT ---
     function BrandLogo({ config, size = "md" }) {
-      const dimensions = size === "lg" ? "w-14 h-14" : size === "sm" ? "w-8 h-8" : "w-10 h-10";
+      const dimensions = size === "lg" ? "w-16 h-16" : size === "sm" ? "w-8 h-8" : "w-10 h-10";
       
-      // If Admin has uploaded or linked a custom Logo Image (Rendered in Circle)
       if (config && config.logoType === "custom" && config.customLogoUrl) {
         return (
-          <div className={`relative flex items-center justify-center ${dimensions} aspect-square shrink-0 overflow-hidden rounded-full border-2 border-pch-gold/60 bg-pch-surface shadow-gold-glow`}>
+          <div className={`relative flex items-center justify-center ${dimensions} aspect-square shrink-0 overflow-hidden rounded-full border-2 border-pch-gold bg-pch-surface shadow-gold-glow`}>
             <img 
               src={config.customLogoUrl} 
               alt={config.title || "Logo"} 
               className="w-full h-full object-cover rounded-full"
-              onError={(e) => {
-                e.target.style.display = 'none';
-              }}
+              onError={(e) => { e.target.style.display = 'none'; }}
             />
           </div>
         );
       }
 
-      // Default Original Geometric Circular Emblem
       return (
-        <div className={`relative flex items-center justify-center ${dimensions} aspect-square shrink-0 rounded-full border border-pch-gold/50 bg-pch-surface/90 p-1 shadow-gold-glow`}>
-          <svg className="w-full h-full drop-shadow-md" viewBox="0 0 100 100" fill="none">
-            <polygon points="50,6 88,27 88,73 50,94 12,73 12,27" fill="#111218" stroke="#D4AF37" strokeWidth="4" />
-            <line x1="50" y1="20" x2="50" y2="78" stroke="#8B2CFF" strokeWidth="5" strokeLinecap="round" />
-            <line x1="28" y1="36" x2="72" y2="36" stroke="#D4AF37" strokeWidth="4" strokeLinecap="round" />
-            <line x1="30" y1="64" x2="70" y2="64" stroke="#8B2CFF" strokeWidth="4" strokeLinecap="round" />
-            <circle cx="50" cy="36" r="6" fill="#F5D77A" />
-            <circle cx="28" cy="36" r="4.5" fill="#B66CFF" />
-            <circle cx="72" cy="36" r="4.5" fill="#B66CFF" />
-            <circle cx="50" cy="78" r="5" fill="#D4AF37" />
-          </svg>
+        <div className={`relative flex items-center justify-center ${dimensions} aspect-square shrink-0 rounded-full border-2 border-pch-gold bg-pch-surface shadow-gold-glow p-0.5`}>
+          <PanuaCommunitySealSVG className="w-full h-full rounded-full" />
         </div>
       );
     }
 
-    // --- USER AVATAR COMPONENT (FALLBACK TO CIRCULAR COMMUNITY LOGO) ---
+    // --- USER AVATAR COMPONENT ---
     function UserAvatar({ user, branding, size = "md" }) {
-      const dimensions = size === "lg" ? "w-24 h-24 text-3xl" : size === "sm" ? "w-7 h-7 text-xs" : "w-8 h-8 text-xs";
+      const dimensions = size === "lg" ? "w-24 h-24" : size === "sm" ? "w-8 h-8" : "w-10 h-10";
       
-      // 1. User has uploaded their own profile photo
       if (user?.avatarUrl) {
         return (
           <img 
@@ -486,69 +308,68 @@ function responseJSON(obj) {
         );
       }
 
-      // 2. User hasn't uploaded a photo -> Fallback to the circular Community Custom Logo
-      if (branding && branding.customLogoUrl) {
-        return (
-          <div className={`${dimensions} aspect-square rounded-full overflow-hidden border-2 border-pch-gold/60 bg-pch-surface shadow-gold-glow flex items-center justify-center shrink-0`}>
-            <img 
-              src={branding.customLogoUrl} 
-              alt="Community Avatar" 
-              className="w-full h-full object-cover rounded-full" 
-            />
-          </div>
-        );
-      }
-
-      // 3. Fallback to initials / gold-purple gradient
       return (
-        <div className={`${dimensions} aspect-square rounded-full bg-gradient-to-tr from-pch-gold to-pch-purple flex items-center justify-center font-bold text-black shadow-gold-glow shrink-0`}>
-          {user?.avatar || (user?.name ? user.name.slice(0, 2).toUpperCase() : "P")}
+        <div className={`${dimensions} aspect-square rounded-full overflow-hidden border-2 border-pch-gold bg-pch-surface shadow-gold-glow flex items-center justify-center shrink-0 p-0.5`}>
+          <PanuaCommunitySealSVG className="w-full h-full rounded-full" />
         </div>
       );
     }
 
-    // --- CLEAN INITIAL STATE FOR PRODUCTION TESTING (NO DUMMY MOCKUPS) ---
-    const initialGroups = [
-      { id: "g1", name: "Forum Komunikasi Komunitas", category: "Umum", memberCount: 1, isOfficial: true, joined: true, description: "Grup koordinasi utama untuk seluruh anggota komunitas terdaftar." }
-    ];
-
-    const initialMeetings = []; // Clean state: ready for real meeting rooms
-    const initialDocuments = []; // Clean state: ready for real user uploads
-    const initialMessages = []; // Clean state: ready for real community chat
-
-    // --- MAIN APP COMPONENT ---
+    // --- MAIN REACT APPLICATION ---
     function App() {
-      // Registered users registry (Master Admin pre-configured)
-      const [registeredUsers, setRegisteredUsers] = useState([
-        {
-          id: "usr-admin",
-          email: "admin@pch.org",
-          name: "Administrator Utama",
-          username: "Welcome",
-          password: "H@sdayazid1980",
-          phone: "081299887766",
-          role: "admin",
-          bio: "Administrator pusat PI COMMUNITY HUB.",
-          publicWallet: "",
-          showEmail: true,
-          avatar: "AD",
-          avatarUrl: ""
+      // 1. PERSISTENT REGISTERED USERS
+      const [registeredUsers, setRegisteredUsers] = useState(() => {
+        try {
+          const saved = localStorage.getItem('panua_registered_users') || localStorage.getItem('pch_registered_users');
+          if (saved) return JSON.parse(saved);
+        } catch (e) {}
+        return [
+          {
+            id: "usr-admin",
+            email: "admin@panua.org",
+            name: "Administrator Utama",
+            username: "Welcome",
+            password: "H@sdayazid1980",
+            phone: "081299887766",
+            role: "admin",
+            bio: "Administrator pusat PANUA COMMUNITY Gorontalo.",
+            publicWallet: "",
+            showEmail: true,
+            avatar: "PC",
+            avatarUrl: ""
+          }
+        ];
+      });
+
+      useEffect(() => {
+        localStorage.setItem('panua_registered_users', JSON.stringify(registeredUsers));
+      }, [registeredUsers]);
+
+      // Active User Session
+      const [user, setUser] = useState(() => {
+        try {
+          const savedSession = localStorage.getItem('panua_active_session');
+          if (savedSession) return JSON.parse(savedSession);
+        } catch (e) {}
+        return null;
+      });
+      const [isAuthenticated, setIsAuthenticated] = useState(!!user);
+
+      useEffect(() => {
+        if (user) {
+          localStorage.setItem('panua_active_session', JSON.stringify(user));
+        } else {
+          localStorage.removeItem('panua_active_session');
         }
-      ]);
+      }, [user]);
 
-      // Active Authenticated User State
-      const [user, setUser] = useState(null);
-      const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-      // Auth Screen Views: 'login' | 'register' | 'forgot'
+      // Auth Views: 'login' | 'register' | 'forgot'
       const [authView, setAuthView] = useState("login");
-
-      // Login Form State
       const [loginIdentifier, setLoginIdentifier] = useState("");
       const [loginPassword, setLoginPassword] = useState("");
       const [showLoginPassword, setShowLoginPassword] = useState(false);
 
-      // Register Form State
+      // Register Form
       const [regName, setRegName] = useState("");
       const [regUsername, setRegUsername] = useState("");
       const [regEmail, setRegEmail] = useState("");
@@ -559,120 +380,206 @@ function responseJSON(obj) {
       const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
       const [regAgreed, setRegAgreed] = useState(false);
 
-      // Forgot Password State
+      // Forgot Form
       const [forgotEmail, setForgotEmail] = useState("");
       const [forgotSent, setForgotSent] = useState(false);
 
       const [activeTab, setActiveTab] = useState("dashboard");
-      const [demoMode, setDemoMode] = useState(true);
-      
-      // Dynamic App Branding Configuration (Configurable by Admin)
-      const [appBranding, setAppBranding] = useState({
-        title: "PI COMMUNITY HUB",
-        tagline: "Connect • Collaborate • Grow Together",
-        logoType: "default",
-        customLogoUrl: "",
-        meetingProvider: "meet.jit.si",
-        adminWhatsapp: "6281299887766"
+
+      // 2. PERSISTENT APP BRANDING: PANUA COMMUNITY
+      const [appBranding, setAppBranding] = useState(() => {
+        try {
+          const saved = localStorage.getItem('panua_branding');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            return {
+              title: parsed.title === "PI COMMUNITY HUB" ? "PANUA COMMUNITY" : parsed.title || "PANUA COMMUNITY",
+              tagline: parsed.tagline?.includes("Connect") ? "Pi Network Gorontalo - Indonesia" : parsed.tagline || "Pi Network Gorontalo - Indonesia",
+              logoType: parsed.logoType || "panua",
+              customLogoUrl: parsed.customLogoUrl || "",
+              meetingProvider: parsed.meetingProvider || "meet.jit.si",
+              adminWhatsapp: parsed.adminWhatsapp || "6281299887766"
+            };
+          }
+        } catch (e) {}
+        return {
+          title: "PANUA COMMUNITY",
+          tagline: "Pi Network Gorontalo - Indonesia",
+          logoType: "panua",
+          customLogoUrl: "",
+          meetingProvider: "meet.jit.si",
+          adminWhatsapp: "6281299887766"
+        };
       });
 
-      // Admin Form Draft for Branding
-      const [brandingDraft, setBrandingDraft] = useState({
-        title: "PI COMMUNITY HUB",
-        tagline: "Connect • Collaborate • Grow Together",
-        logoType: "default",
-        customLogoUrl: "",
-        meetingProvider: "meet.jit.si",
-        adminWhatsapp: "6281299887766"
-      });
+      useEffect(() => {
+        localStorage.setItem('panua_branding', JSON.stringify(appBranding));
+      }, [appBranding]);
 
-      // Google Apps Script (GAS) Backend Configuration
-      const [gasConfig, setGasConfig] = useState({
-        webAppUrl: "",
-        connected: false,
-        lastSync: null
+      const [brandingDraft, setBrandingDraft] = useState({ ...appBranding });
+
+      // 3. PERSISTENT GAS BACKEND URL
+      const [gasConfig, setGasConfig] = useState(() => {
+        const url = localStorage.getItem('panua_gas_url') || localStorage.getItem('pch_gas_url') || "";
+        return {
+          webAppUrl: url,
+          connected: !!url,
+          lastSync: url ? "Tersambung" : null
+        };
       });
       const [showGasModal, setShowGasModal] = useState(false);
 
-      // Feature States
-      const [groups, setGroups] = useState(initialGroups);
-      const [selectedCategory, setSelectedCategory] = useState("Semua");
-      const [searchQuery, setSearchQuery] = useState("");
+      // 4. PERSISTENT ACTIVE REDEEM CODES (60-DETIK VALIDASI)
+      const [activeRedeemCodes, setActiveRedeemCodes] = useState(() => {
+        try {
+          const saved = localStorage.getItem('panua_shared_redeem_codes');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            const now = Date.now();
+            return parsed.filter(c => now < c.expiresAt);
+          }
+        } catch (e) {}
+        return [];
+      });
 
-      // Dedicated Meeting Engine State (Isolated from GAS)
-      const [meetings, setMeetings] = useState(initialMeetings);
-      const [activeJitsiRoom, setActiveJitsiRoom] = useState(null);
-
-      // --- MY SECURE VAULT (MENU-LEVEL REDEEM CODE ACCESS & MASTER DOSSIER) ---
-      const [vaultUnlocked, setVaultUnlocked] = useState(false);
-      const [vaultRedeemInput, setVaultRedeemInput] = useState("");
-      
-      // Active Valid Redeem Codes Database (Masa Aktif 60 Detik)
-      const [activeRedeemCodes, setActiveRedeemCodes] = useState([]);
       const [currentTime, setCurrentTime] = useState(Date.now());
 
-      // Interval 1 Detik: Countdown Realtime & Auto-Delete Kode Kadaluwarsa (>60 Detik)
+      // 1-Second Interval: Countdown and automatic expiration
       useEffect(() => {
         const interval = setInterval(() => {
           const now = Date.now();
           setCurrentTime(now);
-          setActiveRedeemCodes(prev => prev.filter(c => now < c.expiresAt));
+          setActiveRedeemCodes(prev => {
+            const filtered = prev.filter(c => now < c.expiresAt);
+            if (filtered.length !== prev.length) {
+              localStorage.setItem('panua_shared_redeem_codes', JSON.stringify(filtered));
+            }
+            return filtered;
+          });
         }, 1000);
         return () => clearInterval(interval);
       }, []);
 
-      // Complete Member Dossier Data (Starts clean for logged in user)
-      const [memberDossier, setMemberDossier] = useState({
-        namaLengkap: "",
-        email: "",
-        noHp: "",
-        usernamePi: "",
-        ttl: "",
-        nik: "",
-        alamatLengkap: "",
-        namaRekening: "",
-        noRekening: "",
-        walletPi: "",
-        walletOkx: "",
-        fotoKtp: null,
-        fotoKk: null,
-        fotoNpwp: null,
-        pasfoto: null,
-        kartuKeanggotaan: null,
-        extraDocs: [],
-        isSavedToAdmin: false,
-        lastSynced: "Belum tersinkronisasi"
+      // My Secure Vault Status
+      const [vaultUnlocked, setVaultUnlocked] = useState(false);
+      const [vaultRedeemInput, setVaultRedeemInput] = useState("");
+      const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+
+      // 5. PERSISTENT 15-BERKAS DOSSIER ANGGOTA
+      const [memberDossier, setMemberDossier] = useState(() => {
+        try {
+          const saved = localStorage.getItem('panua_user_dossier');
+          if (saved) return JSON.parse(saved);
+        } catch (e) {}
+        return {
+          namaLengkap: "",
+          email: "",
+          noHp: "",
+          usernamePi: "",
+          ttl: "",
+          nik: "",
+          alamatLengkap: "",
+          namaRekening: "",
+          noRekening: "",
+          walletPi: "",
+          walletOkx: "",
+          fotoKtp: null,
+          fotoKk: null,
+          fotoNpwp: null,
+          pasfoto: null,
+          kartuKeanggotaan: null,
+          extraDocs: [],
+          isSavedToAdmin: false,
+          lastSynced: "Belum tersinkronisasi"
+        };
       });
 
-      // Synchronize initial member dossier when user logs in or updates profile
       useEffect(() => {
-        if (user) {
+        if (user && !memberDossier.namaLengkap) {
           setMemberDossier(prev => ({
             ...prev,
-            namaLengkap: prev.namaLengkap || user.name || "",
-            email: prev.email || user.email || "",
-            noHp: prev.noHp || user.phone || ""
+            namaLengkap: user.name || "",
+            email: user.email || "",
+            noHp: user.phone || ""
           }));
         }
       }, [user]);
 
-      // State for adding a new custom document
+      useEffect(() => {
+        localStorage.setItem('panua_user_dossier', JSON.stringify(memberDossier));
+      }, [memberDossier]);
+
       const [newExtraDocTitle, setNewExtraDocTitle] = useState("");
       const [newExtraDocFile, setNewExtraDocFile] = useState(null);
 
-      // Admin State: All member dossiers stored in Drive (Starts clean)
-      const [submittedDossiers, setSubmittedDossiers] = useState([]);
+      // Admin Submitted Dossiers (Persisted)
+      const [submittedDossiers, setSubmittedDossiers] = useState(() => {
+        try {
+          const saved = localStorage.getItem('panua_submitted_dossiers');
+          if (saved) return JSON.parse(saved);
+        } catch (e) {}
+        return [];
+      });
 
-      // Admin Form to Generate New Redeem Code
+      useEffect(() => {
+        localStorage.setItem('panua_submitted_dossiers', JSON.stringify(submittedDossiers));
+      }, [submittedDossiers]);
+
+      // Admin Code Generator Form
       const [newCodeTarget, setNewCodeTarget] = useState("all");
       const [newCodeCustom, setNewCodeCustom] = useState("");
       const [newCodeNote, setNewCodeNote] = useState("");
 
-      const [chatMessages, setChatMessages] = useState(initialMessages);
+      // Chat Messages (Persisted)
+      const [chatMessages, setChatMessages] = useState(() => {
+        try {
+          const saved = localStorage.getItem('panua_chat_messages');
+          if (saved) return JSON.parse(saved);
+        } catch (e) {}
+        return [
+          {
+            id: "m-init",
+            sender: "Panua Bot",
+            avatar: "PC",
+            isMe: false,
+            text: "Selamat datang di Forum Koordinasi Panua Community Gorontalo! Ruang komunikasi resmi pionir.",
+            time: "08:00",
+            replyTo: null
+          }
+        ];
+      });
+
+      useEffect(() => {
+        localStorage.setItem('panua_chat_messages', JSON.stringify(chatMessages));
+      }, [chatMessages]);
+
       const [chatInput, setChatInput] = useState("");
       const [replyingTo, setReplyingTo] = useState(null);
 
-      // Toast & Dialog System
+      // Meetings (Isolated Jitsi)
+      const [meetings, setMeetings] = useState([
+        {
+          id: "meet-1",
+          title: "Koordinasi Rutin Pionir Panua Gorontalo",
+          host: "Koordinator Wilayah",
+          date: "Hari Ini, 20:00 WITA",
+          duration: "60 Menit",
+          room: "PanuaCommunity-Gorontalo-RapatUtama",
+          status: "Berlangsung"
+        }
+      ]);
+      const [activeJitsiRoom, setActiveJitsiRoom] = useState(null);
+
+      // Groups
+      const [groups, setGroups] = useState([
+        { id: "g1", name: "Forum Resmi Panua Community Gorontalo", category: "Umum", memberCount: 128, isOfficial: true, joined: true, description: "Grup koordinasi utama untuk seluruh anggota pionir Panua Gorontalo." },
+        { id: "g2", name: "Edukasi & Node Validator Gorontalo", category: "Edukasi", memberCount: 42, isOfficial: true, joined: false, description: "Diskusi teknis persiapan node validator, utilitas lokal, dan integrasi ekosistem." },
+        { id: "g3", name: "UMKM & Bisnis Kolaborasi Panua", category: "Bisnis", memberCount: 65, isOfficial: false, joined: false, description: "Pemberdayaan merchant dan barter barang jasa lokal sesama perintis Gorontalo." }
+      ]);
+      const [selectedCategory, setSelectedCategory] = useState("Semua");
+      const [searchQuery, setSearchQuery] = useState("");
+
+      // Toast & Dialog
       const [toast, setToast] = useState(null);
       const [confirmDialog, setConfirmDialog] = useState(null);
       const triggerToast = (msg, type = "success") => {
@@ -681,10 +588,9 @@ function responseJSON(obj) {
       };
 
       // --- AUTHENTICATION HANDLERS ---
-      // 1. Process Login
       const handleLoginSubmit = (e) => {
         e.preventDefault();
-        const idTrim = loginIdentifier.trim();
+        const idTrim = loginIdentifier.trim().toLowerCase();
         const pass = loginPassword;
 
         if (!idTrim || !pass) {
@@ -692,32 +598,31 @@ function responseJSON(obj) {
           return;
         }
 
-        // Direct check for predefined Master Admin credentials (Welcome / H@sdayazid1980)
-        if ((idTrim.toLowerCase() === "welcome" || idTrim.toLowerCase() === "admin@pch.org") && pass === "H@sdayazid1980") {
+        // Direct Master Admin check
+        if ((idTrim === "welcome" || idTrim === "admin@panua.org") && pass === "H@sdayazid1980") {
           const adminUser = {
             id: "usr-admin",
-            email: "admin@pch.org",
+            email: "admin@panua.org",
             name: "Administrator Utama",
             username: "Welcome",
             phone: appBranding.adminWhatsapp,
             role: "admin",
-            bio: "Administrator pusat PI COMMUNITY HUB.",
+            bio: "Administrator pusat PANUA COMMUNITY Gorontalo.",
             publicWallet: "",
             showEmail: true,
-            avatar: "AD",
+            avatar: "PC",
             avatarUrl: ""
           };
           setUser(adminUser);
           setIsAuthenticated(true);
           setLoginPassword("");
-          setVaultUnlocked(true); // Admin has immediate vault access
-          triggerToast("Berhasil masuk sebagai Administrator Utama!", "success");
+          setVaultUnlocked(true);
+          triggerToast("Selamat datang Administrator Utama Panua Community!", "success");
           return;
         }
 
-        // Match against registered users
         const matched = registeredUsers.find(u => 
-          (u.email.toLowerCase() === idTrim.toLowerCase() || u.username.toLowerCase() === idTrim.toLowerCase()) &&
+          (u.email.toLowerCase() === idTrim || u.username.toLowerCase() === idTrim) &&
           u.password === pass
         );
 
@@ -732,7 +637,6 @@ function responseJSON(obj) {
         }
       };
 
-      // 2. Process Registration with Phone Number
       const handleRegisterSubmit = (e) => {
         e.preventDefault();
         if (!regName.trim() || !regUsername.trim() || !regEmail.trim() || !regPhone.trim() || !regPassword) {
@@ -775,21 +679,23 @@ function responseJSON(obj) {
           id: "usr-" + Date.now(),
           email: regEmail.trim(),
           name: regName.trim(),
-          username: regUsername.trim().replace(/\s+/g, '_'),
+          username: regUsername.trim().replace(/\s+/g, '_').toLowerCase(),
           phone: regPhone.trim(),
           password: regPassword,
           role: "member",
-          bio: "Anggota komunitas terverifikasi.",
+          bio: "Anggota resmi Panua Community Gorontalo.",
           publicWallet: "",
           showEmail: false,
-          avatar: regName.trim().slice(0, 2).toUpperCase(),
+          avatar: "PC",
           avatarUrl: ""
         };
 
-        setRegisteredUsers(prev => [...prev, newUser]);
+        const updatedList = [...registeredUsers, newUser];
+        setRegisteredUsers(updatedList);
         setUser(newUser);
         setIsAuthenticated(true);
         setVaultUnlocked(false);
+
         setRegName("");
         setRegUsername("");
         setRegEmail("");
@@ -797,10 +703,20 @@ function responseJSON(obj) {
         setRegPassword("");
         setRegConfirmPassword("");
         setRegAgreed(false);
-        triggerToast("Akun Anda berhasil didaftarkan! Selamat datang di komunitas.", "success");
+
+        triggerToast("Pendaftaran berhasil! Akun Anda aktif di Panua Community.", "success");
+
+        if (gasConfig.connected && gasConfig.webAppUrl) {
+          fetch(gasConfig.webAppUrl, {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'registerUser',
+              user: newUser
+            })
+          }).catch(e => console.log('Sync note:', e));
+        }
       };
 
-      // 3. Process Forgot Password
       const handleForgotSubmit = (e) => {
         e.preventDefault();
         if (!forgotEmail.trim()) {
@@ -811,141 +727,171 @@ function responseJSON(obj) {
         triggerToast("Instruksi pemulihan kata sandi telah dikirimkan ke email Anda.");
       };
 
-      // 4. Handle Logout Session
       const handleLogoutSession = () => {
         setConfirmDialog({
           title: "Konfirmasi Keluar Sesi",
-          message: "Apakah Anda yakin ingin keluar dari akun Anda?",
+          message: "Apakah Anda yakin ingin keluar dari akun Panua Community Anda?",
           onConfirm: () => {
             setIsAuthenticated(false);
             setUser(null);
             setLoginPassword("");
             setActiveTab("dashboard");
+            setVaultUnlocked(false);
             setConfirmDialog(null);
             triggerToast("Anda telah keluar dari sesi aplikasi.", "warning");
           }
         });
       };
 
-      // Handle Profile Photo Upload by Member
       const handleProfilePhotoUpload = (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
         if (file.size > 2 * 1024 * 1024) {
-          triggerToast("Ukuran foto profil maksimal 2MB!", "danger");
+          triggerToast("Ukuran foto maksimal 2MB!", "danger");
           return;
         }
 
         const reader = new FileReader();
         reader.onload = (event) => {
           const base64Data = event.target.result;
-          setUser(prev => ({
-            ...prev,
-            avatarUrl: base64Data
-          }));
-          triggerToast("Foto profil berhasil diperbarui!");
+          setUser(prev => {
+            const updated = { ...prev, avatarUrl: base64Data };
+            setRegisteredUsers(users => users.map(u => u.id === prev.id ? updated : u));
+            return updated;
+          });
+          triggerToast("Foto profil Panua Community Anda berhasil diperbarui!");
         };
         reader.readAsDataURL(file);
       };
 
-      // --- VAULT ACCESS CODE VALIDATION ---
-      const handleUnlockVault = (e) => {
+      // --- REDEEM CODE VERIFICATION (DUAL-PIPELINE SYNC) ---
+      const handleUnlockVault = async (e) => {
         e.preventDefault();
         const codeTrim = vaultRedeemInput.trim().toUpperCase();
         if (!codeTrim) {
-          triggerToast("Masukkan Token Akses Privat atau Redeem Code!", "warning");
+          triggerToast("Masukkan Redeem Code / Token Akses!", "warning");
           return;
         }
 
-        if (user.role === "admin") {
+        if (user?.role === "admin") {
           setVaultUnlocked(true);
           setVaultRedeemInput("");
           triggerToast("Akses Brankas Diterima (Super Admin)!", "success");
           return;
         }
 
+        setIsVerifyingCode(true);
         const now = Date.now();
-        const found = activeRedeemCodes.find(c => 
-          c.code.toUpperCase() === codeTrim && 
-          (c.userTarget === "all" || c.userTarget.toLowerCase() === user.username.toLowerCase())
-        );
 
-        if (!found) {
-          triggerToast("Redeem Code tidak valid atau sudah kedaluwarsa (> 60 detik)! Minta kode baru ke Admin.", "danger");
+        // 1. Check shared persistent storage
+        let localValid = false;
+        try {
+          const savedShared = localStorage.getItem('panua_shared_redeem_codes');
+          const codesList = savedShared ? JSON.parse(savedShared) : activeRedeemCodes;
+          const found = codesList.find(c => 
+            c.code.toUpperCase() === codeTrim && 
+            (c.userTarget === "all" || c.userTarget.toLowerCase() === user.username.toLowerCase())
+          );
+          if (found && now < found.expiresAt + 5000) {
+            localValid = true;
+          }
+        } catch (err) {}
+
+        if (localValid) {
+          setIsVerifyingCode(false);
+          setVaultUnlocked(true);
+          setVaultRedeemInput("");
+          triggerToast("Akses Brankas Berhasil Diverifikasi! Selamat datang di My Secure Vault.", "success");
           return;
         }
 
-        if (now > found.expiresAt) {
-          triggerToast("Redeem Code sudah KEDALUWARSA (> 60 detik)! Minta kode akses baru ke Admin.", "danger");
-          setActiveRedeemCodes(prev => prev.filter(c => c.code !== found.code));
-          return;
+        // 2. Cloud Verification via GAS Endpoint
+        if (gasConfig.connected && gasConfig.webAppUrl) {
+          try {
+            triggerToast("Memverifikasi kode ke server Google Apps Script...", "warning");
+            const verifyUrl = `${gasConfig.webAppUrl}?action=verifyRedeemCode&code=${encodeURIComponent(codeTrim)}&username=${encodeURIComponent(user.username)}`;
+            const response = await fetch(verifyUrl);
+            const data = await response.json();
+
+            setIsVerifyingCode(false);
+            if (data.status === "ok" && data.valid) {
+              setVaultUnlocked(true);
+              setVaultRedeemInput("");
+              triggerToast(`Kode Valid! Sisa waktu: ${data.remainingSeconds || 60} detik. Brankas Terbuka.`, "success");
+              return;
+            } else if (data.status === "expired") {
+              triggerToast(data.message || "Redeem Code sudah kedaluwarsa (> 60 detik). Minta kode baru ke Admin.", "danger");
+              return;
+            } else {
+              triggerToast("Redeem Code tidak valid atau target username tidak sesuai! Hubungi Admin.", "danger");
+              return;
+            }
+          } catch (err) {
+            console.log("Cloud verification error:", err);
+          }
         }
 
-        setVaultUnlocked(true);
-        setVaultRedeemInput("");
-        triggerToast("Akses Brankas Berhasil Diverifikasi! Selamat datang di My Secure Vault.", "success");
+        setIsVerifyingCode(false);
+        triggerToast("Redeem Code tidak valid atau sudah kedaluwarsa (> 60 detik)! Minta kode baru ke Admin via WA.", "danger");
       };
 
-      // Request Redeem Code from Admin via WhatsApp
       const handleRequestCodeViaWhatsapp = () => {
         const adminNumber = appBranding.adminWhatsapp.replace(/\D/g, '');
-        const message = `Halo Admin ${appBranding.title},\n\nSaya ingin meminta Kode Akses / Redeem Code untuk membuka menu My Secure Vault:\nNama: ${user.name}\nUsername: ${user.username}\nEmail: ${user.email}\nNo HP: ${user.phone || '-'}\n\nMohon bantuannya untuk verifikasi. Terima kasih!`;
+        const message = `Halo Admin ${appBranding.title} (Gorontalo),\n\nSaya ingin meminta Kode Akses / Redeem Code 60 Detik untuk membuka menu My Secure Vault:\nNama: ${user.name}\nUsername: ${user.username}\nEmail: ${user.email}\nNo HP: ${user.phone || '-'}\n\nMohon buatkan kode akses 1 menit. Terima kasih!`;
         const waUrl = `https://wa.me/${adminNumber}?text=${encodeURIComponent(message)}`;
         window.open(waUrl, '_blank');
         triggerToast("Membuka WhatsApp untuk mengirim permohonan ke Admin...");
       };
 
-      // Admin Send Documents / Redeem Code to User via WhatsApp
       const handleAdminSendDossierViaWA = (dossier, codeToSend = "") => {
         if (!dossier.noHp) {
           triggerToast("Nomor HP anggota tidak tersedia!", "warning");
           return;
         }
         const cleanNumber = dossier.noHp.replace(/\D/g, '').replace(/^0/, '62');
-        let text = `Halo Sdr/i ${dossier.namaLengkap},\n\nAdmin ${appBranding.title} menginformasikan mengenai arsip My Secure Vault Anda:\n• Status Dokumen: Tersimpan aman di Drive Admin\n• NIK: ${dossier.nik}\n• Username Pi: ${dossier.usernamePi}\n• Rekening: ${dossier.rekening}\n`;
+        let text = `Halo Sdr/i ${dossier.namaLengkap},\n\nAdmin ${appBranding.title} (Gorontalo) menyampaikan informasi arsip brankas Anda:\n• Status Dokumen: Tersimpan aman di Drive Admin\n• NIK: ${dossier.nik}\n• Username Pi: ${dossier.usernamePi}\n• Rekening: ${dossier.rekening}\n`;
         if (codeToSend) {
-          text += `\n🔑 KODE AKSES / REDEEM CODE BRANKAS ANDA (BERLAKU 60 DETIK):\n👉 *${codeToSend}*\n⚠️ *PENTING:* Kode ini hanya aktif selama 1 menit (60 detik) sejak dibuat. Harap segera masukkan di aplikasi untuk membuka My Secure Vault.\n`;
+          text += `\n🔑 KODE AKSES / REDEEM CODE BRANKAS (BERLAKU 60 DETIK):\n👉 *${codeToSend}*\n⚠️ *PENTING:* Kode ini aktif selama tepat 60 detik. Harap segera masukkan di aplikasi untuk membuka My Secure Vault.\n`;
         } else {
           text += `\n⚠️ Belum ada kode aktif. Silakan minta admin membuatkan kode akses 60 detik baru.\n`;
         }
-        text += `\nUntuk unduhan berkas fisik, Anda dapat mengunduhnya langsung dari brankas aplikasi setelah dibuka. Salam Komunitas!`;
+        text += `\nSalam Komunitas Panua Pi Network Gorontalo!`;
 
         const waUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(text)}`;
         window.open(waUrl, '_blank');
         triggerToast(`Membuka WhatsApp ke ${dossier.namaLengkap}...`);
       };
 
-      // Member Save & Sync Entire Dossier to Admin Google Drive
       const handleSaveAndSendDossierToAdmin = () => {
-        setMemberDossier(prev => ({
-          ...prev,
+        const updatedDossier = {
+          ...memberDossier,
           isSavedToAdmin: true,
-          lastSynced: new Date().toLocaleDateString('id-ID') + ", " + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " WIB"
-        }));
+          lastSynced: new Date().toLocaleDateString('id-ID') + ", " + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " WITA"
+        };
+        setMemberDossier(updatedDossier);
+
+        const newRecord = {
+          id: "dos-" + Date.now(),
+          userId: user.id,
+          username: user.username,
+          namaLengkap: updatedDossier.namaLengkap,
+          email: updatedDossier.email,
+          noHp: updatedDossier.noHp,
+          usernamePi: updatedDossier.usernamePi,
+          ttl: updatedDossier.ttl,
+          nik: updatedDossier.nik,
+          rekening: updatedDossier.noRekening,
+          walletPi: updatedDossier.walletPi,
+          walletOkx: updatedDossier.walletOkx,
+          docsCount: 5 + (updatedDossier.extraDocs ? updatedDossier.extraDocs.length : 0),
+          status: "Tersimpan di Google Drive Admin",
+          lastUpdate: "Hari ini"
+        };
 
         setSubmittedDossiers(prev => {
           const filtered = prev.filter(d => d.userId !== user.id);
-          return [
-            ...filtered,
-            {
-              id: "dos-" + Date.now(),
-              userId: user.id,
-              username: user.username,
-              namaLengkap: memberDossier.namaLengkap,
-              email: memberDossier.email,
-              noHp: memberDossier.noHp,
-              usernamePi: memberDossier.usernamePi,
-              ttl: memberDossier.ttl,
-              nik: memberDossier.nik,
-              rekening: memberDossier.noRekening,
-              walletPi: memberDossier.walletPi,
-              walletOkx: memberDossier.walletOkx,
-              docsCount: 5 + memberDossier.extraDocs.length,
-              status: "Tersimpan di Google Drive Admin",
-              lastUpdate: "Hari ini"
-            }
-          ];
+          return [newRecord, ...filtered];
         });
 
         if (gasConfig.connected && gasConfig.webAppUrl) {
@@ -955,15 +901,14 @@ function responseJSON(obj) {
               action: 'saveMemberDossier',
               userId: user.id,
               username: user.username,
-              dossier: memberDossier
+              dossier: updatedDossier
             })
           }).catch(err => console.log('GAS sync note:', err));
         }
 
-        triggerToast("Seluruh identitas dan berkas berhasil disimpan & dikirim ke Google Drive Admin!");
+        triggerToast("15 Berkas & Identitas Panua Community berhasil disimpan & dikirim ke Drive Admin!");
       };
 
-      // Add Custom Extra Document
       const handleAddExtraDocument = (e) => {
         e.preventDefault();
         if (!newExtraDocTitle.trim() || !newExtraDocFile) {
@@ -981,30 +926,33 @@ function responseJSON(obj) {
 
         setMemberDossier(prev => ({
           ...prev,
-          extraDocs: [...prev.extraDocs, newDoc]
+          extraDocs: [...(prev.extraDocs || []), newDoc]
         }));
         setNewExtraDocTitle("");
         setNewExtraDocFile(null);
-        triggerToast(`Dokumen "${newDoc.title}" berhasil ditambahkan ke brankas!`);
+        triggerToast(`Dokumen "${newDoc.title}" ditambahkan ke brankas!`);
       };
 
-      // Admin Generate Redeem Code (Aktif Selama 60 Detik / 1 Menit Saja)
       const handleAdminCreateRedeemCode = (e) => {
         e.preventDefault();
-        const code = newCodeCustom.trim().toUpperCase() || "PCH-" + Math.floor(100000 + Math.random() * 900000);
+        const code = newCodeCustom.trim().toUpperCase() || "PANUA-" + Math.floor(100000 + Math.random() * 900000);
         const now = Date.now();
         const newEntry = {
           code: code,
           userTarget: newCodeTarget,
           createdBy: user.username,
-          note: newCodeNote.trim() || "Akses 60 Detik",
+          note: newCodeNote.trim() || "Akses Brankas 60 Detik",
           createdAt: now,
-          expiresAt: now + 60000 // Validitas tepat 60 detik (1 menit)
+          expiresAt: now + 60000
         };
-        setActiveRedeemCodes(prev => [newEntry, ...prev.filter(c => now < c.expiresAt)]);
+
+        const updated = [newEntry, ...activeRedeemCodes.filter(c => now < c.expiresAt)];
+        setActiveRedeemCodes(updated);
+        localStorage.setItem('panua_shared_redeem_codes', JSON.stringify(updated));
+
         setNewCodeCustom("");
         setNewCodeNote("");
-        triggerToast(`Redeem Code [${code}] berhasil diterbitkan! Aktif selama 60 detik untuk: ${newCodeTarget}!`, "success");
+        triggerToast(`Redeem Code [${code}] aktif 60 detik untuk: ${newCodeTarget}!`, "success");
 
         if (gasConfig.connected && gasConfig.webAppUrl) {
           fetch(gasConfig.webAppUrl, {
@@ -1015,43 +963,28 @@ function responseJSON(obj) {
               userTarget: newEntry.userTarget,
               actor: newEntry.createdBy,
               note: newEntry.note,
-              createdAt: new Date(now).toISOString(),
-              expiresAt: new Date(newEntry.expiresAt).toISOString()
+              createdAtMs: now
             })
           }).catch(err => console.log('GAS sync note:', err));
         }
       };
 
-      // Connect Google Apps Script Web App Endpoint
-      const handleSaveGasConfig = async (url) => {
+      const handleSaveGasConfig = (url) => {
         if (!url || !url.startsWith("https://script.google.com/macros/s/")) {
-          triggerToast("Masukkan URL Web App Google Apps Script yang valid (https://script.google.com/...)", "danger");
+          triggerToast("Masukkan URL Web App Google Apps Script yang valid!", "danger");
           return;
         }
 
-        try {
-          triggerToast("Menghubungkan ke Google Apps Script Web App...", "warning");
-          setGasConfig({
-            webAppUrl: url,
-            connected: true,
-            lastSync: new Date().toLocaleTimeString()
-          });
-          setDemoMode(false);
-          setShowGasModal(false);
-          triggerToast("Sukses terhubung ke Google Apps Script Backend (Drive Vault & Sheets DB)!");
-        } catch (e) {
-          setGasConfig({
-            webAppUrl: url,
-            connected: true,
-            lastSync: new Date().toLocaleTimeString()
-          });
-          setDemoMode(false);
-          setShowGasModal(false);
-          triggerToast("Endpoint GAS terpasang! Data tersimpan via Google Apps Script.", "success");
-        }
+        localStorage.setItem('panua_gas_url', url);
+        setGasConfig({
+          webAppUrl: url,
+          connected: true,
+          lastSync: new Date().toLocaleTimeString()
+        });
+        setShowGasModal(false);
+        triggerToast("Sukses terhubung ke Backend Google Apps Script Panua Community!");
       };
 
-      // Admin Save App Branding Settings
       const handleSaveBranding = () => {
         if (!brandingDraft.title.trim()) {
           triggerToast("Nama judul aplikasi tidak boleh kosong!", "danger");
@@ -1071,46 +1004,24 @@ function responseJSON(obj) {
           }).catch(err => console.log('GAS sync note:', err));
         }
 
-        triggerToast("Branding & identitas aplikasi berhasil diperbarui oleh Admin!");
+        triggerToast("Identitas & Branding Panua Community berhasil diperbarui!");
       };
 
-      // Handle Custom Logo File Upload by Admin
-      const handleLogoFileUpload = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        if (file.size > 2 * 1024 * 1024) {
-          triggerToast("Ukuran logo maksimal 2MB!", "danger");
-          return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = (uploadEvent) => {
-          const base64Data = uploadEvent.target.result;
-          setBrandingDraft(prev => ({
-            ...prev,
-            logoType: "custom",
-            customLogoUrl: base64Data
-          }));
-          triggerToast("Pratinjau logo baru siap disimpan!");
-        };
-        reader.readAsDataURL(file);
-      };
-
-      // Send Message
       const handleSendMessage = (e) => {
         e.preventDefault();
         if (!chatInput.trim()) return;
         const newMsg = {
           id: "m-" + Date.now(),
-          sender: "Anda",
-          avatar: "A",
+          sender: user.name,
+          avatar: "PC",
           isMe: true,
           text: chatInput.trim(),
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           replyTo: replyingTo ? replyingTo.text.slice(0, 35) + "..." : null
         };
-        setChatMessages(prev => [...prev, newMsg]);
+
+        const updated = [...chatMessages, newMsg];
+        setChatMessages(updated);
         setChatInput("");
         setReplyingTo(null);
 
@@ -1128,7 +1039,6 @@ function responseJSON(obj) {
         }
       };
 
-      // Handle Category Filter for Groups
       const filteredGroups = useMemo(() => {
         return groups.filter(g => {
           const matchCat = selectedCategory === "Semua" || g.category === selectedCategory;
@@ -1140,7 +1050,7 @@ function responseJSON(obj) {
       return (
         <div className="min-h-screen flex flex-col bg-pch-bg text-pch-text pb-20 md:pb-0">
           
-          {/* TOAST POPUP NOTIFICATION */}
+          {/* TOAST POPUP */}
           {toast && (
             <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-card-elevated border transition-all duration-300 ${
               toast.type === "danger" 
@@ -1149,21 +1059,19 @@ function responseJSON(obj) {
                 ? "bg-amber-950/90 border-pch-warning text-amber-200"
                 : "bg-pch-surface border-pch-gold text-pch-goldLight"
             }`}>
-              <Icons.ShieldAlert className="w-5 h-5 shrink-0" />
+              <Icons.Shield className="w-5 h-5 shrink-0" />
               <span className="text-sm font-medium">{toast.msg}</span>
               <button onClick={() => setToast(null)} className="ml-2 hover:opacity-75"><Icons.X className="w-4 h-4" /></button>
             </div>
           )}
 
-          {/* TOP GLOBAL MANDATORY DISCLAIMER BAR */}
+          {/* TOP DISCLAIMER */}
           <div className="bg-pch-secondary/90 border-b border-pch-border/60 px-4 py-1.5 text-xs text-center text-pch-muted flex items-center justify-center gap-2">
             <span className="inline-block w-2 h-2 rounded-full bg-pch-gold animate-pulse"></span>
-            <span><strong>Independent Community Platform</strong> — Not Officially Affiliated with Pi Network. Lindungi selalu keamanan akun Anda.</span>
+            <span><strong>PANUA COMMUNITY GORONTALO</strong> — Independent Community Platform. Not Officially Affiliated with Pi Network.</span>
           </div>
 
-          {/* ============================================================== */}
-          {/* 1. AUTHENTICATION PORTAL (LOGIN / REGISTER / FORGOT PASSWORD) */}
-          {/* ============================================================== */}
+          {/* ==================== AUTHENTICATION PORTAL ==================== */}
           {!isAuthenticated ? (
             <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8 relative">
               <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-pch-purple/15 rounded-full blur-3xl pointer-events-none"></div>
@@ -1171,7 +1079,7 @@ function responseJSON(obj) {
 
               <div className="relative z-10 w-full max-w-md bg-pch-surface/95 backdrop-blur-md border border-pch-border/90 rounded-2xl p-6 sm:p-8 shadow-card-elevated space-y-6">
                 
-                {/* Brand Header */}
+                {/* Official Circular Panua Community Header */}
                 <div className="flex flex-col items-center text-center space-y-2">
                   <BrandLogo config={appBranding} size="lg" />
                   <div>
@@ -1182,7 +1090,7 @@ function responseJSON(obj) {
                   </div>
                 </div>
 
-                {/* Mode Selector Tabs (Login vs Register) */}
+                {/* Login / Register Toggle */}
                 {authView !== "forgot" && (
                   <div className="grid grid-cols-2 p-1 rounded-xl bg-pch-secondary border border-pch-border">
                     <button
@@ -1210,7 +1118,7 @@ function responseJSON(obj) {
                   </div>
                 )}
 
-                {/* VIEW: LOGIN FORM */}
+                {/* LOGIN FORM */}
                 {authView === "login" && (
                   <form onSubmit={handleLoginSubmit} className="space-y-4">
                     <div>
@@ -1232,9 +1140,7 @@ function responseJSON(obj) {
 
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <label className="text-xs font-semibold text-pch-muted">
-                          Password
-                        </label>
+                        <label className="text-xs font-semibold text-pch-muted">Password</label>
                         <button 
                           type="button"
                           onClick={() => setAuthView("forgot")}
@@ -1256,8 +1162,7 @@ function responseJSON(obj) {
                         <button
                           type="button"
                           onClick={() => setShowLoginPassword(!showLoginPassword)}
-                          className="absolute right-3.5 top-2.5 text-pch-muted hover:text-pch-gold transition-colors focus:outline-none"
-                          title={showLoginPassword ? "Sembunyikan password" : "Lihat password"}
+                          className="absolute right-3.5 top-2.5 text-pch-muted hover:text-pch-gold transition-colors"
                         >
                           {showLoginPassword ? <Icons.EyeOff className="w-4 h-4" /> : <Icons.Eye className="w-4 h-4" />}
                         </button>
@@ -1268,46 +1173,40 @@ function responseJSON(obj) {
                       type="submit"
                       className="w-full py-2.5 rounded-xl bg-pch-gold text-black font-bold text-sm hover:bg-pch-goldLight transition-all shadow-gold-glow flex items-center justify-center gap-2 mt-2"
                     >
-                      <span>Masuk ke Akun</span>
+                      <span>Masuk ke Panua Community</span>
                     </button>
                   </form>
                 )}
 
-                {/* VIEW: REGISTER FORM */}
+                {/* REGISTER FORM */}
                 {authView === "register" && (
                   <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
                     <div>
-                      <label className="text-xs font-semibold text-pch-muted block mb-1">
-                        Nama Lengkap
-                      </label>
+                      <label className="text-xs font-semibold text-pch-muted block mb-1">Nama Lengkap</label>
                       <input 
                         type="text"
                         required
                         value={regName}
                         onChange={(e) => setRegName(e.target.value)}
-                        placeholder="Contoh: Budi Santoso"
+                        placeholder="Contoh: Ismail Mohamad"
                         className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-sm text-pch-text focus:outline-none focus:border-pch-purple"
                       />
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs font-semibold text-pch-muted block mb-1">
-                          Username
-                        </label>
+                        <label className="text-xs font-semibold text-pch-muted block mb-1">Username</label>
                         <input 
                           type="text"
                           required
                           value={regUsername}
                           onChange={(e) => setRegUsername(e.target.value)}
-                          placeholder="budisantoso_01"
+                          placeholder="ismail_panua"
                           className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-sm text-pch-text font-mono focus:outline-none focus:border-pch-purple"
                         />
                       </div>
                       <div>
-                        <label className="text-xs font-semibold text-pch-muted block mb-1">
-                          No HP / WhatsApp
-                        </label>
+                        <label className="text-xs font-semibold text-pch-muted block mb-1">No HP / WhatsApp</label>
                         <input 
                           type="tel"
                           required
@@ -1320,62 +1219,57 @@ function responseJSON(obj) {
                     </div>
 
                     <div>
-                      <label className="text-xs font-semibold text-pch-muted block mb-1">
-                        Email
-                      </label>
+                      <label className="text-xs font-semibold text-pch-muted block mb-1">Email</label>
                       <input 
                         type="email"
                         required
                         value={regEmail}
                         onChange={(e) => setRegEmail(e.target.value)}
-                        placeholder="budi@email.com"
+                        placeholder="ismail@email.com"
                         className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-sm text-pch-text focus:outline-none focus:border-pch-purple"
                       />
                     </div>
 
-                    <div>
-                      <label className="text-xs font-semibold text-pch-muted block mb-1">
-                        Password (Min. 6 Karakter)
-                      </label>
-                      <div className="relative">
-                        <input 
-                          type={showRegPassword ? "text" : "password"}
-                          required
-                          value={regPassword}
-                          onChange={(e) => setRegPassword(e.target.value)}
-                          placeholder="••••••••"
-                          className="w-full bg-pch-secondary border border-pch-border rounded-xl pl-3.5 pr-11 py-2 text-sm text-pch-text font-mono focus:outline-none focus:border-pch-purple"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowRegPassword(!showRegPassword)}
-                          className="absolute right-3.5 top-2 text-pch-muted hover:text-pch-gold transition-colors focus:outline-none"
-                        >
-                          {showRegPassword ? <Icons.EyeOff className="w-4 h-4" /> : <Icons.Eye className="w-4 h-4" />}
-                        </button>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold text-pch-muted block mb-1">Password</label>
+                        <div className="relative">
+                          <input 
+                            type={showRegPassword ? "text" : "password"}
+                            required
+                            value={regPassword}
+                            onChange={(e) => setRegPassword(e.target.value)}
+                            placeholder="••••••"
+                            className="w-full bg-pch-secondary border border-pch-border rounded-xl pl-3.5 pr-9 py-2 text-sm text-pch-text font-mono focus:outline-none focus:border-pch-purple"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowRegPassword(!showRegPassword)}
+                            className="absolute right-2.5 top-2 text-pch-muted hover:text-pch-gold"
+                          >
+                            {showRegPassword ? <Icons.EyeOff className="w-3.5 h-3.5" /> : <Icons.Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-semibold text-pch-muted block mb-1">
-                        Konfirmasi Password
-                      </label>
-                      <div className="relative">
-                        <input 
-                          type={showRegConfirmPassword ? "text" : "password"}
-                          required
-                          value={regConfirmPassword}
-                          onChange={(e) => setRegConfirmPassword(e.target.value)}
-                          placeholder="••••••••"
-                          className="w-full bg-pch-secondary border border-pch-border rounded-xl pl-3.5 pr-11 py-2 text-sm text-pch-text font-mono focus:outline-none focus:border-pch-purple"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
-                          className="absolute right-3.5 top-2 text-pch-muted hover:text-pch-gold transition-colors focus:outline-none"
-                        >
-                          {showRegConfirmPassword ? <Icons.EyeOff className="w-4 h-4" /> : <Icons.Eye className="w-4 h-4" />}
-                        </button>
+                      <div>
+                        <label className="text-xs font-semibold text-pch-muted block mb-1">Konfirmasi</label>
+                        <div className="relative">
+                          <input 
+                            type={showRegConfirmPassword ? "text" : "password"}
+                            required
+                            value={regConfirmPassword}
+                            onChange={(e) => setRegConfirmPassword(e.target.value)}
+                            placeholder="••••••"
+                            className="w-full bg-pch-secondary border border-pch-border rounded-xl pl-3.5 pr-9 py-2 text-sm text-pch-text font-mono focus:outline-none focus:border-pch-purple"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
+                            className="absolute right-2.5 top-2 text-pch-muted hover:text-pch-gold"
+                          >
+                            {showRegConfirmPassword ? <Icons.EyeOff className="w-3.5 h-3.5" /> : <Icons.Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -1387,7 +1281,7 @@ function responseJSON(obj) {
                         className="mt-0.5 rounded accent-pch-gold"
                       />
                       <span className="text-[11px] text-pch-muted leading-tight">
-                        Saya menyetujui Ketentuan Penggunaan, Kebijakan Privasi, dan Protokol Keamanan Independen PCH.
+                        Saya menyetujui Ketentuan Penggunaan, Kebijakan Privasi, dan Protokol Independen Panua Community Gorontalo.
                       </span>
                     </label>
 
@@ -1395,12 +1289,12 @@ function responseJSON(obj) {
                       type="submit"
                       className="w-full py-2.5 rounded-xl bg-pch-purple text-white font-bold text-sm hover:bg-pch-purpleLight transition-all shadow-purple-glow flex items-center justify-center gap-2 mt-1"
                     >
-                      <span>Daftar Akun Anggota</span>
+                      <span>Daftar Akun Anggota Panua</span>
                     </button>
                   </form>
                 )}
 
-                {/* VIEW: FORGOT PASSWORD */}
+                {/* FORGOT PASSWORD FORM */}
                 {authView === "forgot" && (
                   <div className="space-y-4">
                     <button
@@ -1413,9 +1307,9 @@ function responseJSON(obj) {
                     </button>
 
                     <div className="space-y-1">
-                      <h3 className="text-base font-bold text-pch-text">Lupa Password Akun</h3>
+                      <h3 className="text-base font-bold text-pch-text">Pemulihan Password</h3>
                       <p className="text-xs text-pch-muted">
-                        Masukkan alamat email yang terdaftar pada akun Anda. Kami akan mengirimkan instruksi untuk mengatur ulang kata sandi Anda.
+                        Masukkan email Anda untuk menerima instruksi pemulihan akun.
                       </p>
                     </div>
 
@@ -1426,34 +1320,22 @@ function responseJSON(obj) {
                           <span>Tautan Berhasil Dikirim!</span>
                         </div>
                         <p className="text-[11px] text-pch-muted">
-                          Silakan periksa kotak masuk atau spam email <strong>{forgotEmail}</strong> untuk melanjutkan pemulihan akun.
+                          Silakan periksa inbox email <strong>{forgotEmail}</strong> Anda.
                         </p>
-                        <button
-                          type="button"
-                          onClick={() => { setAuthView("login"); setForgotSent(false); }}
-                          className="mt-2 w-full py-2 rounded-lg bg-pch-gold text-black font-semibold text-xs"
-                        >
-                          Masuk Sekarang
-                        </button>
                       </div>
                     ) : (
                       <form onSubmit={handleForgotSubmit} className="space-y-3">
-                        <div>
-                          <label className="text-xs font-semibold text-pch-muted block mb-1">
-                            Email Terdaftar
-                          </label>
-                          <input 
-                            type="email"
-                            required
-                            value={forgotEmail}
-                            onChange={(e) => setForgotEmail(e.target.value)}
-                            placeholder="budi@email.com"
-                            className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-sm text-pch-text focus:outline-none focus:border-pch-purple"
-                          />
-                        </div>
+                        <input 
+                          type="email"
+                          required
+                          value={forgotEmail}
+                          onChange={(e) => setForgotEmail(e.target.value)}
+                          placeholder="emailanda@gmail.com"
+                          className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-sm text-pch-text focus:outline-none focus:border-pch-purple"
+                        />
                         <button
                           type="submit"
-                          className="w-full py-2.5 rounded-xl bg-pch-gold text-black font-bold text-sm hover:bg-pch-goldLight transition-all shadow-gold-glow"
+                          className="w-full py-2.5 rounded-xl bg-pch-gold text-black font-bold text-sm hover:bg-pch-goldLight shadow-gold-glow"
                         >
                           Kirim Instruksi Pemulihan
                         </button>
@@ -1465,30 +1347,27 @@ function responseJSON(obj) {
               </div>
             </div>
           ) : (
-            /* ============================================================== */
-            /* 2. AUTHENTICATED APP SHELL & NAVIGATION                        */
-            /* ============================================================== */
+            /* ==================== MAIN APPLICATION SHELL ==================== */
             <div className="flex-1 flex flex-col md:flex-row">
               {/* DESKTOP SIDEBAR */}
               <aside className="hidden md:flex flex-col w-64 border-r border-pch-border bg-pch-secondary/80 p-4 space-y-6">
-                <div className="flex items-center gap-3 px-2">
+                <div className="flex items-center gap-3 px-1">
                   <BrandLogo config={appBranding} size="md" />
                   <div className="truncate">
-                    <h1 className="font-bold text-sm gold-gradient-text uppercase truncate">{appBranding.title}</h1>
-                    <p className="text-[10px] text-pch-muted truncate">{appBranding.tagline}</p>
+                    <h1 className="font-bold text-xs gold-gradient-text uppercase truncate">{appBranding.title}</h1>
+                    <p className="text-[9px] text-pch-muted truncate">{appBranding.tagline}</p>
                   </div>
                 </div>
 
                 <nav className="flex-1 space-y-1.5">
                   {[
                     { id: "dashboard", label: "Beranda", icon: Icons.Home },
-                    { id: "community", label: "Komunitas", icon: Icons.Users },
-                    { id: "chat", label: "Chat & Pesan", icon: Icons.MessageSquare },
+                    { id: "community", label: "Grup Panua", icon: Icons.Users },
+                    { id: "chat", label: "Chat Forum", icon: Icons.MessageSquare },
                     { id: "meetings", label: "Rapat Online", icon: Icons.Video },
                     { id: "vault", label: "My Secure Vault", icon: Icons.Lock },
                     { id: "profile", label: "Profil Anggota", icon: Icons.User },
-                    ...(user?.role === "admin" ? [{ id: "admin", label: "Admin Console", icon: Icons.Shield }] : []),
-                    { id: "gas-studio", label: "GAS Code.gs Studio", icon: Icons.Cloud }
+                    ...(user?.role === "admin" ? [{ id: "admin", label: "Admin Console", icon: Icons.Shield }] : [])
                   ].map(item => {
                     const Icon = item.icon;
                     const isActive = activeTab === item.id;
@@ -1498,7 +1377,7 @@ function responseJSON(obj) {
                         onClick={() => { setActiveTab(item.id); setActiveJitsiRoom(null); }}
                         className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                           isActive 
-                            ? "bg-pch-gold text-black shadow-gold-glow" 
+                            ? "bg-pch-gold text-black shadow-gold-glow font-bold" 
                             : "text-pch-muted hover:text-pch-text hover:bg-pch-surface"
                         }`}
                       >
@@ -1514,7 +1393,7 @@ function responseJSON(obj) {
                     <UserAvatar user={user} branding={appBranding} size="md" />
                     <div className="truncate text-left flex-1">
                       <p className="text-xs font-bold text-pch-text truncate">{user.name}</p>
-                      <p className="text-[10px] text-pch-muted truncate">@{user.username}</p>
+                      <p className="text-[10px] text-pch-gold truncate font-mono">@{user.username}</p>
                     </div>
                   </div>
                   <button
@@ -1529,16 +1408,16 @@ function responseJSON(obj) {
 
               {/* MAIN CONTENT AREA */}
               <div className="flex-1 flex flex-col min-w-0">
-                {/* TOP HEADER */}
+                {/* HEADER */}
                 <header className="h-14 border-b border-pch-border bg-pch-surface/70 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3 md:hidden">
+                  <div className="flex items-center gap-2.5 md:hidden">
                     <BrandLogo config={appBranding} size="sm" />
-                    <span className="font-bold text-xs gold-gradient-text uppercase truncate max-w-[140px]">{appBranding.title}</span>
+                    <span className="font-bold text-xs gold-gradient-text uppercase truncate max-w-[150px]">{appBranding.title}</span>
                   </div>
 
                   <div className="hidden md:flex items-center gap-2 text-xs text-pch-muted">
                     <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                    <span>GAS Backend: {gasConfig.connected ? "Terkoneksi" : "Siap Terhubung"}</span>
+                    <span>GAS Server: {gasConfig.connected ? "Tersambung (Cloud Active)" : "Lokal Persisten (Ready)"}</span>
                   </div>
 
                   <div className="flex items-center gap-3">
@@ -1560,7 +1439,7 @@ function responseJSON(obj) {
                   </div>
                 </header>
 
-                {/* TAB CONTENTS */}
+                {/* MAIN CONTENT CONTAINER */}
                 <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
                   
                   {/* TAB 1: DASHBOARD */}
@@ -1570,9 +1449,9 @@ function responseJSON(obj) {
                         <div className="flex items-center gap-4">
                           <UserAvatar user={user} branding={appBranding} size="lg" />
                           <div>
-                            <span className="text-[11px] font-bold text-pch-gold uppercase tracking-wider">Dashboard Komunitas</span>
-                            <h2 className="text-xl sm:text-2xl font-bold text-pch-text mt-1">Selamat datang, {user.name}!</h2>
-                            <p className="text-xs text-pch-muted mt-1">Platform Komunitas Independen — Terhubung, Berkolaborasi, dan Bertumbuh Bersama.</p>
+                            <span className="text-[11px] font-bold text-pch-gold uppercase tracking-wider">Dashboard Resmi Komunitas</span>
+                            <h2 className="text-xl sm:text-2xl font-bold text-pch-text mt-1">Halo, {user.name}!</h2>
+                            <p className="text-xs text-pch-muted mt-0.5">Selamat datang di Panua Community — Pi Network Gorontalo - Indonesia.</p>
                           </div>
                         </div>
                         <button 
@@ -1584,35 +1463,37 @@ function responseJSON(obj) {
                         </button>
                       </div>
 
-                      {/* Stats Grid */}
+                      {/* Stat Cards */}
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="p-4 rounded-xl bg-pch-surface border border-pch-border">
                           <span className="text-xs text-pch-muted block">Anggota Terdaftar</span>
                           <span className="text-xl font-bold text-pch-goldLight font-mono">{registeredUsers.length}</span>
                         </div>
                         <div className="p-4 rounded-xl bg-pch-surface border border-pch-border">
-                          <span className="text-xs text-pch-muted block">Grup Aktif</span>
+                          <span className="text-xs text-pch-muted block">Grup Panua Aktif</span>
                           <span className="text-xl font-bold text-pch-purpleLight font-mono">{groups.length}</span>
                         </div>
                         <div className="p-4 rounded-xl bg-pch-surface border border-pch-border">
-                          <span className="text-xs text-pch-muted block">Dokumen Brankas Saya</span>
-                          <span className="text-xl font-bold text-pch-gold font-mono">{memberDossier.extraDocs.length} Tambahan</span>
+                          <span className="text-xs text-pch-muted block">Status Brankas</span>
+                          <span className={`text-xs font-bold block mt-1.5 ${vaultUnlocked ? "text-pch-success" : "text-pch-warning"}`}>
+                            {vaultUnlocked ? "Terbuka (Siap Akses)" : "Terkunci (Perlu Redeem Code)"}
+                          </span>
                         </div>
                         <div className="p-4 rounded-xl bg-pch-surface border border-pch-border">
-                          <span className="text-xs text-pch-muted block">Server Rapat</span>
-                          <span className="text-xs font-bold text-pch-success">Jitsi Dedicated Aktif</span>
+                          <span className="text-xs text-pch-muted block">Konferensi WebRTC</span>
+                          <span className="text-xs font-bold text-pch-success block mt-1.5">Jitsi Server Gorontalo Aktif</span>
                         </div>
                       </div>
 
-                      {/* Quick Actions */}
+                      {/* Quick Navigation Cards */}
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <button 
                           onClick={() => setActiveTab("chat")}
                           className="p-4 rounded-xl bg-pch-secondary border border-pch-border hover:border-pch-purple text-left transition-all group"
                         >
                           <Icons.MessageSquare className="w-6 h-6 text-pch-purple group-hover:scale-110 transition-transform mb-2" />
-                          <h4 className="font-bold text-sm text-pch-text">Forum & Diskusi Pesan</h4>
-                          <p className="text-xs text-pch-muted mt-1">Buka ruang obrolan anggota dan koordinasi komunitas.</p>
+                          <h4 className="font-bold text-sm text-pch-text">Forum Obrolan Pionir</h4>
+                          <p className="text-xs text-pch-muted mt-1">Koordinasi langsung dan pesan publik sesama anggota Panua.</p>
                         </button>
 
                         <button 
@@ -1621,7 +1502,7 @@ function responseJSON(obj) {
                         >
                           <Icons.Video className="w-6 h-6 text-pch-gold group-hover:scale-110 transition-transform mb-2" />
                           <h4 className="font-bold text-sm text-pch-text">Rapat Online Dedicated</h4>
-                          <p className="text-xs text-pch-muted mt-1">Ruang video conference aman, terpisah dari backend GAS.</p>
+                          <p className="text-xs text-pch-muted mt-1">Konferensi video & mikrofon berkecepatan tinggi tanpa membebani GAS.</p>
                         </button>
 
                         <button 
@@ -1629,20 +1510,20 @@ function responseJSON(obj) {
                           className="p-4 rounded-xl bg-pch-secondary border border-pch-border hover:border-pch-purple text-left transition-all group"
                         >
                           <Icons.Users className="w-6 h-6 text-pch-purpleLight group-hover:scale-110 transition-transform mb-2" />
-                          <h4 className="font-bold text-sm text-pch-text">Jelajahi Grup Komunitas</h4>
-                          <p className="text-xs text-pch-muted mt-1">Temukan sub-komunitas edukasi, UMKM, dan node validator.</p>
+                          <h4 className="font-bold text-sm text-pch-text">Grup & Wilayah Panua</h4>
+                          <p className="text-xs text-pch-muted mt-1">Jelajahi sub-komunitas edukasi, UMKM, dan node Gorontalo.</p>
                         </button>
                       </div>
                     </div>
                   )}
 
-                  {/* TAB 2: COMMUNITY */}
+                  {/* TAB 2: COMMUNITY GROUPS */}
                   {activeTab === "community" && (
                     <div className="space-y-6">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
-                          <h2 className="text-xl font-bold text-pch-text">Direktori Grup & Komunitas</h2>
-                          <p className="text-xs text-pch-muted">Temukan ruang koordinasi dan diskusi perintis nusantara.</p>
+                          <h2 className="text-xl font-bold text-pch-text">Direktori Grup Panua Community</h2>
+                          <p className="text-xs text-pch-muted">Wadah interaksi dan kolaborasi pionir Pi Network se-Gorontalo.</p>
                         </div>
                         <div className="relative w-full sm:w-64">
                           <Icons.Search className="w-4 h-4 text-pch-muted absolute left-3 top-3" />
@@ -1656,38 +1537,20 @@ function responseJSON(obj) {
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap gap-2">
-                        {["Semua", "Edukasi", "Bisnis dan Kolaborasi", "Diskusi Ekosistem", "Wilayah"].map(cat => (
-                          <button
-                            key={cat}
-                            onClick={() => setSelectedCategory(cat)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                              selectedCategory === cat 
-                                ? "bg-pch-purple text-white shadow-purple-glow" 
-                                : "bg-pch-secondary border border-pch-border text-pch-muted hover:text-pch-text"
-                            }`}
-                          >
-                            {cat}
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {filteredGroups.map(grp => (
                           <div key={grp.id} className="p-5 rounded-2xl bg-pch-surface border border-pch-border space-y-3">
                             <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <span className="text-[10px] px-2 py-0.5 rounded bg-pch-secondary border border-pch-border text-pch-goldLight font-mono">
-                                  {grp.category}
-                                </span>
-                                <h3 className="font-bold text-base text-pch-text mt-1">{grp.name}</h3>
-                              </div>
+                              <span className="text-[10px] px-2 py-0.5 rounded bg-pch-secondary border border-pch-border text-pch-goldLight font-mono">
+                                {grp.category}
+                              </span>
                               {grp.isOfficial && (
                                 <span className="text-[10px] px-2 py-0.5 rounded bg-amber-950/80 text-pch-gold border border-pch-gold/40">
-                                  Resmi Komunitas
+                                  Resmi Panua
                                 </span>
                               )}
                             </div>
+                            <h3 className="font-bold text-sm text-pch-text">{grp.name}</h3>
                             <p className="text-xs text-pch-muted leading-relaxed">{grp.description}</p>
                             <div className="pt-2 border-t border-pch-border flex items-center justify-between">
                               <span className="text-xs text-pch-muted font-mono">{grp.memberCount} Anggota</span>
@@ -1711,58 +1574,47 @@ function responseJSON(obj) {
                     </div>
                   )}
 
-                  {/* TAB 3: CHAT */}
+                  {/* TAB 3: CHAT FORUM */}
                   {activeTab === "chat" && (
                     <div className="p-4 sm:p-6 rounded-2xl bg-pch-surface border border-pch-border h-[650px] flex flex-col justify-between">
                       <div className="pb-3 border-b border-pch-border flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-pch-purple/20 border border-pch-purple text-pch-purpleLight flex items-center justify-center font-bold">
-                            <Icons.MessageSquare className="w-5 h-5" />
-                          </div>
+                          <BrandLogo config={appBranding} size="sm" />
                           <div>
-                            <h3 className="font-bold text-sm text-pch-text">Forum Edukasi & Node Nusantara</h3>
-                            <p className="text-[10px] text-pch-muted">Komunikasi publik komunitas independen (Tersinkron ke Sheets DB)</p>
+                            <h3 className="font-bold text-sm text-pch-text">Forum Resmi Panua Community Gorontalo</h3>
+                            <p className="text-[10px] text-pch-muted">Komunikasi publik perintis & anggota (Tersinkron ke Sheets DB)</p>
                           </div>
                         </div>
                       </div>
 
-                      {/* Chat messages */}
                       <div className="flex-1 overflow-y-auto py-4 space-y-3.5 pr-2">
-                        {chatMessages.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center h-full text-center p-6 space-y-2">
-                            <Icons.MessageSquare className="w-8 h-8 text-pch-muted/40" />
-                            <p className="text-xs text-pch-muted">Belum ada pesan. Mulai obrolan pertama dalam forum komunitas!</p>
-                          </div>
-                        ) : (
-                          chatMessages.map(msg => (
-                            <div key={msg.id} className={`flex flex-col ${msg.isMe ? "items-end" : "items-start"}`}>
-                              {msg.replyTo && (
-                                <span className="text-[10px] text-pch-muted italic mb-1 bg-pch-secondary/80 px-2 py-0.5 rounded border border-pch-border/60">
-                                  Membalas: "{msg.replyTo}"
-                                </span>
-                              )}
-                              <div className={`max-w-[85%] sm:max-w-md p-3 rounded-2xl text-xs space-y-1 ${
-                                msg.isMe 
-                                  ? "bg-pch-purple text-white rounded-br-sm" 
-                                  : "bg-pch-secondary border border-pch-border text-pch-text rounded-bl-sm"
-                              }`}>
-                                {!msg.isMe && <span className="font-bold text-pch-goldLight block text-[11px]">{msg.sender}</span>}
-                                <p className="leading-relaxed">{msg.text}</p>
-                                <div className="flex items-center justify-end gap-2 text-[10px] opacity-70 pt-0.5">
-                                  <span>{msg.time}</span>
-                                  {!msg.isMe && (
-                                    <button onClick={() => setReplyingTo(msg)} className="hover:underline">
-                                      Balas
-                                    </button>
-                                  )}
-                                </div>
+                        {chatMessages.map(msg => (
+                          <div key={msg.id} className={`flex flex-col ${msg.isMe ? "items-end" : "items-start"}`}>
+                            {msg.replyTo && (
+                              <span className="text-[10px] text-pch-muted italic mb-1 bg-pch-secondary/80 px-2 py-0.5 rounded border border-pch-border/60">
+                                Membalas: "{msg.replyTo}"
+                              </span>
+                            )}
+                            <div className={`max-w-[85%] sm:max-w-md p-3 rounded-2xl text-xs space-y-1 ${
+                              msg.isMe 
+                                ? "bg-pch-purple text-white rounded-br-sm" 
+                                : "bg-pch-secondary border border-pch-border text-pch-text rounded-bl-sm"
+                            }`}>
+                              {!msg.isMe && <span className="font-bold text-pch-goldLight block text-[11px]">{msg.sender}</span>}
+                              <p className="leading-relaxed">{msg.text}</p>
+                              <div className="flex items-center justify-end gap-2 text-[10px] opacity-70 pt-0.5">
+                                <span>{msg.time}</span>
+                                {!msg.isMe && (
+                                  <button onClick={() => setReplyingTo(msg)} className="hover:underline">
+                                    Balas
+                                  </button>
+                                )}
                               </div>
                             </div>
-                          ))
-                        )}
+                          </div>
+                        ))}
                       </div>
 
-                      {/* Input Box */}
                       <form onSubmit={handleSendMessage} className="pt-3 border-t border-pch-border space-y-2">
                         {replyingTo && (
                           <div className="flex items-center justify-between bg-pch-secondary px-3 py-1 rounded-lg text-[11px] text-pch-goldLight">
@@ -1775,7 +1627,7 @@ function responseJSON(obj) {
                         <div className="flex items-center gap-2">
                           <input 
                             type="text" 
-                            placeholder="Ketik pesan untuk forum komunitas..."
+                            placeholder="Ketik pesan untuk forum Panua Community..."
                             value={chatInput}
                             onChange={(e) => setChatInput(e.target.value)}
                             className="flex-1 bg-pch-secondary border border-pch-border rounded-xl px-4 py-2.5 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
@@ -1791,26 +1643,25 @@ function responseJSON(obj) {
                     </div>
                   )}
 
-                  {/* TAB 4: MEETINGS (ISOLATED JITSI WEBRTC ENGINE) */}
+                  {/* TAB 4: MEETINGS (ISOLATED JITSI ENGINE) */}
                   {activeTab === "meetings" && (
                     <div className="space-y-6">
                       <div className="p-5 rounded-2xl bg-pch-surface border border-pch-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full bg-pch-success animate-ping"></span>
-                            <h2 className="text-lg font-bold text-pch-text">Layanan Rapat Khusus (WebRTC Isolated)</h2>
+                            <h2 className="text-lg font-bold text-pch-text">Rapat Online Pionir Panua (WebRTC Dedicated)</h2>
                           </div>
                           <p className="text-xs text-pch-muted mt-1">
-                            Audio, video, mikrofon, dan kamera langsung ditangani oleh server rapat independen ({appBranding.meetingProvider}), <strong>terisolasi total dari GAS backend</strong>.
+                            Audio, video, mic, dan kamera ditangani server rapat independen ({appBranding.meetingProvider}), <strong>terisolasi total dari GAS backend</strong>.
                           </p>
                         </div>
                       </div>
 
-                      {/* Active Jitsi Room Embed View */}
                       {activeJitsiRoom ? (
                         <div className="space-y-3">
                           <div className="flex items-center justify-between p-3 rounded-xl bg-pch-surface border border-pch-gold/40">
-                            <span className="text-xs font-bold text-pch-goldLight">Sesi Rapat Aktif: {activeJitsiRoom}</span>
+                            <span className="text-xs font-bold text-pch-goldLight">Ruang Aktif: {activeJitsiRoom}</span>
                             <div className="flex items-center gap-2">
                               <a 
                                 href={`https://${appBranding.meetingProvider}/${activeJitsiRoom}`}
@@ -1819,7 +1670,7 @@ function responseJSON(obj) {
                                 className="px-3 py-1.5 rounded-lg bg-pch-secondary border border-pch-border text-pch-text text-xs hover:border-pch-gold flex items-center gap-1"
                               >
                                 <Icons.ExternalLink className="w-3.5 h-3.5" />
-                                <span>Buka di Tab Baru</span>
+                                <span>Buka Tab Baru</span>
                               </a>
                               <button 
                                 onClick={() => setActiveJitsiRoom(null)}
@@ -1840,48 +1691,36 @@ function responseJSON(obj) {
                           </div>
                         </div>
                       ) : (
-                        meetings.length === 0 ? (
-                          <div className="p-8 rounded-2xl bg-pch-surface border border-pch-border text-center space-y-3">
-                            <Icons.Video className="w-10 h-10 text-pch-muted/40 mx-auto" />
-                            <h3 className="font-bold text-base text-pch-text">Belum Ada Sesi Rapat Terjadwal</h3>
-                            <p className="text-xs text-pch-muted max-w-sm mx-auto">Sesi rapat online komunitas akan tampil di sini saat dijadwalkan oleh koordinator atau moderator.</p>
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {meetings.map(meet => (
-                              <div key={meet.id} className="p-5 rounded-2xl bg-pch-surface border border-pch-border space-y-4">
-                                <div className="flex items-start justify-between">
-                                  <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
-                                    meet.status === "Berlangsung" 
-                                      ? "bg-emerald-950 text-pch-success border border-pch-success/40"
-                                      : "bg-pch-secondary text-pch-muted border border-pch-border"
-                                  }`}>
-                                    {meet.status}
-                                  </span>
-                                  <span className="text-xs text-pch-muted font-mono">{meet.date}</span>
-                                </div>
-
-                                <div>
-                                  <h3 className="font-bold text-sm sm:text-base text-pch-text">{meet.title}</h3>
-                                  <p className="text-xs text-pch-muted mt-1">Host: {meet.host} • Durasi: {meet.duration}</p>
-                                </div>
-
-                                <button 
-                                  onClick={() => setActiveJitsiRoom(meet.room)}
-                                  className="w-full py-2.5 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight transition-all shadow-gold-glow flex items-center justify-center gap-2"
-                                >
-                                  <Icons.Video className="w-4 h-4" />
-                                  <span>Gabung Rapat Langsung</span>
-                                </button>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {meetings.map(meet => (
+                            <div key={meet.id} className="p-5 rounded-2xl bg-pch-surface border border-pch-border space-y-4">
+                              <div className="flex items-start justify-between">
+                                <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-emerald-950 text-pch-success border border-pch-success/40">
+                                  {meet.status}
+                                </span>
+                                <span className="text-xs text-pch-muted font-mono">{meet.date}</span>
                               </div>
-                            ))}
-                          </div>
-                        )
+
+                              <div>
+                                <h3 className="font-bold text-sm sm:text-base text-pch-text">{meet.title}</h3>
+                                <p className="text-xs text-pch-muted mt-1">Host: {meet.host} • Durasi: {meet.duration}</p>
+                              </div>
+
+                              <button 
+                                onClick={() => setActiveJitsiRoom(meet.room)}
+                                className="w-full py-2.5 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight transition-all shadow-gold-glow flex items-center justify-center gap-2"
+                              >
+                                <Icons.Video className="w-4 h-4" />
+                                <span>Gabung Rapat Sekarang</span>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   )}
 
-                  {/* TAB 5: MY SECURE VAULT (MENU-LEVEL REDEEM CODE GATEWAY) */}
+                  {/* TAB 5: MY SECURE VAULT */}
                   {activeTab === "vault" && (
                     <div className="space-y-6">
                       {!vaultUnlocked && user?.role !== "admin" ? (
@@ -1892,13 +1731,13 @@ function responseJSON(obj) {
 
                           <div className="space-y-2">
                             <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-amber-950/80 text-pch-goldLight border border-pch-gold/40 uppercase tracking-wider">
-                              Akses Privat Terproteksi (Gas Token)
+                              Akses Privat Terproteksi (Validitas 60 Detik)
                             </span>
                             <h2 className="text-xl sm:text-2xl font-bold text-pch-text">
                               Buka Akses My Secure Vault
                             </h2>
                             <p className="text-xs sm:text-sm text-pch-muted max-w-md mx-auto leading-relaxed">
-                              Menu ini memuat seluruh berkas identitas dan dokumen berharga Anda. Masukkan <strong>Redeem Code / Token Akses Privat</strong> yang diberikan oleh Admin untuk membuka akses seluruh dokumen Anda sekaligus.
+                              Masukkan <strong>Redeem Code / Token Akses Privat</strong> yang diberikan Admin Panua Community untuk membuka brankas Anda. Kode hanya aktif selama 1 menit (60 detik).
                             </p>
                           </div>
 
@@ -1908,25 +1747,26 @@ function responseJSON(obj) {
                               <input 
                                 type="text" 
                                 required
-                                placeholder="Contoh: VAULT-PCH-2026 atau kode dari Admin"
+                                placeholder="Contoh: PANUA-849201"
                                 value={vaultRedeemInput}
                                 onChange={(e) => setVaultRedeemInput(e.target.value)}
-                                className="w-full bg-pch-secondary border border-pch-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-pch-text font-mono uppercase placeholder:normal-case placeholder:text-pch-muted focus:outline-none focus:border-pch-gold"
+                                className="w-full bg-pch-secondary border border-pch-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-pch-text font-mono uppercase focus:outline-none focus:border-pch-gold"
                               />
                             </div>
 
                             <button 
                               type="submit"
-                              className="w-full py-2.5 rounded-xl bg-pch-gold text-black font-bold text-sm hover:bg-pch-goldLight transition-all shadow-gold-glow flex items-center justify-center gap-2"
+                              disabled={isVerifyingCode}
+                              className="w-full py-2.5 rounded-xl bg-pch-gold text-black font-bold text-sm hover:bg-pch-goldLight transition-all shadow-gold-glow flex items-center justify-center gap-2 disabled:opacity-50"
                             >
                               <Icons.Lock className="w-4 h-4" />
-                              <span>Verifikasi & Masuk ke Brankas</span>
+                              <span>{isVerifyingCode ? "Memverifikasi Kode..." : "Verifikasi & Masuk ke Brankas"}</span>
                             </button>
                           </form>
 
                           <div className="pt-4 border-t border-pch-border/70 space-y-3">
                             <p className="text-xs text-pch-muted">
-                              Belum memiliki Redeem Code atau lupa kode akses Anda?
+                              Belum memiliki Redeem Code atau kode sebelumnya sudah lewat 60 detik?
                             </p>
                             <button 
                               type="button"
@@ -1934,12 +1774,12 @@ function responseJSON(obj) {
                               className="px-4 py-2 rounded-xl bg-emerald-950/70 border border-pch-success text-pch-success text-xs font-semibold hover:bg-emerald-900/50 flex items-center justify-center gap-2 mx-auto"
                             >
                               <Icons.Phone className="w-3.5 h-3.5" />
-                              <span>Minta Kode Akses ke Admin via WhatsApp</span>
+                              <span>Minta Kode Akses 60 Detik ke Admin via WA</span>
                             </button>
                           </div>
                         </div>
                       ) : (
-                        /* UNLOCKED MASTER DOSSIER & DOCUMENT VAULT */
+                        /* UNLOCKED 15-BERKAS DOSSIER */
                         <div className="space-y-6">
                           <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-pch-surface to-pch-surface border border-pch-success/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                             <div className="flex items-center gap-3">
@@ -1948,11 +1788,11 @@ function responseJSON(obj) {
                               </div>
                               <div>
                                 <div className="flex items-center gap-2">
-                                  <h3 className="font-bold text-sm sm:text-base text-pch-text">My Secure Vault — Sesi Akses Aktif</h3>
-                                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-pch-success border border-pch-success/30 font-mono font-bold">Terbuka Penuh</span>
+                                  <h3 className="font-bold text-sm sm:text-base text-pch-text">My Secure Vault — Sesi Akses Terbuka</h3>
+                                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-pch-success border border-pch-success/30 font-mono font-bold">15 Berkas Lengkap</span>
                                 </div>
                                 <p className="text-xs text-pch-muted">
-                                  Sinkronisasi Google Drive Admin: <strong>{memberDossier.lastSynced}</strong>
+                                  Sinkronisasi Drive Admin: <strong>{memberDossier.lastSynced}</strong>
                                 </p>
                               </div>
                             </div>
@@ -1963,12 +1803,12 @@ function responseJSON(obj) {
                                 className="px-3.5 py-2 rounded-xl bg-pch-gold text-black text-xs font-bold hover:bg-pch-goldLight flex items-center gap-1.5 shadow-gold-glow"
                               >
                                 <Icons.Upload className="w-3.5 h-3.5" />
-                                <span>Kirim/Sinkronkan ke Drive Admin</span>
+                                <span>Simpan & Kirim ke Drive Admin</span>
                               </button>
 
                               {user?.role !== "admin" && (
                                 <button 
-                                  onClick={() => { setVaultUnlocked(false); triggerToast("Sesi brankas telah dikunci kembali.", "warning"); }}
+                                  onClick={() => { setVaultUnlocked(false); triggerToast("Sesi brankas telah dikunci.", "warning"); }}
                                   className="px-3 py-2 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted hover:text-pch-danger text-xs font-semibold"
                                 >
                                   Kunci Kembali
@@ -1977,15 +1817,12 @@ function responseJSON(obj) {
                             </div>
                           </div>
 
-                          {/* SECTION 1: MASTER IDENTITAS DIRI & KONTAK */}
+                          {/* 1. Identitas & Kontak */}
                           <div className="p-5 sm:p-6 rounded-2xl bg-pch-surface border border-pch-border space-y-4">
-                            <div className="flex items-center justify-between pb-3 border-b border-pch-border">
-                              <h4 className="font-bold text-sm text-pch-goldLight flex items-center gap-2">
-                                <Icons.User className="w-4 h-4 text-pch-gold" />
-                                <span>1. Data Identitas Lengkap & Kontak</span>
-                              </h4>
-                              <span className="text-[10px] text-pch-muted font-mono">Tersimpan di Vault Google Drive</span>
-                            </div>
+                            <h4 className="font-bold text-sm text-pch-goldLight flex items-center gap-2 border-b border-pch-border pb-3">
+                              <Icons.User className="w-4 h-4 text-pch-gold" />
+                              <span>1. Identitas Diri, TTL & Kontak Anggota</span>
+                            </h4>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                               <div>
@@ -2030,53 +1867,49 @@ function responseJSON(obj) {
                               </div>
 
                               <div>
-                                <label className="text-xs font-semibold text-pch-muted block mb-1">Tempat & Tanggal Lahir</label>
+                                <label className="text-xs font-semibold text-pch-muted block mb-1">Tempat & Tanggal Lahir (TTL)</label>
                                 <input 
                                   type="text" 
                                   value={memberDossier.ttl}
                                   onChange={(e) => setMemberDossier({ ...memberDossier, ttl: e.target.value })}
-                                  placeholder="Kota, DD Bulan YYYY"
+                                  placeholder="Gorontalo, 17 Agustus 1990"
                                   className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
                                 />
                               </div>
 
                               <div>
-                                <label className="text-xs font-semibold text-pch-muted block mb-1">NIK (Nomor Induk Kependudukan)</label>
+                                <label className="text-xs font-semibold text-pch-muted block mb-1">NIK (16 Digit)</label>
                                 <input 
                                   type="text" 
                                   value={memberDossier.nik}
                                   onChange={(e) => setMemberDossier({ ...memberDossier, nik: e.target.value })}
-                                  placeholder="16 Digit NIK"
+                                  placeholder="7501..."
                                   className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
                                 />
                               </div>
 
                               <div className="sm:col-span-2 lg:col-span-3">
-                                <label className="text-xs font-semibold text-pch-muted block mb-1">Alamat Lengkap</label>
+                                <label className="text-xs font-semibold text-pch-muted block mb-1">Alamat Lengkap (Domisili Gorontalo/Sesuai KTP)</label>
                                 <textarea 
                                   rows="2"
                                   value={memberDossier.alamatLengkap}
                                   onChange={(e) => setMemberDossier({ ...memberDossier, alamatLengkap: e.target.value })}
-                                  placeholder="Alamat domisili lengkap sesuai KTP"
                                   className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
                                 ></textarea>
                               </div>
                             </div>
                           </div>
 
-                          {/* SECTION 2: REKENING BANK & WALLET PUBLIK */}
+                          {/* 2. Rekening & Wallet */}
                           <div className="p-5 sm:p-6 rounded-2xl bg-pch-surface border border-pch-border space-y-4">
-                            <div className="flex items-center justify-between pb-3 border-b border-pch-border">
-                              <h4 className="font-bold text-sm text-pch-goldLight flex items-center gap-2">
-                                <Icons.Database className="w-4 h-4 text-pch-gold" />
-                                <span>2. Informasi Finansial & Wallet Publik</span>
-                              </h4>
-                              <span className="text-[10px] text-pch-warning font-semibold">Hanya Alamat Publik (Bukan Passphrase)</span>
-                            </div>
+                            <h4 className="font-bold text-sm text-pch-goldLight flex items-center gap-2 border-b border-pch-border pb-3">
+                              <Icons.Database className="w-4 h-4 text-pch-gold" />
+                              <span>2. Rekening Bank & Alamat Wallet Publik</span>
+                            </h4>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div>
-                                <label className="text-xs font-semibold text-pch-muted block mb-1">Nama Pemilik Rekening Bank</label>
+                                <label className="text-xs font-semibold text-pch-muted block mb-1">Nama Pemilik Rekening</label>
                                 <input 
                                   type="text" 
                                   value={memberDossier.namaRekening}
@@ -2086,12 +1919,12 @@ function responseJSON(obj) {
                               </div>
 
                               <div>
-                                <label className="text-xs font-semibold text-pch-muted block mb-1">Nama Bank & Nomor Rekening</label>
+                                <label className="text-xs font-semibold text-pch-muted block mb-1">Bank & Nomor Rekening</label>
                                 <input 
                                   type="text" 
                                   value={memberDossier.noRekening}
                                   onChange={(e) => setMemberDossier({ ...memberDossier, noRekening: e.target.value })}
-                                  placeholder="Contoh: BCA - 1234567890"
+                                  placeholder="Contoh: Bank SulutGo / BCA - 1234567890"
                                   className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
                                 />
                               </div>
@@ -2120,15 +1953,12 @@ function responseJSON(obj) {
                             </div>
                           </div>
 
-                          {/* SECTION 3: BERKAS DOKUMEN UTAMA */}
+                          {/* 3. Berkas Dokumen Utama */}
                           <div className="p-5 sm:p-6 rounded-2xl bg-pch-surface border border-pch-border space-y-4">
-                            <div className="flex items-center justify-between pb-3 border-b border-pch-border">
-                              <h4 className="font-bold text-sm text-pch-goldLight flex items-center gap-2">
-                                <Icons.FileText className="w-4 h-4 text-pch-gold" />
-                                <span>3. Berkas Dokumen Wajib Terunggah</span>
-                              </h4>
-                              <span className="text-[10px] text-pch-success font-semibold">Tersimpan di Google Drive Vault</span>
-                            </div>
+                            <h4 className="font-bold text-sm text-pch-goldLight flex items-center gap-2 border-b border-pch-border pb-3">
+                              <Icons.FileText className="w-4 h-4 text-pch-gold" />
+                              <span>3. Berkas Identitas Wajib Terunggah</span>
+                            </h4>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                               {[
@@ -2136,7 +1966,7 @@ function responseJSON(obj) {
                                 { key: 'fotoKk', label: 'Foto Kartu Keluarga (KK)', data: memberDossier.fotoKk },
                                 { key: 'fotoNpwp', label: 'Foto NPWP', data: memberDossier.fotoNpwp },
                                 { key: 'pasfoto', label: 'Pasfoto Formal (4x6)', data: memberDossier.pasfoto },
-                                { key: 'kartuKeanggotaan', label: 'Kartu Keanggotaan Komunitas', data: memberDossier.kartuKeanggotaan }
+                                { key: 'kartuKeanggotaan', label: 'Kartu Anggota Panua Community', data: memberDossier.kartuKeanggotaan }
                               ].map(item => (
                                 <div key={item.key} className="p-3.5 rounded-xl bg-pch-secondary border border-pch-border flex flex-col justify-between space-y-3">
                                   <div>
@@ -2145,55 +1975,43 @@ function responseJSON(obj) {
                                       <Icons.FileText className="w-4 h-4 text-pch-gold shrink-0" />
                                       <span className="text-xs font-mono text-pch-goldLight truncate">{item.data?.name || "Belum ada berkas"}</span>
                                     </div>
-                                    <span className="text-[10px] text-pch-muted mt-1 block">Ukuran: {item.data?.size || "-"} • Status: {item.data?.status || "Siap"}</span>
+                                    <span className="text-[10px] text-pch-muted mt-1 block">Ukuran: {item.data?.size || "-"}</span>
                                   </div>
 
-                                  <div className="pt-2 border-t border-pch-border/70 flex items-center justify-between gap-2">
-                                    <label className="text-[11px] px-2.5 py-1 rounded-lg bg-pch-purple/20 border border-pch-purple text-pch-purpleLight hover:bg-pch-purple/30 cursor-pointer text-center font-medium">
-                                      <span>Ganti File</span>
-                                      <input 
-                                        type="file" 
-                                        accept=".pdf,image/*" 
-                                        className="hidden"
-                                        onChange={(e) => {
-                                          const file = e.target.files[0];
-                                          if (file) {
-                                            setMemberDossier(prev => ({
-                                              ...prev,
-                                              [item.key]: {
-                                                name: file.name,
-                                                size: (file.size / (1024 * 1024)).toFixed(2) + " MB",
-                                                status: "Baru Dimuat"
-                                              }
-                                            }));
-                                            triggerToast(`File ${item.label} diperbarui!`);
-                                          }
-                                        }}
-                                      />
-                                    </label>
-                                    <button 
-                                      onClick={() => triggerToast(`Mengunduh ${item.data?.name || item.label} dari Google Drive Vault...`)}
-                                      className="text-[11px] px-2.5 py-1 rounded-lg bg-pch-surface border border-pch-border text-pch-muted hover:text-pch-text"
-                                    >
-                                      Unduh
-                                    </button>
-                                  </div>
+                                  <label className="text-[11px] px-2.5 py-1 rounded-lg bg-pch-purple/20 border border-pch-purple text-pch-purpleLight hover:bg-pch-purple/30 cursor-pointer text-center font-medium block">
+                                    <span>Pilih / Ganti File</span>
+                                    <input 
+                                      type="file" 
+                                      accept=".pdf,image/*" 
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        const file = e.target.files[0];
+                                        if (file) {
+                                          setMemberDossier(prev => ({
+                                            ...prev,
+                                            [item.key]: {
+                                              name: file.name,
+                                              size: (file.size / (1024 * 1024)).toFixed(2) + " MB"
+                                            }
+                                          }));
+                                          triggerToast(`File ${item.label} berhasil dimuat!`);
+                                        }
+                                      }}
+                                    />
+                                  </label>
                                 </div>
                               ))}
                             </div>
                           </div>
 
-                          {/* SECTION 4: FITUR TAMBAH DOKUMEN LAINNYA */}
+                          {/* 4. Dokumen Tambahan Lainnya */}
                           <div className="p-5 sm:p-6 rounded-2xl bg-pch-surface border border-pch-border space-y-4">
-                            <div className="flex items-center justify-between pb-3 border-b border-pch-border">
-                              <h4 className="font-bold text-sm text-pch-goldLight flex items-center gap-2">
-                                <Icons.Plus className="w-4 h-4 text-pch-gold" />
-                                <span>4. Dokumen Tambahan Lainnya</span>
-                              </h4>
-                              <span className="text-[10px] text-pch-muted">Sertifikat, Surat Keterangan, dsb.</span>
-                            </div>
+                            <h4 className="font-bold text-sm text-pch-goldLight flex items-center gap-2 border-b border-pch-border pb-3">
+                              <Icons.Plus className="w-4 h-4 text-pch-gold" />
+                              <span>4. Dokumen Tambahan Lainnya</span>
+                            </h4>
 
-                            {memberDossier.extraDocs.length > 0 ? (
+                            {memberDossier.extraDocs && memberDossier.extraDocs.length > 0 ? (
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 {memberDossier.extraDocs.map(doc => (
                                   <div key={doc.id} className="p-3 rounded-xl bg-pch-secondary border border-pch-border flex items-center justify-between">
@@ -2201,39 +2019,30 @@ function responseJSON(obj) {
                                       <h5 className="text-xs font-bold text-pch-text truncate">{doc.title}</h5>
                                       <p className="text-[10px] text-pch-muted font-mono">{doc.fileName} • {doc.size}</p>
                                     </div>
-                                    <div className="flex items-center gap-1.5 shrink-0">
-                                      <button 
-                                        onClick={() => triggerToast(`Mengunduh dokumen tambahan: ${doc.title}...`)}
-                                        className="p-1.5 rounded-lg bg-pch-surface border border-pch-border text-pch-gold hover:text-pch-goldLight"
-                                        title="Unduh"
-                                      >
-                                        <Icons.Download className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button 
-                                        onClick={() => {
-                                          setMemberDossier(prev => ({
-                                            ...prev,
-                                            extraDocs: prev.extraDocs.filter(d => d.id !== doc.id)
-                                          }));
-                                          triggerToast(`Dokumen "${doc.title}" dihapus.`);
-                                        }}
-                                        className="p-1.5 rounded-lg bg-pch-surface border border-pch-border text-pch-danger hover:bg-red-950/40"
-                                        title="Hapus"
-                                      >
-                                        <Icons.Trash className="w-3.5 h-3.5" />
-                                      </button>
-                                    </div>
+                                    <button 
+                                      onClick={() => {
+                                        setMemberDossier(prev => ({
+                                          ...prev,
+                                          extraDocs: prev.extraDocs.filter(d => d.id !== doc.id)
+                                        }));
+                                        triggerToast(`Dokumen "${doc.title}" dihapus.`);
+                                      }}
+                                      className="p-1.5 rounded-lg bg-pch-surface border border-pch-border text-pch-danger hover:bg-red-950/40"
+                                      title="Hapus"
+                                    >
+                                      <Icons.Trash className="w-3.5 h-3.5" />
+                                    </button>
                                   </div>
                                 ))}
                               </div>
                             ) : (
-                              <p className="text-xs text-pch-muted italic">Belum ada dokumen tambahan yang diunggah.</p>
+                              <p className="text-xs text-pch-muted italic">Belum ada dokumen tambahan.</p>
                             )}
 
-                            <form onSubmit={handleAddExtraDocument} className="pt-3 border-t border-pch-border/70 flex flex-col sm:flex-row items-center gap-2.5">
+                            <form onSubmit={handleAddExtraDocument} className="pt-2 flex flex-col sm:flex-row items-center gap-2.5">
                               <input 
                                 type="text" 
-                                placeholder="Judul Dokumen (Misal: Ijazah / SK Komunitas)"
+                                placeholder="Judul Dokumen Tambahan"
                                 value={newExtraDocTitle}
                                 onChange={(e) => setNewExtraDocTitle(e.target.value)}
                                 className="flex-1 bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
@@ -2242,7 +2051,7 @@ function responseJSON(obj) {
                                 type="file" 
                                 accept=".pdf,image/*"
                                 onChange={(e) => setNewExtraDocFile(e.target.files[0])}
-                                className="w-full sm:w-auto text-xs text-pch-muted file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-pch-secondary file:text-pch-text file:border file:border-pch-border"
+                                className="w-full sm:w-auto text-xs text-pch-muted file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-pch-secondary file:text-pch-text file:border file:border-pch-border"
                               />
                               <button 
                                 type="submit"
@@ -2253,11 +2062,12 @@ function responseJSON(obj) {
                             </form>
                           </div>
 
+                          {/* Save & Sync Button */}
                           <div className="p-5 rounded-2xl bg-pch-secondary border border-pch-gold/40 flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div className="space-y-1 text-center sm:text-left">
                               <h4 className="text-sm font-bold text-pch-text">Simpan & Kirim Semua Dokumen ke Admin Drive</h4>
                               <p className="text-xs text-pch-muted">
-                                Data disimpan rapi di Google Drive Vault Admin. Anda dapat meminta berkas kembali via WhatsApp atau memasukkan Redeem Code kapan pun dibutuhkan.
+                                Seluruh berkas Anda tersimpan rapi di Google Drive Admin Panua Community Gorontalo.
                               </p>
                             </div>
                             <button 
@@ -2299,7 +2109,7 @@ function responseJSON(obj) {
                             <p className="text-xs text-pch-purpleLight font-mono">{user.phone || "No HP belum diatur"}</p>
                             {!user.avatarUrl && (
                               <span className="inline-block text-[10px] text-pch-muted italic">
-                                Menggunakan Logo Komunitas sebagai foto profil default
+                                Menggunakan Logo Resmi Panua Community sebagai foto profil
                               </span>
                             )}
                           </div>
@@ -2317,48 +2127,27 @@ function responseJSON(obj) {
                           </div>
 
                           <div>
-                            <label className="text-xs font-semibold text-pch-muted">Username</label>
-                            <input 
-                              type="text" 
-                              value={user.username} 
-                              onChange={(e) => setUser({ ...user, username: e.target.value })}
-                              className="w-full mt-1 bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-sm text-pch-text font-mono focus:outline-none focus:border-pch-purple"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="text-xs font-semibold text-pch-muted">Email</label>
-                            <input 
-                              type="email" 
-                              value={user.email} 
-                              onChange={(e) => setUser({ ...user, email: e.target.value })}
-                              className="w-full mt-1 bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-sm text-pch-text focus:outline-none focus:border-pch-purple"
-                            />
-                          </div>
-
-                          <div>
                             <label className="text-xs font-semibold text-pch-muted">No HP / WhatsApp</label>
                             <input 
                               type="tel" 
                               value={user.phone || ""} 
                               onChange={(e) => setUser({ ...user, phone: e.target.value })}
-                              placeholder="081234567890"
                               className="w-full mt-1 bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-sm text-pch-text focus:outline-none focus:border-pch-purple"
                             />
                           </div>
 
                           <div>
-                            <label className="text-xs font-semibold text-pch-muted block mb-1">Unggah Foto Profil Baru</label>
+                            <label className="text-xs font-semibold text-pch-muted block mb-1">Unggah / Ganti Foto Profil</label>
                             <input 
                               type="file" 
                               accept="image/*"
                               onChange={handleProfilePhotoUpload}
-                              className="w-full text-xs text-pch-muted file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-pch-purple file:text-white hover:file:bg-pch-purpleLight"
+                              className="w-full text-xs text-pch-muted file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-pch-purple file:text-white"
                             />
                           </div>
 
                           <div>
-                            <label className="text-xs font-semibold text-pch-muted">Bio Komunitas</label>
+                            <label className="text-xs font-semibold text-pch-muted">Bio Anggota Panua</label>
                             <textarea 
                               rows="2"
                               value={user.bio} 
@@ -2367,30 +2156,19 @@ function responseJSON(obj) {
                             ></textarea>
                           </div>
 
-                          <div>
-                            <div className="flex items-center justify-between">
-                              <label className="text-xs font-semibold text-pch-muted">Alamat Wallet Publik Pi Network (Opsional)</label>
-                              <span className="text-[10px] text-pch-warning">Hanya Alamat Publik</span>
-                            </div>
-                            <input 
-                              type="text" 
-                              placeholder="GD5J... (Hanya untuk pengenal publik)"
-                              value={user.publicWallet} 
-                              onChange={(e) => setUser({ ...user, publicWallet: e.target.value })}
-                              className="w-full mt-1 bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-sm text-pch-text font-mono focus:outline-none focus:border-pch-purple"
-                            />
-                          </div>
-
                           <div className="pt-2 flex gap-3">
                             <button 
-                              onClick={() => triggerToast("Profil Anda berhasil diperbarui.")}
+                              onClick={() => {
+                                setRegisteredUsers(users => users.map(u => u.id === user.id ? user : u));
+                                triggerToast("Pengaturan profil Panua Community berhasil disimpan.");
+                              }}
                               className="flex-1 py-2.5 rounded-xl bg-pch-gold text-black font-semibold text-sm hover:bg-pch-goldLight shadow-gold-glow"
                             >
                               Simpan Pengaturan Profil
                             </button>
                             <button 
                               onClick={handleLogoutSession}
-                              className="px-4 py-2.5 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted hover:text-pch-danger hover:border-pch-danger text-sm font-semibold flex items-center gap-1.5"
+                              className="px-4 py-2.5 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted hover:text-pch-danger text-sm font-semibold flex items-center gap-1.5"
                             >
                               <Icons.LogOut className="w-4 h-4" />
                               <span>Keluar</span>
@@ -2408,10 +2186,10 @@ function responseJSON(obj) {
                         <div>
                           <div className="flex items-center gap-2">
                             <Icons.Shield className="w-5 h-5 text-pch-purpleLight" />
-                            <h2 className="text-lg font-bold text-pch-text">Admin Master Console</h2>
+                            <h2 className="text-lg font-bold text-pch-text">Admin Master Console — Panua Community</h2>
                           </div>
                           <p className="text-xs text-pch-muted mt-1">
-                            Kelola branding aplikasi (Judul & Logo), terbitkan Redeem Code brankas, dan kelola dokumen anggota di Google Drive.
+                            Kelola branding (Nama & Logo), terbitkan Redeem Code 60 detik, dan pantau arsip berkas anggota Gorontalo.
                           </p>
                         </div>
                         <span className="text-xs font-mono bg-pch-purple/20 text-pch-purpleLight border border-pch-purple px-3 py-1 rounded-lg self-start">
@@ -2419,138 +2197,87 @@ function responseJSON(obj) {
                         </span>
                       </div>
 
-                      {/* 1. DYNAMIC BRANDING & LOGO */}
+                      {/* 1. Pengaturan Nama & Logo Aplikasi */}
                       <div className="p-6 rounded-2xl bg-pch-surface border border-pch-gold/50 shadow-card-elevated space-y-6">
-                        <div className="flex items-center justify-between pb-3 border-b border-pch-border">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2.5 rounded-xl bg-pch-gold/15 text-pch-gold border border-pch-gold/30">
-                              <Icons.Edit className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <h3 className="font-bold text-base text-pch-text">Pengaturan Nama & Gambar Logo Aplikasi</h3>
-                              <p className="text-xs text-pch-muted">Ubah Nama Aplikasi, Tagline, dan Gambar Logo secara instan.</p>
-                            </div>
-                          </div>
-                          <span className="text-[11px] px-2.5 py-1 rounded-full bg-pch-secondary border border-pch-gold text-pch-goldLight font-mono">
-                            Admin Only
-                          </span>
-                        </div>
+                        <h3 className="font-bold text-base text-pch-text border-b border-pch-border pb-3 flex items-center gap-2">
+                          <Icons.Edit className="w-4 h-4 text-pch-gold" />
+                          <span>1. Pengaturan Identitas, Judul & Logo Panua Community</span>
+                        </h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="space-y-4">
                             <div>
-                              <label className="text-xs font-semibold text-pch-muted block mb-1">
-                                Nama Judul Web / Aplikasi
-                              </label>
+                              <label className="text-xs font-semibold text-pch-muted block mb-1">Nama Judul Aplikasi</label>
                               <input 
                                 type="text" 
                                 value={brandingDraft.title}
                                 onChange={(e) => setBrandingDraft({ ...brandingDraft, title: e.target.value })}
-                                placeholder="Contoh: PI COMMUNITY HUB"
-                                className="w-full bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-sm text-pch-text font-semibold focus:outline-none focus:border-pch-purple"
+                                className="w-full bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-sm text-pch-text font-bold focus:outline-none focus:border-pch-purple"
                               />
                             </div>
 
                             <div>
-                              <label className="text-xs font-semibold text-pch-muted block mb-1">
-                                Tagline Komunitas
-                              </label>
+                              <label className="text-xs font-semibold text-pch-muted block mb-1">Tagline Komunitas</label>
                               <input 
                                 type="text" 
                                 value={brandingDraft.tagline}
                                 onChange={(e) => setBrandingDraft({ ...brandingDraft, tagline: e.target.value })}
-                                placeholder="Contoh: Connect • Collaborate • Grow Together"
                                 className="w-full bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-sm text-pch-text focus:outline-none focus:border-pch-purple"
                               />
                             </div>
 
                             <div>
-                              <label className="text-xs font-semibold text-pch-muted block mb-1">
-                                Nomor WhatsApp Resmi Admin (Menerima Permintaan Kode)
-                              </label>
+                              <label className="text-xs font-semibold text-pch-muted block mb-1">Nomor WhatsApp Resmi Admin</label>
                               <input 
                                 type="tel" 
                                 value={brandingDraft.adminWhatsapp}
                                 onChange={(e) => setBrandingDraft({ ...brandingDraft, adminWhatsapp: e.target.value })}
-                                placeholder="6281299887766"
                                 className="w-full bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-xs font-mono text-pch-text focus:outline-none focus:border-pch-purple"
                               />
                             </div>
 
                             <div>
-                              <label className="text-xs font-semibold text-pch-muted block mb-1.5">
-                                Pilihan Format Logo
-                              </label>
+                              <label className="text-xs font-semibold text-pch-muted block mb-1.5">Format Tampilan Logo</label>
                               <div className="grid grid-cols-2 gap-2">
                                 <button
                                   type="button"
-                                  onClick={() => setBrandingDraft({ ...brandingDraft, logoType: "default", customLogoUrl: "" })}
+                                  onClick={() => setBrandingDraft({ ...brandingDraft, logoType: "panua", customLogoUrl: "" })}
                                   className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
-                                    brandingDraft.logoType === "default"
+                                    brandingDraft.logoType === "panua"
                                       ? "bg-pch-gold text-black border-pch-gold shadow-gold-glow"
-                                      : "bg-pch-secondary border-pch-border text-pch-muted hover:text-pch-text"
+                                      : "bg-pch-secondary border-pch-border text-pch-muted"
                                   }`}
                                 >
-                                  Logo Geometrik Default
+                                  Logo Segel Panua Resmi
                                 </button>
-
                                 <button
                                   type="button"
                                   onClick={() => setBrandingDraft({ ...brandingDraft, logoType: "custom" })}
                                   className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
                                     brandingDraft.logoType === "custom"
                                       ? "bg-pch-purple text-white border-pch-purple shadow-purple-glow"
-                                      : "bg-pch-secondary border-pch-border text-pch-muted hover:text-pch-text"
+                                      : "bg-pch-secondary border-pch-border text-pch-muted"
                                   }`}
                                 >
-                                  Logo Gambar Kustom
+                                  Logo Kustom Bulat
                                 </button>
                               </div>
                             </div>
-
-                            {brandingDraft.logoType === "custom" && (
-                              <div className="space-y-3 p-3.5 rounded-xl bg-pch-secondary/80 border border-pch-border">
-                                <div>
-                                  <label className="text-[11px] font-semibold text-pch-muted block mb-1">
-                                    Unggah File Gambar Logo Baru (PNG/JPEG/SVG)
-                                  </label>
-                                  <input 
-                                    type="file" 
-                                    accept="image/*"
-                                    onChange={handleLogoFileUpload}
-                                    className="w-full text-xs text-pch-muted file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-pch-purple file:text-white hover:file:bg-pch-purpleLight"
-                                  />
-                                </div>
-                                <div className="text-center text-[10px] text-pch-muted">ATAU</div>
-                                <div>
-                                  <label className="text-[11px] font-semibold text-pch-muted block mb-1">
-                                    Masukkan URL Tautan Logo
-                                  </label>
-                                  <input 
-                                    type="url" 
-                                    value={brandingDraft.customLogoUrl.startsWith("data:") ? "" : brandingDraft.customLogoUrl}
-                                    onChange={(e) => setBrandingDraft({ ...brandingDraft, logoType: "custom", customLogoUrl: e.target.value })}
-                                    placeholder="https://domain.com/logo.png"
-                                    className="w-full bg-pch-surface border border-pch-border rounded-xl px-3 py-2 text-xs font-mono text-pch-text focus:outline-none focus:border-pch-purple"
-                                  />
-                                </div>
-                              </div>
-                            )}
                           </div>
 
                           <div className="flex flex-col justify-between p-5 rounded-2xl bg-pch-secondary/50 border border-pch-border space-y-4">
-                            <div className="space-y-3">
-                              <span className="text-xs font-semibold text-pch-muted uppercase tracking-wider block">
-                                Pratinjau Tampilan Header Aplikasi
+                            <div>
+                              <span className="text-xs font-semibold text-pch-muted uppercase tracking-wider block mb-3">
+                                Pratinjau Tampilan Header & Avatar
                               </span>
                               <div className="p-4 rounded-xl bg-pch-bg border border-pch-gold/40 flex items-center gap-3">
                                 <BrandLogo config={brandingDraft} size="lg" />
                                 <div>
                                   <h4 className="font-bold text-base gold-gradient-text uppercase">
-                                    {brandingDraft.title || "JUDUL APLIKASI"}
+                                    {brandingDraft.title}
                                   </h4>
                                   <p className="text-xs text-pch-muted">
-                                    {brandingDraft.tagline || "Tagline komunitas"}
+                                    {brandingDraft.tagline}
                                   </p>
                                 </div>
                               </div>
@@ -2561,28 +2288,21 @@ function responseJSON(obj) {
                               className="w-full py-3 rounded-xl bg-pch-gold text-black font-bold text-sm hover:bg-pch-goldLight transition-all flex items-center justify-center gap-2 shadow-gold-glow"
                             >
                               <Icons.Check className="w-4 h-4" />
-                              <span>Terapkan Perubahan Judul & Logo</span>
+                              <span>Simpan Perubahan Identitas</span>
                             </button>
                           </div>
                         </div>
                       </div>
 
-                      {/* 2. MANAJEMEN BRANKAS ANGGOTA & REDEEM CODE */}
+                      {/* 2. Generator Redeem Code 60 Detik */}
                       <div className="p-6 rounded-2xl bg-pch-surface border border-pch-purple/50 shadow-card-elevated space-y-6">
-                        <div className="flex items-center justify-between pb-3 border-b border-pch-border">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2.5 rounded-xl bg-pch-purple/20 text-pch-purpleLight border border-pch-purple/40">
-                              <Icons.Key className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <h3 className="font-bold text-base text-pch-text">Manajemen Brankas Dokumen & Generator Redeem Code</h3>
-                              <p className="text-xs text-pch-muted">Terbitkan Token Akses Privat untuk anggota dan kirimkan dokumen/kode kembali melalui WhatsApp.</p>
-                            </div>
-                          </div>
-                        </div>
+                        <h3 className="font-bold text-base text-pch-text border-b border-pch-border pb-3 flex items-center gap-2">
+                          <Icons.Key className="w-4 h-4 text-pch-purpleLight" />
+                          <span>2. Generator Redeem Code 60 Detik (Auto-Delete Realtime)</span>
+                        </h3>
 
                         <form onSubmit={handleAdminCreateRedeemCode} className="p-4 rounded-xl bg-pch-secondary border border-pch-border space-y-3">
-                          <span className="text-xs font-bold text-pch-goldLight block">Buat Redeem Code Baru untuk Anggota</span>
+                          <span className="text-xs font-bold text-pch-goldLight block">Terbitkan Kode Baru untuk Anggota</span>
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
                               <label className="text-[11px] text-pch-muted block mb-1">Target Anggota</label>
@@ -2592,7 +2312,9 @@ function responseJSON(obj) {
                                 className="w-full bg-pch-surface border border-pch-border rounded-xl px-3 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
                               >
                                 <option value="all">Semua Anggota (Umum)</option>
-                                <option value="perintis_01">perintis_01 (Perintis Nusantara)</option>
+                                {registeredUsers.filter(u => u.role !== 'admin').map(u => (
+                                  <option key={u.id} value={u.username}>{u.name} (@{u.username})</option>
+                                ))}
                               </select>
                             </div>
 
@@ -2600,7 +2322,7 @@ function responseJSON(obj) {
                               <label className="text-[11px] text-pch-muted block mb-1">Kode Kustom (Opsional)</label>
                               <input 
                                 type="text" 
-                                placeholder="Kosongkan untuk auto-generate"
+                                placeholder="Kosongkan untuk acak"
                                 value={newCodeCustom}
                                 onChange={(e) => setNewCodeCustom(e.target.value)}
                                 className="w-full bg-pch-surface border border-pch-border rounded-xl px-3 py-2 text-xs text-pch-text font-mono uppercase focus:outline-none focus:border-pch-purple"
@@ -2624,20 +2346,20 @@ function responseJSON(obj) {
                             className="px-4 py-2 rounded-xl bg-pch-purple text-white text-xs font-bold hover:bg-pch-purpleLight flex items-center gap-1.5 shadow-purple-glow"
                           >
                             <Icons.Plus className="w-3.5 h-3.5" />
-                            <span>Terbitkan Redeem Code</span>
+                            <span>Terbitkan Kode 60 Detik</span>
                           </button>
                         </form>
 
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-pch-text block">Daftar Redeem Code Aktif (Otomatis Hilang Setelah 60 Detik)</span>
-                            <span className="text-[10px] text-pch-warning font-mono bg-amber-950/40 px-2.5 py-0.5 rounded border border-pch-warning/40">Masa Aktif: 1 Menit</span>
+                            <span className="text-xs font-bold text-pch-text block">Daftar Kode Aktif (Otomatis Hilang Setelah 60 Detik)</span>
+                            <span className="text-[10px] text-pch-warning font-mono bg-amber-950/40 px-2.5 py-0.5 rounded border border-pch-warning/40">Durasi: 1 Menit</span>
                           </div>
                           <div className="overflow-x-auto">
                             <table className="w-full text-xs text-left">
                               <thead className="bg-pch-secondary text-pch-muted uppercase border-b border-pch-border">
                                 <tr>
-                                  <th className="p-3">Kode Akses</th>
+                                  <th className="p-3">Kode</th>
                                   <th className="p-3">Target</th>
                                   <th className="p-3">Sisa Waktu</th>
                                   <th className="p-3">Catatan</th>
@@ -2648,24 +2370,22 @@ function responseJSON(obj) {
                                 {activeRedeemCodes.length === 0 ? (
                                   <tr>
                                     <td colSpan="5" className="p-4 text-center text-pch-muted italic">
-                                      Tidak ada Redeem Code aktif saat ini. Semua kode yang lewat 60 detik telah otomatis kedaluwarsa & dihapus. Terbitkan kode baru di atas saat anggota meminta akses.
+                                      Tidak ada kode aktif saat ini. Kode otomatis hilang setelah lewat 60 detik.
                                     </td>
                                   </tr>
                                 ) : (
                                   activeRedeemCodes.map((item, idx) => {
                                     const remainingSeconds = Math.max(0, Math.ceil((item.expiresAt - currentTime) / 1000));
                                     return (
-                                      <tr key={idx} className="hover:bg-pch-secondary/30 transition-colors">
+                                      <tr key={idx}>
                                         <td className="p-3 font-mono font-bold text-pch-goldLight">{item.code}</td>
-                                        <td className="p-3 font-mono text-pch-text">{item.userTarget}</td>
+                                        <td className="p-3 font-mono text-pch-text">@{item.userTarget}</td>
                                         <td className="p-3">
                                           <span className={`px-2 py-0.5 rounded-full font-mono font-bold text-[10px] border flex items-center gap-1 w-fit ${
-                                            remainingSeconds <= 15 
-                                              ? "bg-red-950/80 border-pch-danger text-pch-danger animate-pulse" 
-                                              : "bg-amber-950/80 border-pch-warning text-pch-warning"
+                                            remainingSeconds <= 15 ? "bg-red-950/80 border-pch-danger text-pch-danger animate-pulse" : "bg-amber-950/80 border-pch-warning text-pch-warning"
                                           }`}>
                                             <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
-                                            <span>{remainingSeconds} detik tersisa</span>
+                                            <span>{remainingSeconds} detik</span>
                                           </span>
                                         </td>
                                         <td className="p-3 text-pch-muted">{item.note}</td>
@@ -2673,7 +2393,7 @@ function responseJSON(obj) {
                                           <button 
                                             onClick={() => {
                                               safeCopyToClipboard(item.code);
-                                              triggerToast(`Kode [${item.code}] disalin ke clipboard! (Sisa ${remainingSeconds} detik)`);
+                                              triggerToast(`Kode [${item.code}] disalin ke clipboard!`);
                                             }}
                                             className="px-2.5 py-1 rounded bg-pch-surface border border-pch-border text-pch-muted hover:text-pch-gold text-[11px] flex items-center gap-1"
                                           >
@@ -2690,8 +2410,9 @@ function responseJSON(obj) {
                           </div>
                         </div>
 
-                        <div className="space-y-2 pt-2">
-                          <span className="text-xs font-bold text-pch-text block">Arsip Berkas Brankas Anggota di Google Drive</span>
+                        {/* 3. Arsip Berkas Anggota di Drive */}
+                        <div className="space-y-2 pt-4 border-t border-pch-border">
+                          <span className="text-xs font-bold text-pch-text block">Arsip Berkas Brankas Anggota di Google Drive Admin</span>
                           <div className="overflow-x-auto">
                             <table className="w-full text-xs text-left">
                               <thead className="bg-pch-secondary text-pch-muted uppercase border-b border-pch-border">
@@ -2700,7 +2421,7 @@ function responseJSON(obj) {
                                   <th className="p-3">Kontak (WA)</th>
                                   <th className="p-3">Username Pi / NIK</th>
                                   <th className="p-3">Status Drive</th>
-                                  <th className="p-3">Kirim Balik / Akses</th>
+                                  <th className="p-3">Kirim Kode / Akses</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-pch-border">
@@ -2747,67 +2468,14 @@ function responseJSON(obj) {
                     </div>
                   )}
 
-                  {/* TAB 8: GAS STUDIO */}
-                  {activeTab === "gas-studio" && (
-                    <div className="space-y-4">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div>
-                          <h2 className="text-xl font-bold text-pch-text flex items-center gap-2">
-                            <Icons.Cloud className="w-5 h-5 text-pch-gold" />
-                            <span>Google Apps Script (GAS) Backend Studio</span>
-                          </h2>
-                          <p className="text-xs text-pch-muted">
-                            Salin kode <code>Code.gs</code> di bawah ini ke <strong>script.google.com</strong> untuk menghubungkan Google Drive Vault dan Google Spreadsheet Database.
-                          </p>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button 
-                            onClick={() => {
-                              safeCopyToClipboard(COMPLETE_GAS_SCRIPT);
-                              triggerToast("Skrip Code.gs lengkap disalin ke clipboard!");
-                            }}
-                            className="px-4 py-2 rounded-xl bg-pch-gold text-black font-semibold text-xs sm:text-sm hover:bg-pch-goldLight flex items-center gap-2 shadow-gold-glow"
-                          >
-                            <Icons.Copy className="w-4 h-4" />
-                            <span>Salin Code.gs</span>
-                          </button>
-
-                          <button 
-                            onClick={() => setShowGasModal(true)}
-                            className="px-4 py-2 rounded-xl bg-pch-purple text-white font-semibold text-xs sm:text-sm hover:bg-pch-purpleLight flex items-center gap-2"
-                          >
-                            <Icons.Database className="w-4 h-4" />
-                            <span>Pasang URL Web App</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="p-4 rounded-xl bg-pch-secondary border border-pch-border text-xs text-pch-muted space-y-2">
-                        <h4 className="font-bold text-pch-goldLight">Cara Pasang Google Apps Script:</h4>
-                        <ol className="list-decimal pl-5 space-y-1">
-                          <li>Buka <a href="https://script.google.com" target="_blank" rel="noreferrer" className="text-pch-purpleLight underline">script.google.com</a> dan buat project baru.</li>
-                          <li>Hapus isi default dan tempel seluruh kode di bawah ini ke file <code>Code.gs</code>.</li>
-                          <li>Klik <strong>Deploy &rarr; New Deployment</strong>. Pilih jenis <strong>Web App</strong>.</li>
-                          <li>Pada <em>Execute as</em> pilih <strong>Me (Akun Google Anda)</strong>. Pada <em>Who has access</em> pilih <strong>Anyone</strong>.</li>
-                          <li>Salin URL Web App yang dihasilkan (berawalan <code>https://script.google.com/macros/s/.../exec</code>) dan masukkan ke menu <em>Pasang URL Web App</em>.</li>
-                        </ol>
-                      </div>
-
-                      <div className="relative rounded-2xl bg-black border border-pch-border p-4 font-mono text-xs overflow-x-auto text-emerald-400 max-h-[560px]">
-                        <pre>{COMPLETE_GAS_SCRIPT}</pre>
-                      </div>
-                    </div>
-                  )}
-
                 </main>
               </div>
 
               {/* MOBILE BOTTOM NAVIGATION */}
-              <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-pch-bg/95 backdrop-blur-lg border-t border-pch-border px-2 py-1.5 flex items-center justify-around safe-bottom">
+              <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-pch-bg/95 backdrop-blur-lg border-t border-pch-border px-2 py-1.5 flex items-center justify-around">
                 {[
                   { id: "dashboard", label: "Beranda", icon: Icons.Home },
-                  { id: "community", label: "Komunitas", icon: Icons.Users },
+                  { id: "community", label: "Grup", icon: Icons.Users },
                   { id: "chat", label: "Chat", icon: Icons.MessageSquare },
                   { id: "meetings", label: "Rapat", icon: Icons.Video },
                   { id: "vault", label: "Vault", icon: Icons.Lock },
@@ -2821,11 +2489,11 @@ function responseJSON(obj) {
                       key={item.id}
                       onClick={() => { setActiveTab(item.id); setActiveJitsiRoom(null); }}
                       className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all ${
-                        isActive ? "text-pch-gold scale-105" : "text-pch-muted hover:text-pch-text"
+                        isActive ? "text-pch-gold scale-105 font-bold" : "text-pch-muted hover:text-pch-text"
                       }`}
                     >
                       <Icon className="w-5 h-5" />
-                      <span className="text-[10px] font-medium mt-0.5">{item.label}</span>
+                      <span className="text-[10px] mt-0.5">{item.label}</span>
                     </button>
                   );
                 })}
@@ -2833,7 +2501,7 @@ function responseJSON(obj) {
             </div>
           )}
 
-          {/* ==================== MODAL: GOOGLE APPS SCRIPT (GAS) CONFIGURATION ==================== */}
+          {/* MODAL: GOOGLE APPS SCRIPT CONFIGURATION */}
           {showGasModal && (
             <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
               <div className="bg-pch-surface border border-pch-border rounded-2xl max-w-md w-full p-6 space-y-4 shadow-card-elevated">
@@ -2848,7 +2516,7 @@ function responseJSON(obj) {
                 </div>
 
                 <p className="text-xs text-pch-muted">
-                  Masukkan Web App URL yang Anda dapatkan saat melakukan Deploy di Google Apps Script (script.google.com).
+                  Masukkan Web App URL (/exec) Google Apps Script untuk menghubungkan Google Drive Vault & Google Sheets Panua Community.
                 </p>
 
                 <div className="space-y-3">
@@ -2856,31 +2524,21 @@ function responseJSON(obj) {
                     <label className="text-xs font-semibold text-pch-muted">GAS Web App URL (/exec)</label>
                     <input 
                       type="url" 
-                      placeholder="https://script.google.com/macros/s/AKfycbx.../exec"
+                      placeholder="https://script.google.com/macros/s/.../exec"
                       value={gasConfig.webAppUrl}
                       onChange={(e) => setGasConfig({ ...gasConfig, webAppUrl: e.target.value })}
                       className="w-full mt-1 bg-pch-secondary border border-pch-border rounded-xl px-3 py-2 text-xs font-mono text-pch-text focus:outline-none focus:border-pch-purple"
                     />
                   </div>
-                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border text-[11px] text-pch-muted space-y-1">
-                    <span className="font-semibold text-pch-goldLight">Keamanan Drive Vault:</span>
-                    <p>File dokumen yang diunggah akan disimpan langsung ke Google Drive privat di folder khusus, terisolasi dari layanan eksternal mana pun.</p>
-                  </div>
                 </div>
 
                 <div className="pt-2 flex gap-3">
                   <button 
-                    onClick={() => {
-                      setDemoMode(true);
-                      setGasConfig({ webAppUrl: "", connected: false, lastSync: null });
-                      setShowGasModal(false);
-                      triggerToast("Kembali ke Mode Lokal.");
-                    }}
-                    className="flex-1 py-2.5 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted text-xs font-semibold hover:text-pch-text"
+                    onClick={() => setShowGasModal(false)}
+                    className="flex-1 py-2.5 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted text-xs font-semibold"
                   >
-                    Mode Lokal
+                    Batal
                   </button>
-
                   <button 
                     onClick={() => handleSaveGasConfig(gasConfig.webAppUrl)}
                     className="flex-1 py-2.5 rounded-xl bg-pch-gold text-black text-xs font-semibold hover:bg-pch-goldLight shadow-gold-glow"
@@ -2892,7 +2550,7 @@ function responseJSON(obj) {
             </div>
           )}
 
-          {/* ==================== MODAL: CUSTOM CONFIRMATION DIALOG ==================== */}
+          {/* CONFIRMATION DIALOG */}
           {confirmDialog && (
             <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
               <div className="bg-pch-surface border border-pch-border rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-card-elevated">
@@ -2906,7 +2564,7 @@ function responseJSON(obj) {
                 <div className="pt-2 flex gap-3">
                   <button 
                     onClick={() => setConfirmDialog(null)}
-                    className="flex-1 py-2 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted text-xs font-semibold hover:text-pch-text"
+                    className="flex-1 py-2 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted text-xs font-semibold"
                   >
                     Batal
                   </button>
@@ -2925,7 +2583,6 @@ function responseJSON(obj) {
       );
     }
 
-    // Render the React application
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>
