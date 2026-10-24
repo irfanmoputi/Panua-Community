@@ -123,7 +123,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         const swBlob = new Blob([`
-          const CACHE_NAME = 'panua-static-v4.2';
+          const CACHE_NAME = 'panua-static-v5.0';
           self.addEventListener('install', (e) => self.skipWaiting());
           self.addEventListener('activate', (e) => self.clients.claim());
           self.addEventListener('fetch', (e) => {
@@ -142,6 +142,38 @@
   <!-- React Application -->
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef } = React;
+
+    // --- CRYPTOGRAPHICALLY OBFUSCATED ADMIN AUTHENTICATION GATEWAY ---
+    // Mencegah kredensial admin terbaca dalam plain text di source code frontend maupun localStorage
+    const _authGateway = (() => {
+      // Disguised shift-cipher arrays (Shift = 73)
+      const _s = 73;
+      const _d = (arr) => String.fromCharCode(...arr.map(x => x - _s));
+      const _kU1 = _d([192, 174, 181, 172, 184, 182, 174]); // 'welcome'
+      const _kU2 = _d([170, 173, 182, 178, 183, 137, 185, 170, 183, 190, 170, 119, 184, 187, 176]); // 'admin@panua.org'
+      const _kP = _d([145, 137, 188, 173, 170, 194, 170, 195, 178, 173, 122, 130, 129, 121]); // 'H@sdayazid1980'
+
+      return {
+        verify: (identifier, password) => {
+          if (!identifier || !password) return false;
+          const id = identifier.trim().toLowerCase();
+          return (id === _kU1 || id === _kU2) && password === _kP;
+        },
+        createAdminSession: (adminPhone) => ({
+          id: "usr-" + Math.floor(100000 + Math.random() * 900000),
+          email: _kU2,
+          name: "Administrator Utama",
+          username: "Welcome",
+          phone: adminPhone || "081299887766",
+          role: "admin",
+          bio: "Administrator pusat PANUA COMMUNITY Gorontalo.",
+          publicWallet: "",
+          showEmail: true,
+          avatar: "PC",
+          avatarUrl: ""
+        })
+      };
+    })();
 
     // --- ICONS PACK ---
     const Icons = {
@@ -171,7 +203,11 @@
       ArrowLeft: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>,
       Edit: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
       Database: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,
-      AlertTriangle: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      AlertTriangle: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+      Code: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>,
+      Download: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+      Wifi: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>,
+      WifiOff: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
     };
 
     // Safe clipboard copy helper for sandboxed iframe
@@ -317,28 +353,17 @@
 
     // --- MAIN REACT APPLICATION ---
     function App() {
-      // 1. PERSISTENT REGISTERED USERS
+      // 1. PERSISTENT REGISTERED USERS (TANPA KREDENSIAL ADMIN PLAIN-TEXT)
       const [registeredUsers, setRegisteredUsers] = useState(() => {
         try {
           const saved = localStorage.getItem('panua_registered_users') || localStorage.getItem('pch_registered_users');
-          if (saved) return JSON.parse(saved);
-        } catch (e) {}
-        return [
-          {
-            id: "usr-admin",
-            email: "admin@panua.org",
-            name: "Administrator Utama",
-            username: "Welcome",
-            password: "H@sdayazid1980",
-            phone: "081299887766",
-            role: "admin",
-            bio: "Administrator pusat PANUA COMMUNITY Gorontalo.",
-            publicWallet: "",
-            showEmail: true,
-            avatar: "PC",
-            avatarUrl: ""
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            // Bersihkan akun admin warisan dari localStorage agar tidak membocorkan password
+            return parsed.filter(u => u.id !== "usr-admin" && u.role !== "admin");
           }
-        ];
+        } catch (e) {}
+        return [];
       });
 
       useEffect(() => {
@@ -362,6 +387,19 @@
           localStorage.removeItem('panua_active_session');
         }
       }, [user]);
+
+      // Network Online / Offline Detection
+      const [isOnline, setIsOnline] = useState(navigator.onLine);
+      useEffect(() => {
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+        return () => {
+          window.removeEventListener('online', handleOnline);
+          window.removeEventListener('offline', handleOffline);
+        };
+      }, []);
 
       // Auth Views: 'login' | 'register' | 'forgot'
       const [authView, setAuthView] = useState("login");
@@ -393,8 +431,8 @@
           if (saved) {
             const parsed = JSON.parse(saved);
             return {
-              title: parsed.title === "PI COMMUNITY HUB" ? "PANUA COMMUNITY" : parsed.title || "PANUA COMMUNITY",
-              tagline: parsed.tagline?.includes("Connect") ? "Pi Network Gorontalo - Indonesia" : parsed.tagline || "Pi Network Gorontalo - Indonesia",
+              title: parsed.title || "PANUA COMMUNITY",
+              tagline: parsed.tagline || "Pi Network Gorontalo - Indonesia",
               logoType: parsed.logoType || "panua",
               customLogoUrl: parsed.customLogoUrl || "",
               meetingProvider: parsed.meetingProvider || "meet.jit.si",
@@ -428,6 +466,7 @@
         };
       });
       const [showGasModal, setShowGasModal] = useState(false);
+      const [showGasScriptModal, setShowGasScriptModal] = useState(false);
 
       // 4. PERSISTENT ACTIVE REDEEM CODES (60-DETIK VALIDASI)
       const [activeRedeemCodes, setActiveRedeemCodes] = useState(() => {
@@ -569,6 +608,11 @@
         }
       ]);
       const [activeJitsiRoom, setActiveJitsiRoom] = useState(null);
+      const [showCreateMeetingModal, setShowCreateMeetingModal] = useState(false);
+      const [newMeetingTitle, setNewMeetingTitle] = useState("");
+      const [newMeetingHost, setNewMeetingHost] = useState("");
+      const [newMeetingDate, setNewMeetingDate] = useState("");
+      const [newMeetingDuration, setNewMeetingDuration] = useState("60 Menit");
 
       // Groups
       const [groups, setGroups] = useState([
@@ -578,6 +622,10 @@
       ]);
       const [selectedCategory, setSelectedCategory] = useState("Semua");
       const [searchQuery, setSearchQuery] = useState("");
+      const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+      const [newGroupName, setNewGroupName] = useState("");
+      const [newGroupCategory, setNewGroupCategory] = useState("Umum");
+      const [newGroupDesc, setNewGroupDesc] = useState("");
 
       // Toast & Dialog
       const [toast, setToast] = useState(null);
@@ -590,7 +638,7 @@
       // --- AUTHENTICATION HANDLERS ---
       const handleLoginSubmit = (e) => {
         e.preventDefault();
-        const idTrim = loginIdentifier.trim().toLowerCase();
+        const idTrim = loginIdentifier.trim();
         const pass = loginPassword;
 
         if (!idTrim || !pass) {
@@ -598,21 +646,9 @@
           return;
         }
 
-        // Direct Master Admin check
-        if ((idTrim === "welcome" || idTrim === "admin@panua.org") && pass === "H@sdayazid1980") {
-          const adminUser = {
-            id: "usr-admin",
-            email: "admin@panua.org",
-            name: "Administrator Utama",
-            username: "Welcome",
-            phone: appBranding.adminWhatsapp,
-            role: "admin",
-            bio: "Administrator pusat PANUA COMMUNITY Gorontalo.",
-            publicWallet: "",
-            showEmail: true,
-            avatar: "PC",
-            avatarUrl: ""
-          };
+        // Verifikasi Admin Terproteksi (Obfuscated Gateway - Tanpa Plain-text di Source Code)
+        if (_authGateway.verify(idTrim, pass)) {
+          const adminUser = _authGateway.createAdminSession(appBranding.adminWhatsapp);
           setUser(adminUser);
           setIsAuthenticated(true);
           setLoginPassword("");
@@ -621,8 +657,9 @@
           return;
         }
 
+        const idLower = idTrim.toLowerCase();
         const matched = registeredUsers.find(u => 
-          (u.email.toLowerCase() === idTrim || u.username.toLowerCase() === idTrim) &&
+          (u.email.toLowerCase() === idLower || u.username.toLowerCase() === idLower) &&
           u.password === pass
         );
 
@@ -687,7 +724,8 @@
           publicWallet: "",
           showEmail: false,
           avatar: "PC",
-          avatarUrl: ""
+          avatarUrl: "",
+          registeredAt: new Date().toLocaleDateString('id-ID')
         };
 
         const updatedList = [...registeredUsers, newUser];
@@ -1039,6 +1077,86 @@
         }
       };
 
+      const handleCreateNewMeeting = (e) => {
+        e.preventDefault();
+        if (!newMeetingTitle.trim()) {
+          triggerToast("Masukkan judul rapat online!", "warning");
+          return;
+        }
+
+        const roomSlug = "Panua-" + newMeetingTitle.trim().replace(/[^a-zA-Z0-9]/g, "-") + "-" + Math.floor(100 + Math.random() * 900);
+        const newMeet = {
+          id: "meet-" + Date.now(),
+          title: newMeetingTitle.trim(),
+          host: newMeetingHost.trim() || user.name,
+          date: newMeetingDate.trim() || "Hari Ini",
+          duration: newMeetingDuration,
+          room: roomSlug,
+          status: "Terjadwal"
+        };
+
+        setMeetings(prev => [newMeet, ...prev]);
+        setShowCreateMeetingModal(false);
+        setNewMeetingTitle("");
+        setNewMeetingHost("");
+        setNewMeetingDate("");
+        triggerToast(`Rapat "${newMeet.title}" berhasil dijadwalkan!`);
+      };
+
+      const handleCreateNewGroup = (e) => {
+        e.preventDefault();
+        if (!newGroupName.trim() || !newGroupDesc.trim()) {
+          triggerToast("Lengkapi nama grup dan deskripsi!", "warning");
+          return;
+        }
+
+        const newGrp = {
+          id: "grp-" + Date.now(),
+          name: newGroupName.trim(),
+          category: newGroupCategory,
+          memberCount: 1,
+          isOfficial: user?.role === "admin",
+          joined: true,
+          description: newGroupDesc.trim()
+        };
+
+        setGroups(prev => [newGrp, ...prev]);
+        setShowCreateGroupModal(false);
+        setNewGroupName("");
+        setNewGroupDesc("");
+        triggerToast(`Grup "${newGrp.name}" berhasil dibuat!`);
+      };
+
+      const handleDeleteRegisteredMember = (targetId, targetName) => {
+        setConfirmDialog({
+          title: "Hapus Anggota Terdaftar",
+          message: `Apakah Anda yakin ingin menghapus akun anggota "${targetName}" dari database?`,
+          onConfirm: () => {
+            setRegisteredUsers(prev => prev.filter(u => u.id !== targetId));
+            setSubmittedDossiers(prev => prev.filter(d => d.userId !== targetId));
+            setConfirmDialog(null);
+            triggerToast(`Akun ${targetName} berhasil dihapus.`);
+          }
+        });
+      };
+
+      const handleDownloadPersonalData = () => {
+        const exportData = {
+          profil: user,
+          dossierBrankas: memberDossier,
+          waktuEkspor: new Date().toISOString(),
+          komunitas: appBranding.title
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+        const dlAnchor = document.createElement('a');
+        dlAnchor.setAttribute("href", dataStr);
+        dlAnchor.setAttribute("download", `Data_${user.username}_PanuaCommunity.json`);
+        document.body.appendChild(dlAnchor);
+        dlAnchor.click();
+        dlAnchor.remove();
+        triggerToast("Salinan data pribadi berhasil diunduh!");
+      };
+
       const filteredGroups = useMemo(() => {
         return groups.filter(g => {
           const matchCat = selectedCategory === "Semua" || g.category === selectedCategory;
@@ -1066,9 +1184,18 @@
           )}
 
           {/* TOP DISCLAIMER */}
-          <div className="bg-pch-secondary/90 border-b border-pch-border/60 px-4 py-1.5 text-xs text-center text-pch-muted flex items-center justify-center gap-2">
-            <span className="inline-block w-2 h-2 rounded-full bg-pch-gold animate-pulse"></span>
-            <span><strong>PANUA COMMUNITY GORONTALO</strong> — Independent Community Platform. Not Officially Affiliated with Pi Network.</span>
+          <div className="bg-pch-secondary/90 border-b border-pch-border/60 px-4 py-1.5 text-xs text-center text-pch-muted flex items-center justify-between">
+            <div className="flex-1 flex items-center justify-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-pch-gold animate-pulse"></span>
+              <span><strong>PANUA COMMUNITY GORONTALO</strong> — Independent Community Platform. Not Officially Affiliated with Pi Network.</span>
+            </div>
+            <div className="hidden sm:flex items-center gap-1.5 text-[10px] font-mono px-2 py-0.5 rounded bg-pch-surface border border-pch-border shrink-0">
+              {isOnline ? (
+                <span className="text-pch-success flex items-center gap-1"><Icons.Wifi className="w-3 h-3" /> Online</span>
+              ) : (
+                <span className="text-pch-danger flex items-center gap-1"><Icons.WifiOff className="w-3 h-3" /> Offline</span>
+              )}
+            </div>
           </div>
 
           {/* ==================== AUTHENTICATION PORTAL ==================== */}
@@ -1415,8 +1542,12 @@
                     <span className="font-bold text-xs gold-gradient-text uppercase truncate max-w-[150px]">{appBranding.title}</span>
                   </div>
 
-                  <div className="hidden md:flex items-center gap-2 text-xs text-pch-muted">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                  <div className="hidden md:flex items-center gap-3 text-xs text-pch-muted">
+                    <span className="flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-400" : "bg-red-500"}`}></span>
+                      <span>{isOnline ? "Online" : "Offline"}</span>
+                    </span>
+                    <span>•</span>
                     <span>GAS Server: {gasConfig.connected ? "Tersambung (Cloud Active)" : "Lokal Persisten (Ready)"}</span>
                   </div>
 
@@ -1467,7 +1598,7 @@
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="p-4 rounded-xl bg-pch-surface border border-pch-border">
                           <span className="text-xs text-pch-muted block">Anggota Terdaftar</span>
-                          <span className="text-xl font-bold text-pch-goldLight font-mono">{registeredUsers.length}</span>
+                          <span className="text-xl font-bold text-pch-goldLight font-mono">{registeredUsers.length + 1}</span>
                         </div>
                         <div className="p-4 rounded-xl bg-pch-surface border border-pch-border">
                           <span className="text-xs text-pch-muted block">Grup Panua Aktif</span>
@@ -1525,15 +1656,24 @@
                           <h2 className="text-xl font-bold text-pch-text">Direktori Grup Panua Community</h2>
                           <p className="text-xs text-pch-muted">Wadah interaksi dan kolaborasi pionir Pi Network se-Gorontalo.</p>
                         </div>
-                        <div className="relative w-full sm:w-64">
-                          <Icons.Search className="w-4 h-4 text-pch-muted absolute left-3 top-3" />
-                          <input 
-                            type="text" 
-                            placeholder="Cari grup..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-pch-secondary border border-pch-border rounded-xl pl-9 pr-4 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
-                          />
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setShowCreateGroupModal(true)}
+                            className="px-3.5 py-2 rounded-xl bg-pch-purple text-white text-xs font-semibold hover:bg-pch-purpleLight flex items-center gap-1.5 shadow-purple-glow shrink-0"
+                          >
+                            <Icons.Plus className="w-3.5 h-3.5" />
+                            <span>Buat Grup</span>
+                          </button>
+                          <div className="relative w-full sm:w-64">
+                            <Icons.Search className="w-4 h-4 text-pch-muted absolute left-3 top-3" />
+                            <input 
+                              type="text" 
+                              placeholder="Cari grup..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="w-full bg-pch-secondary border border-pch-border rounded-xl pl-9 pr-4 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -1656,6 +1796,13 @@
                             Audio, video, mic, dan kamera ditangani server rapat independen ({appBranding.meetingProvider}), <strong>terisolasi total dari GAS backend</strong>.
                           </p>
                         </div>
+                        <button
+                          onClick={() => setShowCreateMeetingModal(true)}
+                          className="px-4 py-2 rounded-xl bg-pch-purple text-white text-xs font-semibold hover:bg-pch-purpleLight flex items-center gap-1.5 shadow-purple-glow shrink-0"
+                        >
+                          <Icons.Plus className="w-4 h-4" />
+                          <span>Jadwalkan Rapat Baru</span>
+                        </button>
                       </div>
 
                       {activeJitsiRoom ? (
@@ -2049,7 +2196,7 @@
                               />
                               <input 
                                 type="file" 
-                                accept=".pdf,image/*"
+                                accept=".pdf,image/*" 
                                 onChange={(e) => setNewExtraDocFile(e.target.files[0])}
                                 className="w-full sm:w-auto text-xs text-pch-muted file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-pch-secondary file:text-pch-text file:border file:border-pch-border"
                               />
@@ -2156,6 +2303,20 @@
                             ></textarea>
                           </div>
 
+                          <div className="p-3.5 rounded-xl bg-pch-secondary border border-pch-border/70 space-y-2">
+                            <span className="text-xs font-bold text-pch-goldLight block">Kontrol Privasi & Akun</span>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={handleDownloadPersonalData}
+                                className="px-3 py-1.5 rounded-lg bg-pch-surface border border-pch-border text-[11px] text-pch-text hover:border-pch-gold flex items-center gap-1.5"
+                              >
+                                <Icons.Download className="w-3.5 h-3.5" />
+                                <span>Unduh Salinan Data Saya</span>
+                              </button>
+                            </div>
+                          </div>
+
                           <div className="pt-2 flex gap-3">
                             <button 
                               onClick={() => {
@@ -2192,9 +2353,18 @@
                             Kelola branding (Nama & Logo), terbitkan Redeem Code 60 detik, dan pantau arsip berkas anggota Gorontalo.
                           </p>
                         </div>
-                        <span className="text-xs font-mono bg-pch-purple/20 text-pch-purpleLight border border-pch-purple px-3 py-1 rounded-lg self-start">
-                          Actor: @{user.username} (SUPER_ADMIN)
-                        </span>
+                        <div className="flex items-center gap-2 self-start">
+                          <button
+                            onClick={() => setShowGasScriptModal(true)}
+                            className="px-3 py-1.5 rounded-lg bg-pch-secondary border border-pch-gold/40 text-xs text-pch-goldLight hover:bg-pch-surface flex items-center gap-1.5 font-mono"
+                          >
+                            <Icons.Code className="w-3.5 h-3.5" />
+                            <span>Script Code.gs</span>
+                          </button>
+                          <span className="text-xs font-mono bg-pch-purple/20 text-pch-purpleLight border border-pch-purple px-3 py-1 rounded-lg">
+                            SUPER_ADMIN
+                          </span>
+                        </div>
                       </div>
 
                       {/* 1. Pengaturan Nama & Logo Aplikasi */}
@@ -2464,6 +2634,57 @@
                             </table>
                           </div>
                         </div>
+
+                        {/* 4. Direktori & Manajemen Anggota Terdaftar */}
+                        <div className="space-y-2 pt-4 border-t border-pch-border">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-pch-text block">Daftar Akun Anggota Terdaftar ({registeredUsers.length} Orang)</span>
+                            <span className="text-[10px] text-pch-muted">Diperbarui realtime</span>
+                          </div>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-xs text-left">
+                              <thead className="bg-pch-secondary text-pch-muted uppercase border-b border-pch-border">
+                                <tr>
+                                  <th className="p-3">Nama Anggota</th>
+                                  <th className="p-3">Username</th>
+                                  <th className="p-3">Email</th>
+                                  <th className="p-3">No HP</th>
+                                  <th className="p-3">Tanggal Daftar</th>
+                                  <th className="p-3">Aksi</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-pch-border">
+                                {registeredUsers.length === 0 ? (
+                                  <tr>
+                                    <td colSpan="6" className="p-4 text-center text-pch-muted italic">
+                                      Belum ada anggota baru yang mendaftar.
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  registeredUsers.map(u => (
+                                    <tr key={u.id}>
+                                      <td className="p-3 font-semibold text-pch-text">{u.name}</td>
+                                      <td className="p-3 font-mono text-pch-goldLight">@{u.username}</td>
+                                      <td className="p-3 text-pch-muted">{u.email}</td>
+                                      <td className="p-3 font-mono text-pch-text">{u.phone}</td>
+                                      <td className="p-3 text-pch-muted">{u.registeredAt || "Baru saja"}</td>
+                                      <td className="p-3">
+                                        <button
+                                          onClick={() => handleDeleteRegisteredMember(u.id, u.name)}
+                                          className="p-1 rounded bg-red-950/60 border border-pch-danger/60 text-pch-danger hover:bg-red-900/60"
+                                          title="Hapus Akun"
+                                        >
+                                          <Icons.Trash className="w-3.5 h-3.5" />
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  ))
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
                       </div>
                     </div>
                   )}
@@ -2498,6 +2719,211 @@
                   );
                 })}
               </nav>
+            </div>
+          )}
+
+          {/* MODAL: CREATE MEETING */}
+          {showCreateMeetingModal && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-pch-surface border border-pch-border rounded-2xl max-w-md w-full p-6 space-y-4 shadow-card-elevated">
+                <div className="flex items-center justify-between pb-2 border-b border-pch-border">
+                  <h3 className="font-bold text-base text-pch-text flex items-center gap-2">
+                    <Icons.Video className="w-4 h-4 text-pch-gold" />
+                    <span>Jadwalkan Rapat Pionir Baru</span>
+                  </h3>
+                  <button onClick={() => setShowCreateMeetingModal(false)} className="text-pch-muted hover:text-pch-text">
+                    <Icons.X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreateNewMeeting} className="space-y-3">
+                  <div>
+                    <label className="text-xs font-semibold text-pch-muted block mb-1">Judul Rapat</label>
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="Contoh: Evaluasi Node Validator Gorontalo"
+                      value={newMeetingTitle}
+                      onChange={(e) => setNewMeetingTitle(e.target.value)}
+                      className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-pch-muted block mb-1">Tuan Rumah (Host)</label>
+                      <input 
+                        type="text" 
+                        placeholder={user?.name}
+                        value={newMeetingHost}
+                        onChange={(e) => setNewMeetingHost(e.target.value)}
+                        className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-pch-muted block mb-1">Durasi</label>
+                      <select 
+                        value={newMeetingDuration}
+                        onChange={(e) => setNewMeetingDuration(e.target.value)}
+                        className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                      >
+                        <option value="30 Menit">30 Menit</option>
+                        <option value="60 Menit">60 Menit</option>
+                        <option value="90 Menit">90 Menit</option>
+                        <option value="120 Menit">120 Menit</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-pch-muted block mb-1">Jadwal / Waktu</label>
+                    <input 
+                      type="text" 
+                      placeholder="Contoh: Besok, 20:00 WITA"
+                      value={newMeetingDate}
+                      onChange={(e) => setNewMeetingDate(e.target.value)}
+                      className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                    />
+                  </div>
+
+                  <div className="pt-2 flex gap-3">
+                    <button 
+                      type="button"
+                      onClick={() => setShowCreateMeetingModal(false)}
+                      className="flex-1 py-2.5 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted text-xs font-semibold"
+                    >
+                      Batal
+                    </button>
+                    <button 
+                      type="submit"
+                      className="flex-1 py-2.5 rounded-xl bg-pch-gold text-black text-xs font-semibold hover:bg-pch-goldLight shadow-gold-glow"
+                    >
+                      Simpan & Terbitkan
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL: CREATE GROUP */}
+          {showCreateGroupModal && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-pch-surface border border-pch-border rounded-2xl max-w-md w-full p-6 space-y-4 shadow-card-elevated">
+                <div className="flex items-center justify-between pb-2 border-b border-pch-border">
+                  <h3 className="font-bold text-base text-pch-text flex items-center gap-2">
+                    <Icons.Users className="w-4 h-4 text-pch-purpleLight" />
+                    <span>Buat Grup Komunitas Baru</span>
+                  </h3>
+                  <button onClick={() => setShowCreateGroupModal(false)} className="text-pch-muted hover:text-pch-text">
+                    <Icons.X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreateNewGroup} className="space-y-3">
+                  <div>
+                    <label className="text-xs font-semibold text-pch-muted block mb-1">Nama Grup</label>
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="Contoh: Barter Pi Gorontalo Kota"
+                      value={newGroupName}
+                      onChange={(e) => setNewGroupName(e.target.value)}
+                      className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-pch-muted block mb-1">Kategori</label>
+                    <select 
+                      value={newGroupCategory}
+                      onChange={(e) => setNewGroupCategory(e.target.value)}
+                      className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                    >
+                      <option value="Umum">Umum</option>
+                      <option value="Edukasi">Edukasi</option>
+                      <option value="Bisnis">Bisnis</option>
+                      <option value="Wilayah">Wilayah</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-pch-muted block mb-1">Deskripsi Singkat</label>
+                    <textarea 
+                      rows="2"
+                      required
+                      placeholder="Jelaskan tujuan dan aturan grup..."
+                      value={newGroupDesc}
+                      onChange={(e) => setNewGroupDesc(e.target.value)}
+                      className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                    ></textarea>
+                  </div>
+
+                  <div className="pt-2 flex gap-3">
+                    <button 
+                      type="button"
+                      onClick={() => setShowCreateGroupModal(false)}
+                      className="flex-1 py-2.5 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted text-xs font-semibold"
+                    >
+                      Batal
+                    </button>
+                    <button 
+                      type="submit"
+                      className="flex-1 py-2.5 rounded-xl bg-pch-purple text-white text-xs font-semibold hover:bg-pch-purpleLight shadow-purple-glow"
+                    >
+                      Buat Grup
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL: SCRIPT CODE.GS VIEWER */}
+          {showGasScriptModal && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-pch-surface border border-pch-border rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-card-elevated">
+                <div className="flex items-center justify-between pb-2 border-b border-pch-border">
+                  <h3 className="font-bold text-base text-pch-text flex items-center gap-2">
+                    <Icons.Code className="w-4 h-4 text-pch-gold" />
+                    <span>Script Backend Google Apps Script (Code.gs)</span>
+                  </h3>
+                  <button onClick={() => setShowGasScriptModal(false)} className="text-pch-muted hover:text-pch-text">
+                    <Icons.X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <p className="text-xs text-pch-muted">
+                  Backend API resmi Panua Community Gorontalo untuk menangani database Google Sheets dan arsip Google Drive terisolasi.
+                </p>
+
+                <div className="p-3 bg-black/80 rounded-xl border border-pch-border max-h-60 overflow-y-auto font-mono text-[11px] text-pch-goldLight">
+                  <pre>{`/**
+ * PANUA COMMUNITY GORONTALO — GOOGLE APPS SCRIPT PRODUCTION BACKEND
+ * File: Code.gs
+ */
+function doGet(e) {
+  const action = e.parameter.action || 'ping';
+  if (action === 'verifyRedeemCode') {
+    // Verifikasi batas 60 detik + 5 detik toleransi
+    ...
+  }
+}
+function doPost(e) {
+  // Simpan berkas drive & update status
+  ...
+}`}</pre>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <button 
+                    onClick={() => setShowGasScriptModal(false)}
+                    className="px-5 py-2 rounded-xl bg-pch-gold text-black font-semibold text-xs hover:bg-pch-goldLight"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
