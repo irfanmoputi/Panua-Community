@@ -491,15 +491,56 @@
 
       // --- BI-DIRECTIONAL CLOUD SYNC ---
       const syncFromGas = async (overrideUrl) => {
-        const url = overrideUrl || gasConfig.webAppUrl;
-        if (!url) return;
+        const url = (overrideUrl || gasConfig.webAppUrl || '').trim();
+        if (!url) {
+          triggerToast("URL Google Apps Script belum terhubung! Masukkan URL di Status GAS.", "warning");
+          return;
+        }
         try {
           setIsSyncing(true);
+          triggerToast("Mengirim & menyinkronkan database ke Google Sheets...", "warning");
+
+          // 1. PUSH data pengguna, branding, dan berkas lokal ke Google Sheets (fullSync)
+          const pushPayload = {
+            action: 'fullSync',
+            actor: user?.username || 'user',
+            users: registeredUsers,
+            branding: appBranding,
+            dossiers: submittedDossiers,
+            redeemCodes: activeRedeemCodes
+          };
+
+          let syncOk = false;
+          try {
+            const pushRes = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify(pushPayload)
+            });
+            const pushData = await pushRes.json();
+            if (pushData && pushData.status === 'ok') {
+              syncOk = true;
+              if (pushData.users && Array.isArray(pushData.users) && pushData.users.length > 0) {
+                setRegisteredUsers(pushData.users);
+              }
+            }
+          } catch (postErr) {
+            console.warn("POST fullSync failed, fallback ke GET:", postErr);
+          }
+
+          // 2. PULL data terbaru dari Google Sheets & Drive
           const res = await fetch(`${url}?action=getInitialData&t=${Date.now()}`);
           const data = await res.json();
           if (data && data.status === 'ok') {
             if (data.users && Array.isArray(data.users) && data.users.length > 0) {
-              setRegisteredUsers(data.users);
+              setRegisteredUsers(prev => {
+                const map = new Map();
+                data.users.forEach(u => map.set(u.username.toLowerCase(), u));
+                prev.forEach(u => {
+                  if (!map.has(u.username.toLowerCase())) map.set(u.username.toLowerCase(), u);
+                });
+                return Array.from(map.values());
+              });
             }
             if (data.branding && data.branding.title) {
               setAppBranding(prev => ({ ...prev, ...data.branding }));
@@ -520,10 +561,13 @@
               connected: true,
               lastSync: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " WITA"
             }));
-            triggerToast("Sinkronisasi cloud Google Sheets & Drive berhasil!", "success");
+            triggerToast("Database Google Sheets & Google Drive berhasil disinkronkan 100%!", "success");
+          } else if (syncOk) {
+            triggerToast("Data lokal berhasil disimpan ke Google Sheets!", "success");
           }
         } catch (err) {
           console.warn("GAS Sync notice:", err);
+          triggerToast("Gagal tersambung ke URL GAS. Pastikan akses deployment Web App: 'Anyone'.", "danger");
         } finally {
           setIsSyncing(false);
         }
@@ -535,7 +579,7 @@
         }
       }, [gasConfig.webAppUrl]);
 
-      // 4. PERSISTENT ACTIVE REDEEM CODES (60-DETIK VALIDASI)
+      // 4. PERSISTENT ACTIVE REDEEM CODES (90-DETIK VALIDASI)
       const [activeRedeemCodes, setActiveRedeemCodes] = useState(() => {
         try {
           const saved = localStorage.getItem('panua_shared_redeem_codes');
@@ -910,7 +954,7 @@
           return;
         }
 
-        // 2. Cloud Verification via GAS Endpoint
+        // 2. Cloud Verification via GAS Endpoint (90 Detik)
         if (gasConfig.connected && gasConfig.webAppUrl) {
           try {
             triggerToast("Memverifikasi kode ke server Google Apps Script...", "warning");
@@ -922,10 +966,10 @@
             if (data.status === "ok" && data.valid) {
               setVaultUnlocked(true);
               setVaultRedeemInput("");
-              triggerToast(`Kode Valid! Sisa waktu: ${data.remainingSeconds || 60} detik. Brankas Terbuka.`, "success");
+              triggerToast(`Kode Valid! Sisa waktu: ${data.remainingSeconds || 90} detik. Brankas Terbuka.`, "success");
               return;
             } else if (data.status === "expired") {
-              triggerToast(data.message || "Redeem Code sudah kedaluwarsa (> 60 detik). Minta kode baru ke Admin.", "danger");
+              triggerToast(data.message || "Redeem Code sudah kedaluwarsa (> 90 detik). Minta kode baru ke Admin.", "danger");
               return;
             } else {
               triggerToast("Redeem Code tidak valid atau target username tidak sesuai! Hubungi Admin.", "danger");
@@ -937,12 +981,12 @@
         }
 
         setIsVerifyingCode(false);
-        triggerToast("Redeem Code tidak valid atau sudah kedaluwarsa (> 60 detik)! Minta kode baru ke Admin via WA.", "danger");
+        triggerToast("Redeem Code tidak valid atau sudah kedaluwarsa (> 90 detik)! Minta kode baru ke Admin via WA.", "danger");
       };
 
       const handleRequestCodeViaWhatsapp = () => {
         const adminNumber = appBranding.adminWhatsapp.replace(/\D/g, '');
-        const message = `Halo Admin ${appBranding.title} (Gorontalo),\n\nSaya ingin meminta Kode Akses / Redeem Code 60 Detik untuk membuka menu My Secure Vault:\nNama: ${user.name}\nUsername: ${user.username}\nEmail: ${user.email}\nNo HP: ${user.phone || '-'}\n\nMohon buatkan kode akses 1 menit. Terima kasih!`;
+        const message = `Halo Admin ${appBranding.title} (Gorontalo),\n\nSaya ingin meminta Kode Akses / Redeem Code 90 Detik untuk membuka menu My Secure Vault:\nNama: ${user.name}\nUsername: ${user.username}\nEmail: ${user.email}\nNo HP: ${user.phone || '-'}\n\nMohon buatkan kode akses 1.5 menit (90 detik). Terima kasih!`;
         const waUrl = `https://wa.me/${adminNumber}?text=${encodeURIComponent(message)}`;
         window.open(waUrl, '_blank');
         triggerToast("Membuka WhatsApp untuk mengirim permohonan ke Admin...");
@@ -956,9 +1000,9 @@
         const cleanNumber = dossier.noHp.replace(/\D/g, '').replace(/^0/, '62');
         let text = `Halo Sdr/i ${dossier.namaLengkap},\n\nAdmin ${appBranding.title} (Gorontalo) menyampaikan informasi arsip brankas Anda:\n• Status Dokumen: Tersimpan aman di Drive Admin\n• NIK: ${dossier.nik}\n• Username Pi: ${dossier.usernamePi}\n• Rekening: ${dossier.rekening}\n`;
         if (codeToSend) {
-          text += `\n🔑 KODE AKSES / REDEEM CODE BRANKAS (BERLAKU 60 DETIK):\n👉 *${codeToSend}*\n⚠️ *PENTING:* Kode ini aktif selama tepat 60 detik. Harap segera masukkan di aplikasi untuk membuka My Secure Vault.\n`;
+          text += `\n🔑 KODE AKSES / REDEEM CODE BRANKAS (BERLAKU 90 DETIK):\n👉 *${codeToSend}*\n⚠️ *PENTING:* Kode ini aktif selama tepat 90 detik (1.5 menit). Harap segera masukkan di aplikasi untuk membuka My Secure Vault.\n`;
         } else {
-          text += `\n⚠️ Belum ada kode aktif. Silakan minta admin membuatkan kode akses 60 detik baru.\n`;
+          text += `\n⚠️ Belum ada kode aktif. Silakan minta admin membuatkan kode akses 90 detik baru.\n`;
         }
         text += `\nSalam Komunitas Panua Pi Network Gorontalo!`;
 
@@ -1059,9 +1103,9 @@
           code: code,
           userTarget: newCodeTarget,
           createdBy: user.username,
-          note: newCodeNote.trim() || "Akses Brankas 60 Detik",
+          note: newCodeNote.trim() || "Akses Brankas 90 Detik",
           createdAt: now,
-          expiresAt: now + 60000
+          expiresAt: now + 90000 // 90 Detik (1.5 Menit)
         };
 
         const updated = [newEntry, ...activeRedeemCodes.filter(c => now < c.expiresAt)];
@@ -1070,7 +1114,7 @@
 
         setNewCodeCustom("");
         setNewCodeNote("");
-        triggerToast(`Redeem Code [${code}] aktif 60 detik untuk: ${newCodeTarget}!`, "success");
+        triggerToast(`Redeem Code [${code}] aktif 90 detik untuk: ${newCodeTarget}!`, "success");
 
         if (gasConfig.connected && gasConfig.webAppUrl) {
           callGasApi('generateRedeemCode', {
@@ -1964,13 +2008,13 @@
 
                           <div className="space-y-2">
                             <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-amber-950/80 text-pch-goldLight border border-pch-gold/40 uppercase tracking-wider">
-                              Akses Privat Terproteksi (Validitas 60 Detik)
+                              Akses Privat Terproteksi (Validitas 90 Detik)
                             </span>
                             <h2 className="text-xl sm:text-2xl font-bold text-pch-text">
                               Buka Akses My Secure Vault
                             </h2>
                             <p className="text-xs sm:text-sm text-pch-muted max-w-md mx-auto leading-relaxed">
-                              Masukkan <strong>Redeem Code / Token Akses Privat</strong> yang diberikan Admin Panua Community untuk membuka brankas Anda. Kode hanya aktif selama 1 menit (60 detik).
+                              Masukkan <strong>Redeem Code / Token Akses Privat</strong> yang diberikan Admin Panua Community untuk membuka brankas Anda. Kode hanya aktif selama 1.5 menit (90 detik).
                             </p>
                           </div>
 
@@ -1999,7 +2043,7 @@
 
                           <div className="pt-4 border-t border-pch-border/70 space-y-3">
                             <p className="text-xs text-pch-muted">
-                              Belum memiliki Redeem Code atau kode sebelumnya sudah lewat 60 detik?
+                              Belum memiliki Redeem Code atau kode sebelumnya sudah lewat 90 detik?
                             </p>
                             <button 
                               type="button"
@@ -2007,7 +2051,7 @@
                               className="px-4 py-2 rounded-xl bg-emerald-950/70 border border-pch-success text-pch-success text-xs font-semibold hover:bg-emerald-900/50 flex items-center justify-center gap-2 mx-auto"
                             >
                               <Icons.Phone className="w-3.5 h-3.5" />
-                              <span>Minta Kode Akses 60 Detik ke Admin via WA</span>
+                              <span>Minta Kode Akses 90 Detik ke Admin via WA</span>
                             </button>
                           </div>
                         </div>
@@ -2629,11 +2673,11 @@
                         </div>
                       </div>
 
-                      {/* 2. Generator Redeem Code 60 Detik */}
+                      {/* 2. Generator Redeem Code 90 Detik */}
                       <div className="p-6 rounded-2xl bg-pch-surface border border-pch-purple/50 shadow-card-elevated space-y-6">
                         <h3 className="font-bold text-base text-pch-text border-b border-pch-border pb-3 flex items-center gap-2">
                           <Icons.Key className="w-4 h-4 text-pch-purpleLight" />
-                          <span>2. Generator Redeem Code 60 Detik (Auto-Delete Realtime)</span>
+                          <span>2. Generator Redeem Code 90 Detik (Auto-Delete Realtime)</span>
                         </h3>
 
                         <form onSubmit={handleAdminCreateRedeemCode} className="p-4 rounded-xl bg-pch-secondary border border-pch-border space-y-3">
@@ -2681,14 +2725,14 @@
                             className="px-4 py-2 rounded-xl bg-pch-purple text-white text-xs font-bold hover:bg-pch-purpleLight flex items-center gap-1.5 shadow-purple-glow"
                           >
                             <Icons.Plus className="w-3.5 h-3.5" />
-                            <span>Terbitkan Kode 60 Detik</span>
+                            <span>Terbitkan Kode 90 Detik</span>
                           </button>
                         </form>
 
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-pch-text block">Daftar Kode Aktif (Otomatis Hilang Setelah 60 Detik)</span>
-                            <span className="text-[10px] text-pch-warning font-mono bg-amber-950/40 px-2.5 py-0.5 rounded border border-pch-warning/40">Durasi: 1 Menit</span>
+                            <span className="text-xs font-bold text-pch-text block">Daftar Kode Aktif (Otomatis Hilang Setelah 90 Detik)</span>
+                            <span className="text-[10px] text-pch-warning font-mono bg-amber-950/40 px-2.5 py-0.5 rounded border border-pch-warning/40">Durasi: 90 Detik (1.5 Menit)</span>
                           </div>
                           <div className="overflow-x-auto">
                             <table className="w-full text-xs text-left">
@@ -2705,7 +2749,7 @@
                                 {activeRedeemCodes.length === 0 ? (
                                   <tr>
                                     <td colSpan="5" className="p-4 text-center text-pch-muted italic">
-                                      Tidak ada kode aktif saat ini. Kode otomatis hilang setelah lewat 60 detik.
+                                      Tidak ada kode aktif saat ini. Kode otomatis hilang setelah lewat 90 detik.
                                     </td>
                                   </tr>
                                 ) : (
@@ -2717,7 +2761,7 @@
                                         <td className="p-3 font-mono text-pch-text">@{item.userTarget}</td>
                                         <td className="p-3">
                                           <span className={`px-2 py-0.5 rounded-full font-mono font-bold text-[10px] border flex items-center gap-1 w-fit ${
-                                            remainingSeconds <= 15 ? "bg-red-950/80 border-pch-danger text-pch-danger animate-pulse" : "bg-amber-950/80 border-pch-warning text-pch-warning"
+                                            remainingSeconds <= 20 ? "bg-red-950/80 border-pch-danger text-pch-danger animate-pulse" : "bg-amber-950/80 border-pch-warning text-pch-warning"
                                           }`}>
                                             <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
                                             <span>{remainingSeconds} detik</span>
