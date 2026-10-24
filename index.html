@@ -118,12 +118,13 @@
     const stringManifest = JSON.stringify(manifestObject);
     const blobManifest = new Blob([stringManifest], { type: 'application/json' });
     const manifestURL = URL.createObjectURL(blobManifest);
-    document.getElementById('pwa-manifest-link').setAttribute('href', manifestURL);
+    const pwaLink = document.getElementById('pwa-manifest-link');
+    if (pwaLink) pwaLink.setAttribute('href', manifestURL);
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         const swBlob = new Blob([`
-          const CACHE_NAME = 'panua-static-v5.0';
+          const CACHE_NAME = 'panua-static-v6.0';
           self.addEventListener('install', (e) => self.skipWaiting());
           self.addEventListener('activate', (e) => self.clients.claim());
           self.addEventListener('fetch', (e) => {
@@ -144,9 +145,7 @@
     const { useState, useEffect, useMemo, useRef } = React;
 
     // --- CRYPTOGRAPHICALLY OBFUSCATED ADMIN AUTHENTICATION GATEWAY ---
-    // Mencegah kredensial admin terbaca dalam plain text di source code frontend maupun localStorage
     const _authGateway = (() => {
-      // Disguised shift-cipher arrays (Shift = 73)
       const _s = 73;
       const _d = (arr) => String.fromCharCode(...arr.map(x => x - _s));
       const _kU1 = _d([192, 174, 181, 172, 184, 182, 174]); // 'welcome'
@@ -160,7 +159,7 @@
           return (id === _kU1 || id === _kU2) && password === _kP;
         },
         createAdminSession: (adminPhone) => ({
-          id: "usr-" + Math.floor(100000 + Math.random() * 900000),
+          id: "usr-admin-session",
           email: _kU2,
           name: "Administrator Utama",
           username: "Welcome",
@@ -229,7 +228,7 @@
       }
     }
 
-    // --- OFFICIAL PANUA COMMUNITY SEAL SVG (REPLICA) ---
+    // --- OFFICIAL PANUA COMMUNITY SEAL SVG ---
     function PanuaCommunitySealSVG({ className = "w-full h-full" }) {
       return (
         <svg viewBox="0 0 300 300" className={className} xmlns="http://www.w3.org/2000/svg">
@@ -346,20 +345,23 @@
 
       return (
         <div className={`${dimensions} aspect-square rounded-full overflow-hidden border-2 border-pch-gold bg-pch-surface shadow-gold-glow flex items-center justify-center shrink-0 p-0.5`}>
-          <PanuaCommunitySealSVG className="w-full h-full rounded-full" />
+          {branding?.logoType === "custom" && branding?.customLogoUrl ? (
+            <img src={branding.customLogoUrl} alt="Logo" className="w-full h-full object-cover rounded-full" />
+          ) : (
+            <PanuaCommunitySealSVG className="w-full h-full rounded-full" />
+          )}
         </div>
       );
     }
 
     // --- MAIN REACT APPLICATION ---
     function App() {
-      // 1. PERSISTENT REGISTERED USERS (TANPA KREDENSIAL ADMIN PLAIN-TEXT)
+      // 1. PERSISTENT REGISTERED USERS
       const [registeredUsers, setRegisteredUsers] = useState(() => {
         try {
           const saved = localStorage.getItem('panua_registered_users') || localStorage.getItem('pch_registered_users');
           if (saved) {
             const parsed = JSON.parse(saved);
-            // Bersihkan akun admin warisan dari localStorage agar tidak membocorkan password
             return parsed.filter(u => u.id !== "usr-admin" && u.role !== "admin");
           }
         } catch (e) {}
@@ -401,7 +403,7 @@
         };
       }, []);
 
-      // Auth Views: 'login' | 'register' | 'forgot'
+      // Auth Views
       const [authView, setAuthView] = useState("login");
       const [loginIdentifier, setLoginIdentifier] = useState("");
       const [loginPassword, setLoginPassword] = useState("");
@@ -424,7 +426,7 @@
 
       const [activeTab, setActiveTab] = useState("dashboard");
 
-      // 2. PERSISTENT APP BRANDING: PANUA COMMUNITY
+      // 2. PERSISTENT APP BRANDING
       const [appBranding, setAppBranding] = useState(() => {
         try {
           const saved = localStorage.getItem('panua_branding');
@@ -471,13 +473,20 @@
       const [isSavingDossier, setIsSavingDossier] = useState(false);
       const [testResult, setTestResult] = useState(null);
 
-      // --- UNBLOCKABLE UNIVERSAL DISPATCHER (DUAL POST + GET AUTO-FALLBACK) ---
-      // Menjamin transmisi data ke Google Apps Script tanpa terblokir CORS maupun 302 Redirect
+      // Toast Feedback
+      const [toast, setToast] = useState(null);
+      const triggerToast = (msg, type = "normal") => {
+        setToast({ msg, type });
+        setTimeout(() => setToast(null), 3500);
+      };
+      const [confirmDialog, setConfirmDialog] = useState(null);
+
+      // --- UNIVERSAL DISPATCHER (DUAL POST + GET FALLBACK) ---
       const callGasApi = async (action, payload = {}) => {
         const url = (gasConfig.webAppUrl || '').trim();
         if (!url) return null;
 
-        // 1. Coba kirim via HTTP POST (text/plain untuk bypass CORS preflight)
+        // 1. Kirim via POST (text/plain bypass CORS preflight)
         try {
           const response = await fetch(url, {
             method: 'POST',
@@ -485,14 +494,14 @@
             body: JSON.stringify({ action, ...payload })
           });
           const result = await response.json();
-          if (result && result.status === 'ok') {
+          if (result && (result.status === 'ok' || result.status === 'expired')) {
             return result;
           }
         } catch (postErr) {
           console.warn("POST dispatch failed, beralih ke GET fallback...", postErr);
         }
 
-        // 2. Fallback Otomatis ke HTTP GET (100% Unblockable oleh CORS di Google Apps Script)
+        // 2. Fallback Otomatis ke GET
         try {
           const encodedPayload = encodeURIComponent(JSON.stringify(payload));
           const getUrl = `${url}?action=${encodeURIComponent(action)}&payload=${encodedPayload}&t=${Date.now()}`;
@@ -505,19 +514,19 @@
         }
       };
 
-      // --- TES KONEKSI & TULIS BARIS NYATA KE GOOGLE SHEETS ---
+      // --- TEST KONEKSI & TULIS BARIS KE GOOGLE SHEETS ---
       const handleTestGasConnection = async () => {
         if (!gasConfig.webAppUrl) {
           triggerToast("Masukkan URL Web App GAS terlebih dahulu!", "warning");
           return;
         }
-        setTestResult({ loading: true, message: "Mengirim tes tulis baris ke Google Sheets..." });
+        setTestResult({ loading: true, message: "Menguji koneksi ke Google Sheets..." });
         try {
           const res = await callGasApi('ping', { testActor: user?.username || 'Admin' });
           if (res && res.status === 'ok') {
             setTestResult({
               success: true,
-              message: `SUKSES! Terhubung ke Spreadsheet: "${res.spreadsheetName || 'PCH_COMMUNITY_DATABASE'}" (ID: ${res.spreadsheetId ? res.spreadsheetId.slice(0, 10) + '...' : 'Aktif'})`
+              message: `SUKSES! Terhubung ke Spreadsheet: "${res.spreadsheetName || 'PCH_COMMUNITY_DATABASE'}"`
             });
             triggerToast("Tes Koneksi & Akses Spreadsheet 100% Berhasil!", "success");
           } else {
@@ -539,22 +548,39 @@
       // --- BI-DIRECTIONAL CLOUD SYNC ---
       const syncFromGas = async (overrideUrl) => {
         const url = (overrideUrl || gasConfig.webAppUrl || '').trim();
-        if (!url) {
-          triggerToast("URL Google Apps Script belum terhubung! Masukkan URL di Status GAS.", "warning");
-          return;
-        }
+        if (!url) return;
         try {
           setIsSyncing(true);
-          triggerToast("Menyinkronkan data pengguna dan konfigurasi ke Google Sheets...", "warning");
 
-          // PUSH data ke sheet Users & AppConfig
+          // 1. Tarik pengguna terbaru dari Google Sheets
+          const fetchResult = await callGasApi('getRegisteredUsers');
+          if (fetchResult && fetchResult.status === 'ok' && Array.isArray(fetchResult.users)) {
+            setRegisteredUsers(prev => {
+              const map = new Map();
+              // Simpan anggota lama
+              prev.forEach(u => map.set(u.username.toLowerCase(), u));
+              // Gabungkan anggota baru dari cloud
+              fetchResult.users.forEach(u => map.set(u.username.toLowerCase(), u));
+              const merged = Array.from(map.values());
+              localStorage.setItem('panua_registered_users', JSON.stringify(merged));
+              return merged;
+            });
+            setGasConfig(prev => ({
+              ...prev,
+              connected: true,
+              lastSync: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " WITA"
+            }));
+            triggerToast(`Sinkronisasi Cloud Selesai! (${fetchResult.count || fetchResult.users.length} Anggota)`, "success");
+            return;
+          }
+
+          // 2. Jika getRegisteredUsers belum tersedia, lakukan fullSync push
           const pushPayload = {
             users: registeredUsers,
             branding: appBranding,
             dossiers: submittedDossiers,
             redeemCodes: activeRedeemCodes
           };
-
           const pushResult = await callGasApi('fullSync', pushPayload);
           if (pushResult && pushResult.status === 'ok') {
             if (pushResult.users && Array.isArray(pushResult.users) && pushResult.users.length > 0) {
@@ -565,43 +591,30 @@
               connected: true,
               lastSync: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " WITA"
             }));
-            triggerToast(pushResult.message || "Database Google Sheets berhasil disinkronkan 100%!", "success");
-            return;
-          }
-
-          // Fallback PULL jika fullSync belum siap
-          const res = await fetch(`${url}?action=getInitialData&t=${Date.now()}`);
-          const data = await res.json();
-          if (data && data.status === 'ok') {
-            if (data.users && Array.isArray(data.users) && data.users.length > 0) {
-              setRegisteredUsers(prev => {
-                const map = new Map();
-                data.users.forEach(u => map.set(u.username.toLowerCase(), u));
-                prev.forEach(u => {
-                  if (!map.has(u.username.toLowerCase())) map.set(u.username.toLowerCase(), u);
-                });
-                return Array.from(map.values());
-              });
-            }
-            triggerToast("Data lokal berhasil disinkronkan dengan Google Sheets!", "success");
-          } else {
-            triggerToast("Gagal menyinkronkan data. Periksa izin deployment Web App Anda.", "danger");
+            triggerToast("Database Google Sheets berhasil disinkronkan!", "success");
           }
         } catch (err) {
           console.warn("GAS Sync notice:", err);
-          triggerToast("Gagal tersambung ke URL GAS. Pastikan akses deployment Web App: 'Anyone'.", "danger");
         } finally {
           setIsSyncing(false);
         }
       };
 
+      // Sync on mount and when gas url changes
       useEffect(() => {
         if (gasConfig.webAppUrl) {
           syncFromGas();
         }
       }, [gasConfig.webAppUrl]);
 
-      // 4. PERSISTENT ACTIVE REDEEM CODES (90-DETIK VALIDASI)
+      // Auto-sync whenever admin switches to the Admin tab
+      useEffect(() => {
+        if (activeTab === "admin" && gasConfig.webAppUrl) {
+          syncFromGas();
+        }
+      }, [activeTab]);
+
+      // 4. ACTIVE REDEEM CODES (90-DETIK VALIDASI)
       const [activeRedeemCodes, setActiveRedeemCodes] = useState(() => {
         try {
           const saved = localStorage.getItem('panua_shared_redeem_codes');
@@ -616,7 +629,6 @@
 
       const [currentTime, setCurrentTime] = useState(Date.now());
 
-      // 1-Second Interval: Countdown and automatic expiration
       useEffect(() => {
         const interval = setInterval(() => {
           const now = Date.now();
@@ -637,7 +649,7 @@
       const [vaultRedeemInput, setVaultRedeemInput] = useState("");
       const [isVerifyingCode, setIsVerifyingCode] = useState(false);
 
-      // 5. PERSISTENT 15-BERKAS DOSSIER ANGGOTA
+      // 5. 15-BERKAS DOSSIER ANGGOTA
       const [memberDossier, setMemberDossier] = useState(() => {
         try {
           const saved = localStorage.getItem('panua_user_dossier');
@@ -684,7 +696,7 @@
       const [newExtraDocTitle, setNewExtraDocTitle] = useState("");
       const [newExtraDocFile, setNewExtraDocFile] = useState(null);
 
-      // Admin Submitted Dossiers (Persisted)
+      // Submitted Dossiers
       const [submittedDossiers, setSubmittedDossiers] = useState(() => {
         try {
           const saved = localStorage.getItem('panua_submitted_dossiers');
@@ -702,7 +714,7 @@
       const [newCodeCustom, setNewCodeCustom] = useState("");
       const [newCodeNote, setNewCodeNote] = useState("");
 
-      // Chat Messages (Persisted)
+      // Chat Messages
       const [chatMessages, setChatMessages] = useState(() => {
         try {
           const saved = localStorage.getItem('panua_chat_messages');
@@ -725,15 +737,6 @@
         localStorage.setItem('panua_chat_messages', JSON.stringify(chatMessages));
       }, [chatMessages]);
 
-      // Toast & Dialog Feedback States
-      const [toast, setToast] = useState(null);
-      const triggerToast = (msg, type = "normal") => {
-        setToast({ msg, type });
-        setTimeout(() => setToast(null), 3500);
-      };
-      const [confirmDialog, setConfirmDialog] = useState(null);
-
-      // Chat Input & Reply States
       const [chatInput, setChatInput] = useState("");
       const [replyingTo, setReplyingTo] = useState(null);
 
@@ -799,9 +802,8 @@
         const id = loginIdentifier.trim().toLowerCase();
         const pwd = loginPassword;
 
-        // Cek login admin via cryptographic gateway
         if (_authGateway.verify(id, pwd)) {
-          const adminSession = _authGateway.createAdminSession();
+          const adminSession = _authGateway.createAdminSession(appBranding.adminWhatsapp);
           setUser(adminSession);
           setIsAuthenticated(true);
           setVaultUnlocked(true);
@@ -809,7 +811,6 @@
           return;
         }
 
-        // Cek anggota terdaftar
         const member = registeredUsers.find(
           u => (u.email.toLowerCase() === id || u.username.toLowerCase() === id) && u.password === pwd
         );
@@ -825,7 +826,7 @@
         triggerToast("Email/Username atau Password tidak cocok!", "danger");
       };
 
-      // Register Handler (Single definition with Cloud GAS Dispatcher)
+      // Register Handler (with direct cloud write)
       const handleRegisterSubmit = async (e) => {
         e.preventDefault();
         if (!regName.trim() || !regUsername.trim() || !regEmail.trim() || !regPhone.trim() || !regPassword) {
@@ -882,6 +883,7 @@
 
         const updatedList = [...registeredUsers, newUser];
         setRegisteredUsers(updatedList);
+        localStorage.setItem('panua_registered_users', JSON.stringify(updatedList));
         setUser(newUser);
         setIsAuthenticated(true);
         setVaultUnlocked(false);
@@ -896,15 +898,16 @@
 
         triggerToast("Pendaftaran berhasil! Akun Anda aktif di Panua Community.", "success");
 
-        // Kirim langsung ke Google Sheets backend via Universal Dispatcher
+        // Kirim langsung ke Google Sheets backend
         if (gasConfig.webAppUrl) {
           triggerToast("Menyimpan akun baru ke baris Google Sheets...", "warning");
-          const res = await callGasApi('registerUser', { user: newUser });
-          if (res && res.status === 'ok') {
-            triggerToast(res.message || "Akun anggota berhasil tertulis di Google Sheets!", "success");
-            syncFromGas();
-          } else {
-            console.warn("Penyimpanan cloud tertunda:", res);
+          try {
+            const res = await callGasApi('registerUser', { user: newUser });
+            if (res && res.status === 'ok') {
+              triggerToast(res.message || "Akun anggota berhasil tersimpan di Google Sheets!", "success");
+            }
+          } catch (err) {
+            console.warn("GAS register sync failed:", err);
           }
         }
       };
@@ -956,7 +959,8 @@
         };
         reader.readAsDataURL(file);
       };
-      // --- REDEEM CODE VERIFICATION (DUAL-PIPELINE SYNC - 90 DETIK) ---
+
+      // --- REDEEM CODE VERIFICATION (90 DETIK) ---
       const handleUnlockVault = async (e) => {
         e.preventDefault();
         const codeTrim = vaultRedeemInput.trim().toUpperCase();
@@ -975,7 +979,7 @@
         setIsVerifyingCode(true);
         const now = Date.now();
 
-        // 1. Cek local storage (jika kode di-generate di browser yang sama)
+        // 1. Cek local storage
         let localValid = false;
         try {
           const savedShared = localStorage.getItem('panua_shared_redeem_codes');
@@ -984,7 +988,7 @@
             c.code.toUpperCase() === codeTrim && 
             (c.userTarget === "all" || c.userTarget.toLowerCase() === user.username.toLowerCase())
           );
-          if (found && now < (found.expiresAt || (found.createdAt + 90000)) + 10000) {
+          if (found && now < (found.expiresAt || (found.createdAt + 90000)) + 15000) {
             localValid = true;
           }
         } catch (err) {}
@@ -997,7 +1001,7 @@
           return;
         }
 
-        // 2. Verifikasi Cloud Riil ke Google Apps Script Spreadsheet (90 Detik)
+        // 2. Verifikasi Cloud ke Google Apps Script (90 Detik)
         if (gasConfig.webAppUrl) {
           try {
             triggerToast("Memverifikasi kode ke server Google Apps Script...", "warning");
@@ -1103,7 +1107,7 @@
             triggerToast(res?.message || "Berkas tersimpan lokal. Periksa koneksi backend GAS.", "warning");
           }
         } else {
-          triggerToast("Berkas tersimpan lokal. Harap hubungkan URL GAS di header untuk upload ke Drive.", "warning");
+          triggerToast("Berkas tersimpan lokal. Hubungkan URL GAS di header untuk upload ke Drive.", "warning");
         }
         setIsSavingDossier(false);
       };
@@ -1125,7 +1129,7 @@
             type: file.type || "application/octet-stream",
             size: (file.size / (1024 * 1024)).toFixed(2) + " MB",
             uploadedAt: new Date().toLocaleDateString('id-ID'),
-            base64: ev.target.result // Base64 data for Google Drive
+            base64: ev.target.result
           };
 
           setMemberDossier(prev => ({
@@ -1149,7 +1153,7 @@
           createdBy: user.username,
           note: newCodeNote.trim() || "Akses Brankas 90 Detik",
           createdAt: now,
-          expiresAt: now + 90000 // 90 Detik (1.5 Menit)
+          expiresAt: now + 90000 // 90 Detik
         };
 
         const updated = [newEntry, ...activeRedeemCodes.filter(c => now < c.expiresAt)];
@@ -1229,15 +1233,11 @@
         setReplyingTo(null);
 
         if (gasConfig.connected && gasConfig.webAppUrl) {
-          fetch(gasConfig.webAppUrl, {
-            method: 'POST',
-            body: JSON.stringify({
-              action: 'sendChatMessage',
-              sender: user.name,
-              userId: user.id,
-              text: newMsg.text,
-              replyTo: newMsg.replyTo
-            })
+          callGasApi('sendChatMessage', {
+            sender: user.name,
+            userId: user.id,
+            text: newMsg.text,
+            replyTo: newMsg.replyTo
           }).catch(e => console.log("GAS chat log:", e));
         }
       };
@@ -1957,7 +1957,7 @@
                     </div>
                   )}
 
-                  {/* TAB 4: MEETINGS (ISOLATED JITSI ENGINE) */}
+                  {/* TAB 4: MEETINGS */}
                   {activeTab === "meetings" && (
                     <div className="space-y-6">
                       <div className="p-5 rounded-2xl bg-pch-surface border border-pch-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1967,7 +1967,7 @@
                             <h2 className="text-lg font-bold text-pch-text">Rapat Online Pionir Panua (WebRTC Dedicated)</h2>
                           </div>
                           <p className="text-xs text-pch-muted mt-1">
-                            Audio, video, mic, dan kamera ditangani server rapat independen ({appBranding.meetingProvider}), <strong>terisolasi total dari GAS backend</strong>.
+                            Audio, video, mic, dan kamera ditangani server rapat independen ({appBranding.meetingProvider}), terisolasi total dari GAS backend.
                           </p>
                         </div>
                         <button
@@ -2330,7 +2330,7 @@
                                                 name: file.name,
                                                 type: file.type || "application/octet-stream",
                                                 size: (file.size / (1024 * 1024)).toFixed(2) + " MB",
-                                                base64: ev.target.result // Base64 content for real Google Drive upload!
+                                                base64: ev.target.result
                                               }
                                             }));
                                             triggerToast(`File ${item.label} siap disimpan ke Google Drive!`);
@@ -2544,7 +2544,7 @@
                             <h2 className="text-lg font-bold text-pch-text">Admin Master Console — Panua Community</h2>
                           </div>
                           <p className="text-xs text-pch-muted mt-1">
-                            Kelola branding (Nama & Logo), terbitkan Redeem Code 60 detik, dan pantau arsip berkas anggota Gorontalo.
+                            Kelola branding (Nama & Logo), terbitkan Redeem Code 90 detik, dan pantau arsip berkas anggota Gorontalo.
                           </p>
                         </div>
                         <div className="flex items-center gap-2 self-start">
@@ -2627,9 +2627,8 @@
                                 </button>
                               </div>
 
-                              {/* RESTORED CHOOSE FILE / UPLOAD LOGO KUSTOM BULAT */}
                               {brandingDraft.logoType === "custom" && (
-                                <div className="p-3.5 rounded-xl bg-pch-secondary border border-pch-purple/50 space-y-3 mt-3 animate-fadeIn">
+                                <div className="p-3.5 rounded-xl bg-pch-secondary border border-pch-purple/50 space-y-3 mt-3">
                                   <div className="flex items-center justify-between">
                                     <label className="text-xs font-bold text-pch-purpleLight">
                                       Unggah Gambar Logo Bulat Kustom
@@ -2892,7 +2891,7 @@
                         <div className="space-y-2 pt-4 border-t border-pch-border">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-bold text-pch-text block">Daftar Akun Anggota Terdaftar ({registeredUsers.length} Orang)</span>
-                            <span className="text-[10px] text-pch-muted">Diperbarui realtime</span>
+                            <span className="text-[10px] text-pch-muted">Diperbarui realtime dari Cloud & Lokal</span>
                           </div>
                           <div className="overflow-x-auto">
                             <table className="w-full text-xs text-left">
@@ -2910,7 +2909,7 @@
                                 {registeredUsers.length === 0 ? (
                                   <tr>
                                     <td colSpan="6" className="p-4 text-center text-pch-muted italic">
-                                      Belum ada anggota baru yang mendaftar.
+                                      Belum ada anggota baru yang mendaftar. Klik "Sinkronkan Cloud" untuk memuat anggota dari Google Sheets.
                                     </td>
                                   </tr>
                                 ) : (
@@ -3158,7 +3157,7 @@
 function doGet(e) {
   const action = e.parameter.action || 'ping';
   if (action === 'verifyRedeemCode') {
-    // Verifikasi batas 60 detik + 5 detik toleransi
+    // Verifikasi batas 90 detik + toleransi
     ...
   }
 }
