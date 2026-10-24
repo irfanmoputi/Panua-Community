@@ -287,14 +287,28 @@ function doGet(e) {
 
       const data = sheet.getDataRange().getValues();
       let isValid = false;
+      let isExpired = false;
+      const now = new Date().getTime();
+
       for (let i = 1; i < data.length; i++) {
         const rowCode = String(data[i][0]).trim().toUpperCase();
         const target = String(data[i][1]).trim().toLowerCase();
+        const createdTime = new Date(data[i][4]).getTime();
         const isActive = data[i][5] === true || String(data[i][5]).toLowerCase() === "true";
+
         if (rowCode === code && isActive && (target === 'all' || target === username)) {
-          isValid = true;
+          if (now - createdTime > 60000) { // Validasi 60 detik (1 menit)
+            isExpired = true;
+            sheet.getRange(i + 1, 6).setValue(false);
+          } else {
+            isValid = true;
+          }
           break;
         }
+      }
+
+      if (isExpired) {
+        return responseJSON({ status: 'expired', valid: false, message: 'Kode akses telah kedaluwarsa (> 60 detik). Minta kode baru ke Admin.' });
       }
       return responseJSON({ status: 'ok', valid: isValid });
     }
@@ -593,10 +607,19 @@ function responseJSON(obj) {
       const [vaultUnlocked, setVaultUnlocked] = useState(false);
       const [vaultRedeemInput, setVaultRedeemInput] = useState("");
       
-      // Active Valid Redeem Codes Database (Admin generated)
-      const [activeRedeemCodes, setActiveRedeemCodes] = useState([
-        { code: "VAULT-PCH-2026", userTarget: "all", createdBy: "Admin", note: "Kode Akses Umum Komunitas" }
-      ]);
+      // Active Valid Redeem Codes Database (Masa Aktif 60 Detik)
+      const [activeRedeemCodes, setActiveRedeemCodes] = useState([]);
+      const [currentTime, setCurrentTime] = useState(Date.now());
+
+      // Interval 1 Detik: Countdown Realtime & Auto-Delete Kode Kadaluwarsa (>60 Detik)
+      useEffect(() => {
+        const interval = setInterval(() => {
+          const now = Date.now();
+          setCurrentTime(now);
+          setActiveRedeemCodes(prev => prev.filter(c => now < c.expiresAt));
+        }, 1000);
+        return () => clearInterval(interval);
+      }, []);
 
       // Complete Member Dossier Data (Starts clean for logged in user)
       const [memberDossier, setMemberDossier] = useState({
@@ -835,18 +858,33 @@ function responseJSON(obj) {
           return;
         }
 
+        if (user.role === "admin") {
+          setVaultUnlocked(true);
+          setVaultRedeemInput("");
+          triggerToast("Akses Brankas Diterima (Super Admin)!", "success");
+          return;
+        }
+
+        const now = Date.now();
         const found = activeRedeemCodes.find(c => 
           c.code.toUpperCase() === codeTrim && 
           (c.userTarget === "all" || c.userTarget.toLowerCase() === user.username.toLowerCase())
         );
 
-        if (found || user.role === "admin") {
-          setVaultUnlocked(true);
-          setVaultRedeemInput("");
-          triggerToast("Akses Brankas Diterima! Selamat datang di My Secure Vault.", "success");
-        } else {
-          triggerToast("Redeem Code tidak valid atau bukan untuk akun Anda! Minta kode ke Admin.", "danger");
+        if (!found) {
+          triggerToast("Redeem Code tidak valid atau sudah kedaluwarsa (> 60 detik)! Minta kode baru ke Admin.", "danger");
+          return;
         }
+
+        if (now > found.expiresAt) {
+          triggerToast("Redeem Code sudah KEDALUWARSA (> 60 detik)! Minta kode akses baru ke Admin.", "danger");
+          setActiveRedeemCodes(prev => prev.filter(c => c.code !== found.code));
+          return;
+        }
+
+        setVaultUnlocked(true);
+        setVaultRedeemInput("");
+        triggerToast("Akses Brankas Berhasil Diverifikasi! Selamat datang di My Secure Vault.", "success");
       };
 
       // Request Redeem Code from Admin via WhatsApp
@@ -867,9 +905,11 @@ function responseJSON(obj) {
         const cleanNumber = dossier.noHp.replace(/\D/g, '').replace(/^0/, '62');
         let text = `Halo Sdr/i ${dossier.namaLengkap},\n\nAdmin ${appBranding.title} menginformasikan mengenai arsip My Secure Vault Anda:\n• Status Dokumen: Tersimpan aman di Drive Admin\n• NIK: ${dossier.nik}\n• Username Pi: ${dossier.usernamePi}\n• Rekening: ${dossier.rekening}\n`;
         if (codeToSend) {
-          text += `\n🔑 KODE AKSES / REDEEM CODE BRANKAS ANDA: *${codeToSend}*\nSilakan gunakan kode ini untuk membuka menu My Secure Vault di aplikasi.\n`;
+          text += `\n🔑 KODE AKSES / REDEEM CODE BRANKAS ANDA (BERLAKU 60 DETIK):\n👉 *${codeToSend}*\n⚠️ *PENTING:* Kode ini hanya aktif selama 1 menit (60 detik) sejak dibuat. Harap segera masukkan di aplikasi untuk membuka My Secure Vault.\n`;
+        } else {
+          text += `\n⚠️ Belum ada kode aktif. Silakan minta admin membuatkan kode akses 60 detik baru.\n`;
         }
-        text += `\nUntuk unduhan berkas fisik, Anda dapat mengunduhnya langsung dari brankas aplikasi atau membalas pesan ini. Salam Komunitas!`;
+        text += `\nUntuk unduhan berkas fisik, Anda dapat mengunduhnya langsung dari brankas aplikasi setelah dibuka. Salam Komunitas!`;
 
         const waUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(text)}`;
         window.open(waUrl, '_blank');
@@ -932,37 +972,54 @@ function responseJSON(obj) {
         }
 
         const newDoc = {
-          id: "ed-" + Date.now(),
+          id: "doc-" + Date.now(),
           title: newExtraDocTitle.trim(),
           fileName: newExtraDocFile.name,
           size: (newExtraDocFile.size / (1024 * 1024)).toFixed(2) + " MB",
-          uploadDate: new Date().toLocaleDateString('id-ID')
+          uploadedAt: new Date().toLocaleDateString('id-ID')
         };
 
         setMemberDossier(prev => ({
           ...prev,
           extraDocs: [...prev.extraDocs, newDoc]
         }));
-
         setNewExtraDocTitle("");
         setNewExtraDocFile(null);
-        triggerToast(`Dokumen "${newDoc.title}" ditambahkan ke brankas!`);
+        triggerToast(`Dokumen "${newDoc.title}" berhasil ditambahkan ke brankas!`);
       };
 
-      // Admin Generate Redeem Code
+      // Admin Generate Redeem Code (Aktif Selama 60 Detik / 1 Menit Saja)
       const handleAdminCreateRedeemCode = (e) => {
         e.preventDefault();
         const code = newCodeCustom.trim().toUpperCase() || "PCH-" + Math.floor(100000 + Math.random() * 900000);
+        const now = Date.now();
         const newEntry = {
           code: code,
           userTarget: newCodeTarget,
           createdBy: user.username,
-          note: newCodeNote.trim() || "Diterbitkan Admin"
+          note: newCodeNote.trim() || "Akses 60 Detik",
+          createdAt: now,
+          expiresAt: now + 60000 // Validitas tepat 60 detik (1 menit)
         };
-        setActiveRedeemCodes(prev => [newEntry, ...prev]);
+        setActiveRedeemCodes(prev => [newEntry, ...prev.filter(c => now < c.expiresAt)]);
         setNewCodeCustom("");
         setNewCodeNote("");
-        triggerToast(`Redeem Code [${code}] berhasil dibuat untuk target: ${newCodeTarget}!`);
+        triggerToast(`Redeem Code [${code}] berhasil diterbitkan! Aktif selama 60 detik untuk: ${newCodeTarget}!`, "success");
+
+        if (gasConfig.connected && gasConfig.webAppUrl) {
+          fetch(gasConfig.webAppUrl, {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'generateRedeemCode',
+              code: newEntry.code,
+              userTarget: newEntry.userTarget,
+              actor: newEntry.createdBy,
+              note: newEntry.note,
+              createdAt: new Date(now).toISOString(),
+              expiresAt: new Date(newEntry.expiresAt).toISOString()
+            })
+          }).catch(err => console.log('GAS sync note:', err));
+        }
       };
 
       // Connect Google Apps Script Web App Endpoint
@@ -2572,37 +2629,62 @@ function responseJSON(obj) {
                         </form>
 
                         <div className="space-y-2">
-                          <span className="text-xs font-bold text-pch-text block">Daftar Redeem Code Aktif</span>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-pch-text block">Daftar Redeem Code Aktif (Otomatis Hilang Setelah 60 Detik)</span>
+                            <span className="text-[10px] text-pch-warning font-mono bg-amber-950/40 px-2.5 py-0.5 rounded border border-pch-warning/40">Masa Aktif: 1 Menit</span>
+                          </div>
                           <div className="overflow-x-auto">
                             <table className="w-full text-xs text-left">
                               <thead className="bg-pch-secondary text-pch-muted uppercase border-b border-pch-border">
                                 <tr>
                                   <th className="p-3">Kode Akses</th>
                                   <th className="p-3">Target</th>
+                                  <th className="p-3">Sisa Waktu</th>
                                   <th className="p-3">Catatan</th>
                                   <th className="p-3">Aksi</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-pch-border">
-                                {activeRedeemCodes.map((item, idx) => (
-                                  <tr key={idx}>
-                                    <td className="p-3 font-mono font-bold text-pch-goldLight">{item.code}</td>
-                                    <td className="p-3 font-mono text-pch-text">{item.userTarget}</td>
-                                    <td className="p-3 text-pch-muted">{item.note}</td>
-                                    <td className="p-3">
-                                      <button 
-                                        onClick={() => {
-                                          safeCopyToClipboard(item.code);
-                                          triggerToast(`Kode [${item.code}] disalin ke clipboard!`);
-                                        }}
-                                        className="px-2.5 py-1 rounded bg-pch-surface border border-pch-border text-pch-muted hover:text-pch-gold text-[11px] flex items-center gap-1"
-                                      >
-                                        <Icons.Copy className="w-3 h-3" />
-                                        <span>Salin</span>
-                                      </button>
+                                {activeRedeemCodes.length === 0 ? (
+                                  <tr>
+                                    <td colSpan="5" className="p-4 text-center text-pch-muted italic">
+                                      Tidak ada Redeem Code aktif saat ini. Semua kode yang lewat 60 detik telah otomatis kedaluwarsa & dihapus. Terbitkan kode baru di atas saat anggota meminta akses.
                                     </td>
                                   </tr>
-                                ))}
+                                ) : (
+                                  activeRedeemCodes.map((item, idx) => {
+                                    const remainingSeconds = Math.max(0, Math.ceil((item.expiresAt - currentTime) / 1000));
+                                    return (
+                                      <tr key={idx} className="hover:bg-pch-secondary/30 transition-colors">
+                                        <td className="p-3 font-mono font-bold text-pch-goldLight">{item.code}</td>
+                                        <td className="p-3 font-mono text-pch-text">{item.userTarget}</td>
+                                        <td className="p-3">
+                                          <span className={`px-2 py-0.5 rounded-full font-mono font-bold text-[10px] border flex items-center gap-1 w-fit ${
+                                            remainingSeconds <= 15 
+                                              ? "bg-red-950/80 border-pch-danger text-pch-danger animate-pulse" 
+                                              : "bg-amber-950/80 border-pch-warning text-pch-warning"
+                                          }`}>
+                                            <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+                                            <span>{remainingSeconds} detik tersisa</span>
+                                          </span>
+                                        </td>
+                                        <td className="p-3 text-pch-muted">{item.note}</td>
+                                        <td className="p-3">
+                                          <button 
+                                            onClick={() => {
+                                              safeCopyToClipboard(item.code);
+                                              triggerToast(`Kode [${item.code}] disalin ke clipboard! (Sisa ${remainingSeconds} detik)`);
+                                            }}
+                                            className="px-2.5 py-1 rounded bg-pch-surface border border-pch-border text-pch-muted hover:text-pch-gold text-[11px] flex items-center gap-1"
+                                          >
+                                            <Icons.Copy className="w-3 h-3" />
+                                            <span>Salin</span>
+                                          </button>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })
+                                )}
                               </tbody>
                             </table>
                           </div>
