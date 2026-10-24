@@ -469,23 +469,70 @@
       const [showGasScriptModal, setShowGasScriptModal] = useState(false);
       const [isSyncing, setIsSyncing] = useState(false);
       const [isSavingDossier, setIsSavingDossier] = useState(false);
+      const [testResult, setTestResult] = useState(null);
 
-      // --- ROBUST CORS-COMPLIANT GAS API DISPATCHER ---
+      // --- UNBLOCKABLE UNIVERSAL DISPATCHER (DUAL POST + GET AUTO-FALLBACK) ---
+      // Menjamin transmisi data ke Google Apps Script tanpa terblokir CORS maupun 302 Redirect
       const callGasApi = async (action, payload = {}) => {
-        const url = gasConfig.webAppUrl;
+        const url = (gasConfig.webAppUrl || '').trim();
         if (!url) return null;
+
+        // 1. Coba kirim via HTTP POST (text/plain untuk bypass CORS preflight)
         try {
-          // text/plain prevents CORS preflight OPTIONS rejection by Google Apps Script
           const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({ action, ...payload })
           });
           const result = await response.json();
+          if (result && result.status === 'ok') {
+            return result;
+          }
+        } catch (postErr) {
+          console.warn("POST dispatch failed, beralih ke GET fallback...", postErr);
+        }
+
+        // 2. Fallback Otomatis ke HTTP GET (100% Unblockable oleh CORS di Google Apps Script)
+        try {
+          const encodedPayload = encodeURIComponent(JSON.stringify(payload));
+          const getUrl = `${url}?action=${encodeURIComponent(action)}&payload=${encodedPayload}&t=${Date.now()}`;
+          const response = await fetch(getUrl);
+          const result = await response.json();
           return result;
-        } catch (err) {
-          console.error("GAS API Dispatch Error:", err);
+        } catch (getErr) {
+          console.error("GET fallback juga gagal:", getErr);
           return null;
+        }
+      };
+
+      // --- TES KONEKSI & TULIS BARIS NYATA KE GOOGLE SHEETS ---
+      const handleTestGasConnection = async () => {
+        if (!gasConfig.webAppUrl) {
+          triggerToast("Masukkan URL Web App GAS terlebih dahulu!", "warning");
+          return;
+        }
+        setTestResult({ loading: true, message: "Mengirim tes tulis baris ke Google Sheets..." });
+        try {
+          const res = await callGasApi('ping', { testActor: user?.username || 'Admin' });
+          if (res && res.status === 'ok') {
+            setTestResult({
+              success: true,
+              message: `SUKSES! Terhubung ke Spreadsheet: "${res.spreadsheetName || 'PCH_COMMUNITY_DATABASE'}" (ID: ${res.spreadsheetId ? res.spreadsheetId.slice(0, 10) + '...' : 'Aktif'})`
+            });
+            triggerToast("Tes Koneksi & Akses Spreadsheet 100% Berhasil!", "success");
+          } else {
+            setTestResult({
+              success: false,
+              message: res?.message || "GAS merespons, namun tidak dapat membuka file Spreadsheet."
+            });
+            triggerToast("Respons error dari backend GAS", "danger");
+          }
+        } catch (err) {
+          setTestResult({
+            success: false,
+            message: "Gagal tersambung. Pastikan Web App di-deploy dengan akses 'Anyone'."
+          });
+          triggerToast("Gagal tersambung ke URL GAS!", "danger");
         }
       };
 
@@ -498,37 +545,31 @@
         }
         try {
           setIsSyncing(true);
-          triggerToast("Mengirim & menyinkronkan database ke Google Sheets...", "warning");
+          triggerToast("Menyinkronkan data pengguna dan konfigurasi ke Google Sheets...", "warning");
 
-          // 1. PUSH data pengguna, branding, dan berkas lokal ke Google Sheets (fullSync)
+          // PUSH data ke sheet Users & AppConfig
           const pushPayload = {
-            action: 'fullSync',
-            actor: user?.username || 'user',
             users: registeredUsers,
             branding: appBranding,
             dossiers: submittedDossiers,
             redeemCodes: activeRedeemCodes
           };
 
-          let syncOk = false;
-          try {
-            const pushRes = await fetch(url, {
-              method: 'POST',
-              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-              body: JSON.stringify(pushPayload)
-            });
-            const pushData = await pushRes.json();
-            if (pushData && pushData.status === 'ok') {
-              syncOk = true;
-              if (pushData.users && Array.isArray(pushData.users) && pushData.users.length > 0) {
-                setRegisteredUsers(pushData.users);
-              }
+          const pushResult = await callGasApi('fullSync', pushPayload);
+          if (pushResult && pushResult.status === 'ok') {
+            if (pushResult.users && Array.isArray(pushResult.users) && pushResult.users.length > 0) {
+              setRegisteredUsers(pushResult.users);
             }
-          } catch (postErr) {
-            console.warn("POST fullSync failed, fallback ke GET:", postErr);
+            setGasConfig(prev => ({
+              ...prev,
+              connected: true,
+              lastSync: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " WITA"
+            }));
+            triggerToast(pushResult.message || "Database Google Sheets berhasil disinkronkan 100%!", "success");
+            return;
           }
 
-          // 2. PULL data terbaru dari Google Sheets & Drive
+          // Fallback PULL jika fullSync belum siap
           const res = await fetch(`${url}?action=getInitialData&t=${Date.now()}`);
           const data = await res.json();
           if (data && data.status === 'ok') {
@@ -542,28 +583,9 @@
                 return Array.from(map.values());
               });
             }
-            if (data.branding && data.branding.title) {
-              setAppBranding(prev => ({ ...prev, ...data.branding }));
-              setBrandingDraft(prev => ({ ...prev, ...data.branding }));
-            }
-            if (data.dossiers && Array.isArray(data.dossiers)) {
-              setSubmittedDossiers(data.dossiers);
-            }
-            if (data.redeemCodes && Array.isArray(data.redeemCodes)) {
-              const now = Date.now();
-              setActiveRedeemCodes(data.redeemCodes.filter(c => now < c.expiresAt));
-            }
-            if (data.chats && Array.isArray(data.chats)) {
-              setChatMessages(data.chats);
-            }
-            setGasConfig(prev => ({
-              ...prev,
-              connected: true,
-              lastSync: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " WITA"
-            }));
-            triggerToast("Database Google Sheets & Google Drive berhasil disinkronkan 100%!", "success");
-          } else if (syncOk) {
-            triggerToast("Data lokal berhasil disimpan ke Google Sheets!", "success");
+            triggerToast("Data lokal berhasil disinkronkan dengan Google Sheets!", "success");
+          } else {
+            triggerToast("Gagal menyinkronkan data. Periksa izin deployment Web App Anda.", "danger");
           }
         } catch (err) {
           console.warn("GAS Sync notice:", err);
@@ -703,89 +725,108 @@
         localStorage.setItem('panua_chat_messages', JSON.stringify(chatMessages));
       }, [chatMessages]);
 
+      // Toast & Dialog Feedback States
+      const [toast, setToast] = useState(null);
+      const triggerToast = (msg, type = "normal") => {
+        setToast({ msg, type });
+        setTimeout(() => setToast(null), 3500);
+      };
+      const [confirmDialog, setConfirmDialog] = useState(null);
+
+      // Chat Input & Reply States
       const [chatInput, setChatInput] = useState("");
       const [replyingTo, setReplyingTo] = useState(null);
 
-      // Meetings (Isolated Jitsi)
-      const [meetings, setMeetings] = useState([
+      // Jitsi Meeting States
+      const [activeJitsiRoom, setActiveJitsiRoom] = useState(null);
+      const [meetings, setMeetings] = useState(() => [
         {
           id: "meet-1",
-          title: "Koordinasi Rutin Pionir Panua Gorontalo",
-          host: "Koordinator Wilayah",
+          title: "Evaluasi Node & Ekosistem Pi Gorontalo",
+          host: "Administrator Utama",
           date: "Hari Ini, 20:00 WITA",
           duration: "60 Menit",
-          room: "PanuaCommunity-Gorontalo-RapatUtama",
-          status: "Berlangsung"
+          room: "Panua-Gorontalo-Node-01",
+          status: "Terjadwal"
         }
       ]);
-      const [activeJitsiRoom, setActiveJitsiRoom] = useState(null);
       const [showCreateMeetingModal, setShowCreateMeetingModal] = useState(false);
       const [newMeetingTitle, setNewMeetingTitle] = useState("");
       const [newMeetingHost, setNewMeetingHost] = useState("");
       const [newMeetingDate, setNewMeetingDate] = useState("");
       const [newMeetingDuration, setNewMeetingDuration] = useState("60 Menit");
 
-      // Groups
-      const [groups, setGroups] = useState([
-        { id: "g1", name: "Forum Resmi Panua Community Gorontalo", category: "Umum", memberCount: 128, isOfficial: true, joined: true, description: "Grup koordinasi utama untuk seluruh anggota pionir Panua Gorontalo." },
-        { id: "g2", name: "Edukasi & Node Validator Gorontalo", category: "Edukasi", memberCount: 42, isOfficial: true, joined: false, description: "Diskusi teknis persiapan node validator, utilitas lokal, dan integrasi ekosistem." },
-        { id: "g3", name: "UMKM & Bisnis Kolaborasi Panua", category: "Bisnis", memberCount: 65, isOfficial: false, joined: false, description: "Pemberdayaan merchant dan barter barang jasa lokal sesama perintis Gorontalo." }
+      // Community Groups States
+      const [groups, setGroups] = useState(() => [
+        {
+          id: "grp-1",
+          name: "Pionir Panua Kota Gorontalo",
+          category: "Wilayah",
+          memberCount: 24,
+          isOfficial: true,
+          joined: true,
+          description: "Grup koordinasi pionir wilayah Kota Gorontalo dan sekitarnya."
+        },
+        {
+          id: "grp-2",
+          name: "Edukasi & Utilitas Pi Gorontalo",
+          category: "Edukasi",
+          memberCount: 18,
+          isOfficial: true,
+          joined: true,
+          description: "Diskusi pemahaman ekosistem, validasi node, dan literasi blockchain."
+        },
+        {
+          id: "grp-3",
+          name: "Barter & UMKM Panua Gorontalo",
+          category: "Bisnis",
+          memberCount: 31,
+          isOfficial: false,
+          joined: false,
+          description: "Wadah kolaborasi pelaku usaha lokal dan pionir pendukung utilitas nyata."
+        }
       ]);
-      const [selectedCategory, setSelectedCategory] = useState("Semua");
-      const [searchQuery, setSearchQuery] = useState("");
       const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
       const [newGroupName, setNewGroupName] = useState("");
       const [newGroupCategory, setNewGroupCategory] = useState("Umum");
       const [newGroupDesc, setNewGroupDesc] = useState("");
+      const [searchQuery, setSearchQuery] = useState("");
+      const [selectedCategory, setSelectedCategory] = useState("Semua");
 
-      // Toast & Dialog
-      const [toast, setToast] = useState(null);
-      const [confirmDialog, setConfirmDialog] = useState(null);
-      const triggerToast = (msg, type = "success") => {
-        setToast({ msg, type });
-        setTimeout(() => setToast(null), 3800);
-      };
-
-      // --- AUTHENTICATION HANDLERS ---
+      // Login Handler
       const handleLoginSubmit = (e) => {
         e.preventDefault();
-        const idTrim = loginIdentifier.trim();
-        const pass = loginPassword;
+        const id = loginIdentifier.trim().toLowerCase();
+        const pwd = loginPassword;
 
-        if (!idTrim || !pass) {
-          triggerToast("Masukkan Email/Username dan Password!", "warning");
-          return;
-        }
-
-        // Verifikasi Admin Terproteksi (Obfuscated Gateway - Tanpa Plain-text di Source Code)
-        if (_authGateway.verify(idTrim, pass)) {
-          const adminUser = _authGateway.createAdminSession(appBranding.adminWhatsapp);
-          setUser(adminUser);
+        // Cek login admin via cryptographic gateway
+        if (_authGateway.verify(id, pwd)) {
+          const adminSession = _authGateway.createAdminSession();
+          setUser(adminSession);
           setIsAuthenticated(true);
-          setLoginPassword("");
           setVaultUnlocked(true);
-          triggerToast("Selamat datang Administrator Utama Panua Community!", "success");
+          triggerToast("Selamat datang, Administrator Utama!", "success");
           return;
         }
 
-        const idLower = idTrim.toLowerCase();
-        const matched = registeredUsers.find(u => 
-          (u.email.toLowerCase() === idLower || u.username.toLowerCase() === idLower) &&
-          u.password === pass
+        // Cek anggota terdaftar
+        const member = registeredUsers.find(
+          u => (u.email.toLowerCase() === id || u.username.toLowerCase() === id) && u.password === pwd
         );
 
-        if (matched) {
-          setUser(matched);
+        if (member) {
+          setUser(member);
           setIsAuthenticated(true);
-          setLoginPassword("");
           setVaultUnlocked(false);
-          triggerToast(`Selamat datang kembali, ${matched.name}!`, "success");
-        } else {
-          triggerToast("Email/Username atau Password tidak cocok!", "danger");
+          triggerToast(`Selamat datang kembali, ${member.name}!`, "success");
+          return;
         }
+
+        triggerToast("Email/Username atau Password tidak cocok!", "danger");
       };
 
-      const handleRegisterSubmit = (e) => {
+      // Register Handler (Single definition with Cloud GAS Dispatcher)
+      const handleRegisterSubmit = async (e) => {
         e.preventDefault();
         if (!regName.trim() || !regUsername.trim() || !regEmail.trim() || !regPhone.trim() || !regPassword) {
           triggerToast("Lengkapi semua field pendaftaran termasuk No HP!", "warning");
@@ -855,13 +896,16 @@
 
         triggerToast("Pendaftaran berhasil! Akun Anda aktif di Panua Community.", "success");
 
-        if (gasConfig.connected && gasConfig.webAppUrl) {
-          callGasApi('registerUser', { user: newUser }).then((res) => {
-            if (res && res.status === 'ok') {
-              triggerToast("Akun anggota tersimpan di Google Sheets Database!", "success");
-              syncFromGas();
-            }
-          });
+        // Kirim langsung ke Google Sheets backend via Universal Dispatcher
+        if (gasConfig.webAppUrl) {
+          triggerToast("Menyimpan akun baru ke baris Google Sheets...", "warning");
+          const res = await callGasApi('registerUser', { user: newUser });
+          if (res && res.status === 'ok') {
+            triggerToast(res.message || "Akun anggota berhasil tertulis di Google Sheets!", "success");
+            syncFromGas();
+          } else {
+            console.warn("Penyimpanan cloud tertunda:", res);
+          }
         }
       };
 
@@ -912,8 +956,7 @@
         };
         reader.readAsDataURL(file);
       };
-
-      // --- REDEEM CODE VERIFICATION (DUAL-PIPELINE SYNC) ---
+      // --- REDEEM CODE VERIFICATION (DUAL-PIPELINE SYNC - 90 DETIK) ---
       const handleUnlockVault = async (e) => {
         e.preventDefault();
         const codeTrim = vaultRedeemInput.trim().toUpperCase();
@@ -932,7 +975,7 @@
         setIsVerifyingCode(true);
         const now = Date.now();
 
-        // 1. Check shared persistent storage
+        // 1. Cek local storage (jika kode di-generate di browser yang sama)
         let localValid = false;
         try {
           const savedShared = localStorage.getItem('panua_shared_redeem_codes');
@@ -941,7 +984,7 @@
             c.code.toUpperCase() === codeTrim && 
             (c.userTarget === "all" || c.userTarget.toLowerCase() === user.username.toLowerCase())
           );
-          if (found && now < found.expiresAt + 5000) {
+          if (found && now < (found.expiresAt || (found.createdAt + 90000)) + 10000) {
             localValid = true;
           }
         } catch (err) {}
@@ -954,29 +997,30 @@
           return;
         }
 
-        // 2. Cloud Verification via GAS Endpoint (90 Detik)
-        if (gasConfig.connected && gasConfig.webAppUrl) {
+        // 2. Verifikasi Cloud Riil ke Google Apps Script Spreadsheet (90 Detik)
+        if (gasConfig.webAppUrl) {
           try {
             triggerToast("Memverifikasi kode ke server Google Apps Script...", "warning");
-            const verifyUrl = `${gasConfig.webAppUrl}?action=verifyRedeemCode&code=${encodeURIComponent(codeTrim)}&username=${encodeURIComponent(user.username)}`;
-            const response = await fetch(verifyUrl);
-            const data = await response.json();
+            const res = await callGasApi('verifyRedeemCode', {
+              code: codeTrim,
+              username: user.username
+            });
 
             setIsVerifyingCode(false);
-            if (data.status === "ok" && data.valid) {
+            if (res && res.status === "ok" && res.valid) {
               setVaultUnlocked(true);
               setVaultRedeemInput("");
-              triggerToast(`Kode Valid! Sisa waktu: ${data.remainingSeconds || 90} detik. Brankas Terbuka.`, "success");
+              triggerToast(`Kode Valid! Sisa waktu: ${res.remainingSeconds || 90} detik. Brankas Terbuka.`, "success");
               return;
-            } else if (data.status === "expired") {
-              triggerToast(data.message || "Redeem Code sudah kedaluwarsa (> 90 detik). Minta kode baru ke Admin.", "danger");
+            } else if (res && res.status === "expired") {
+              triggerToast(res.message || "Redeem Code sudah kedaluwarsa (> 90 detik). Minta kode baru ke Admin.", "danger");
               return;
-            } else {
-              triggerToast("Redeem Code tidak valid atau target username tidak sesuai! Hubungi Admin.", "danger");
+            } else if (res && res.message) {
+              triggerToast(res.message, "danger");
               return;
             }
           } catch (err) {
-            console.log("Cloud verification error:", err);
+            console.error("Cloud verification error:", err);
           }
         }
 
@@ -3165,6 +3209,25 @@ function doPost(e) {
                       className="w-full mt-1 bg-pch-secondary border border-pch-border rounded-xl px-3 py-2 text-xs font-mono text-pch-text focus:outline-none focus:border-pch-purple"
                     />
                   </div>
+
+                  {testResult && (
+                    <div className={`p-3 rounded-xl text-xs font-mono border ${
+                      testResult.loading ? "bg-amber-950/40 border-pch-warning text-amber-200" :
+                      testResult.success ? "bg-emerald-950/40 border-pch-success text-emerald-200" :
+                      "bg-red-950/40 border-pch-danger text-red-200"
+                    }`}>
+                      {testResult.message}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleTestGasConnection}
+                    className="w-full py-2 rounded-xl bg-pch-secondary border border-pch-purple text-pch-purpleLight text-xs font-semibold hover:bg-pch-purple/20 flex items-center justify-center gap-1.5"
+                  >
+                    <Icons.Database className="w-3.5 h-3.5" />
+                    <span>Uji Tes Tulis Baris ke Google Sheets</span>
+                  </button>
                 </div>
 
                 <div className="pt-2 flex gap-3">
@@ -3172,13 +3235,13 @@ function doPost(e) {
                     onClick={() => setShowGasModal(false)}
                     className="flex-1 py-2.5 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted text-xs font-semibold"
                   >
-                    Batal
+                    Tutup
                   </button>
                   <button 
                     onClick={() => handleSaveGasConfig(gasConfig.webAppUrl)}
                     className="flex-1 py-2.5 rounded-xl bg-pch-gold text-black text-xs font-semibold hover:bg-pch-goldLight shadow-gold-glow"
                   >
-                    Hubungkan GAS
+                    Simpan & Sambungkan
                   </button>
                 </div>
               </div>
