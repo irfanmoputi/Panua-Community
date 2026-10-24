@@ -552,25 +552,62 @@
         try {
           setIsSyncing(true);
 
-          // 1. Tarik pengguna terbaru dari Google Sheets
+          // 1. Tarik pengguna & berkas dossier terbaru dari Google Sheets
           const fetchResult = await callGasApi('getRegisteredUsers');
-          if (fetchResult && fetchResult.status === 'ok' && Array.isArray(fetchResult.users)) {
-            setRegisteredUsers(prev => {
-              const map = new Map();
-              // Simpan anggota lama
-              prev.forEach(u => map.set(u.username.toLowerCase(), u));
-              // Gabungkan anggota baru dari cloud
-              fetchResult.users.forEach(u => map.set(u.username.toLowerCase(), u));
-              const merged = Array.from(map.values());
-              localStorage.setItem('panua_registered_users', JSON.stringify(merged));
-              return merged;
-            });
+          if (fetchResult && fetchResult.status === 'ok') {
+            if (Array.isArray(fetchResult.users)) {
+              setRegisteredUsers(prev => {
+                const map = new Map();
+                prev.forEach(u => map.set(u.username.toLowerCase(), u));
+                fetchResult.users.forEach(u => map.set(u.username.toLowerCase(), u));
+                const merged = Array.from(map.values());
+                localStorage.setItem('panua_registered_users', JSON.stringify(merged));
+                return merged;
+              });
+            }
+
+            // Sinkronkan arsip berkas anggota ke Admin
+            if (Array.isArray(fetchResult.dossiers)) {
+              setSubmittedDossiers(fetchResult.dossiers);
+              localStorage.setItem('panua_submitted_dossiers', JSON.stringify(fetchResult.dossiers));
+
+              // Jika anggota sedang membuka brankas miliknya, muat link drive terbaru
+              if (user && user.role !== 'admin') {
+                const myDossierFromCloud = fetchResult.dossiers.find(
+                  d => d.username.toLowerCase() === user.username.toLowerCase() || d.userId === user.id
+                );
+                if (myDossierFromCloud) {
+                  setMemberDossier(prev => ({
+                    ...prev,
+                    namaLengkap: myDossierFromCloud.namaLengkap || prev.namaLengkap,
+                    email: myDossierFromCloud.email || prev.email,
+                    noHp: myDossierFromCloud.noHp || prev.noHp,
+                    usernamePi: myDossierFromCloud.usernamePi || prev.usernamePi,
+                    ttl: myDossierFromCloud.ttl || prev.ttl,
+                    nik: myDossierFromCloud.nik || prev.nik,
+                    alamatLengkap: myDossierFromCloud.alamatLengkap || prev.alamatLengkap,
+                    noRekening: myDossierFromCloud.rekening || prev.noRekening,
+                    walletPi: myDossierFromCloud.walletPi || prev.walletPi,
+                    walletOkx: myDossierFromCloud.walletOkx || prev.walletOkx,
+                    fotoKtp: myDossierFromCloud.fotoKtpUrl ? { name: "KTP Terverifikasi Drive", driveUrl: myDossierFromCloud.fotoKtpUrl } : prev.fotoKtp,
+                    fotoKk: myDossierFromCloud.fotoKkUrl ? { name: "KK Terverifikasi Drive", driveUrl: myDossierFromCloud.fotoKkUrl } : prev.fotoKk,
+                    fotoNpwp: myDossierFromCloud.fotoNpwpUrl ? { name: "NPWP Terverifikasi Drive", driveUrl: myDossierFromCloud.fotoNpwpUrl } : prev.fotoNpwp,
+                    pasfoto: myDossierFromCloud.pasfotoUrl ? { name: "Pasfoto Terverifikasi Drive", driveUrl: myDossierFromCloud.pasfotoUrl } : prev.pasfoto,
+                    kartuKeanggotaan: myDossierFromCloud.ktaUrl ? { name: "KTA Terverifikasi Drive", driveUrl: myDossierFromCloud.ktaUrl } : prev.kartuKeanggotaan,
+                    extraDocs: myDossierFromCloud.extraDocs || prev.extraDocs,
+                    isSavedToAdmin: true,
+                    lastSynced: "Tersinkronisasi Cloud (" + (myDossierFromCloud.lastUpdate || "Hari ini") + ")"
+                  }));
+                }
+              }
+            }
+
             setGasConfig(prev => ({
               ...prev,
               connected: true,
               lastSync: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " WITA"
             }));
-            triggerToast(`Sinkronisasi Cloud Selesai! (${fetchResult.count || fetchResult.users.length} Anggota)`, "success");
+            triggerToast(`Sinkronisasi Cloud Selesai! (${fetchResult.count || 0} Anggota, ${fetchResult.dossiers?.length || 0} Arsip)`, "success");
             return;
           }
 
@@ -629,10 +666,30 @@
 
       const [currentTime, setCurrentTime] = useState(Date.now());
 
+      // MY SECURE VAULT STATUS & 1-JAM SESSION EXPIRATION TIMER
+      const [vaultUnlockedUntil, setVaultUnlockedUntil] = useState(() => {
+        try {
+          const saved = localStorage.getItem('panua_vault_unlock_until');
+          if (saved) {
+            const val = Number(saved);
+            if (Date.now() < val) return val;
+          }
+        } catch (e) {}
+        return 0;
+      });
+
+      const vaultUnlocked = (user?.role === "admin") || (Date.now() < vaultUnlockedUntil);
+      const [vaultRedeemInput, setVaultRedeemInput] = useState("");
+      const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+      const [selectedDossierDetail, setSelectedDossierDetail] = useState(null);
+
+      // Timer 1 detik untuk hitung mundur Redeem Code dan Auto-Lock Brankas 1 Jam
       useEffect(() => {
         const interval = setInterval(() => {
           const now = Date.now();
           setCurrentTime(now);
+
+          // Cek masa aktif Redeem Code (90 detik)
           setActiveRedeemCodes(prev => {
             const filtered = prev.filter(c => now < c.expiresAt);
             if (filtered.length !== prev.length) {
@@ -640,14 +697,61 @@
             }
             return filtered;
           });
+
+          // Cek masa aktif sesi Brankas (1 Jam)
+          if (vaultUnlockedUntil > 0 && now >= vaultUnlockedUntil) {
+            setVaultUnlockedUntil(0);
+            localStorage.removeItem('panua_vault_unlock_until');
+            triggerToast("Batas waktu sesi terbuka (1 Jam) telah berakhir. My Secure Vault terkunci otomatis.", "warning");
+          }
         }, 1000);
         return () => clearInterval(interval);
-      }, []);
+      }, [vaultUnlockedUntil]);
 
-      // My Secure Vault Status
-      const [vaultUnlocked, setVaultUnlocked] = useState(false);
-      const [vaultRedeemInput, setVaultRedeemInput] = useState("");
-      const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+      // Kompresi gambar cerdas sebelum diunggah ke Google Apps Script / Drive
+      const compressImageFile = (file, maxWidth = 1200, quality = 0.75) => {
+        return new Promise((resolve) => {
+          if (!file || !file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve({
+              name: file ? file.name : "berkas.dat",
+              type: file ? file.type : "application/octet-stream",
+              base64: e.target.result,
+              size: file ? (file.size / (1024 * 1024)).toFixed(2) + " MB" : "0 MB"
+            });
+            reader.readAsDataURL(file);
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              let width = img.width;
+              let height = img.height;
+              if (width > maxWidth) {
+                height = Math.round((height * maxWidth) / width);
+                width = maxWidth;
+              }
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, width, height);
+              const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+              const approxKB = Math.round((compressedBase64.length * 3 / 4) / 1024);
+              resolve({
+                name: file.name,
+                type: 'image/jpeg',
+                base64: compressedBase64,
+                size: approxKB > 1024 ? (approxKB / 1024).toFixed(2) + " MB" : approxKB + " KB"
+              });
+            };
+            img.src = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        });
+      };
 
       // 5. 15-BERKAS DOSSIER ANGGOTA
       const [memberDossier, setMemberDossier] = useState(() => {
@@ -960,7 +1064,7 @@
         reader.readAsDataURL(file);
       };
 
-      // --- REDEEM CODE VERIFICATION (90 DETIK) ---
+      // --- REDEEM CODE VERIFICATION (90 DETIK -> AKSES 1 JAM) ---
       const handleUnlockVault = async (e) => {
         e.preventDefault();
         const codeTrim = vaultRedeemInput.trim().toUpperCase();
@@ -969,10 +1073,17 @@
           return;
         }
 
-        if (user?.role === "admin") {
-          setVaultUnlocked(true);
+        const grantVaultAccessOneHour = () => {
+          const oneHourMs = 60 * 60 * 1000; // 1 Jam = 3600 Detik
+          const expiryTime = Date.now() + oneHourMs;
+          setVaultUnlockedUntil(expiryTime);
+          localStorage.setItem('panua_vault_unlock_until', String(expiryTime));
           setVaultRedeemInput("");
-          triggerToast("Akses Brankas Diterima (Super Admin)!", "success");
+          triggerToast("Akses Brankas Diterima! Sesi aktif selama 1 Jam.", "success");
+        };
+
+        if (user?.role === "admin") {
+          grantVaultAccessOneHour();
           return;
         }
 
@@ -995,9 +1106,7 @@
 
         if (localValid) {
           setIsVerifyingCode(false);
-          setVaultUnlocked(true);
-          setVaultRedeemInput("");
-          triggerToast("Akses Brankas Berhasil Diverifikasi! Selamat datang di My Secure Vault.", "success");
+          grantVaultAccessOneHour();
           return;
         }
 
@@ -1012,9 +1121,7 @@
 
             setIsVerifyingCode(false);
             if (res && res.status === "ok" && res.valid) {
-              setVaultUnlocked(true);
-              setVaultRedeemInput("");
-              triggerToast(`Kode Valid! Sisa waktu: ${res.remainingSeconds || 90} detik. Brankas Terbuka.`, "success");
+              grantVaultAccessOneHour();
               return;
             } else if (res && res.status === "expired") {
               triggerToast(res.message || "Redeem Code sudah kedaluwarsa (> 90 detik). Minta kode baru ke Admin.", "danger");
@@ -1029,12 +1136,12 @@
         }
 
         setIsVerifyingCode(false);
-        triggerToast("Redeem Code tidak valid atau sudah kedaluwarsa (> 90 detik)! Minta kode baru ke Admin via WA.", "danger");
+        triggerToast("Redeem Code tidak valid atau sudah lewat 90 detik! Minta kode baru ke Admin via WA.", "danger");
       };
 
       const handleRequestCodeViaWhatsapp = () => {
         const adminNumber = appBranding.adminWhatsapp.replace(/\D/g, '');
-        const message = `Halo Admin ${appBranding.title} (Gorontalo),\n\nSaya ingin meminta Kode Akses / Redeem Code 90 Detik untuk membuka menu My Secure Vault:\nNama: ${user.name}\nUsername: ${user.username}\nEmail: ${user.email}\nNo HP: ${user.phone || '-'}\n\nMohon buatkan kode akses 1.5 menit (90 detik). Terima kasih!`;
+        const message = `Halo Admin ${appBranding.title} (Gorontalo),\n\nSaya ingin meminta Kode Akses / Redeem Code untuk membuka menu My Secure Vault:\nNama: ${user.name}\nUsername: ${user.username}\nEmail: ${user.email}\nNo HP: ${user.phone || '-'}\n\nMohon buatkan kode akses 90 detik untuk sesi 1 jam. Terima kasih!`;
         const waUrl = `https://wa.me/${adminNumber}?text=${encodeURIComponent(message)}`;
         window.open(waUrl, '_blank');
         triggerToast("Membuka WhatsApp untuk mengirim permohonan ke Admin...");
@@ -1089,22 +1196,30 @@
         };
 
         setSubmittedDossiers(prev => {
-          const filtered = prev.filter(d => d.userId !== user.id);
+          const filtered = prev.filter(d => d.userId !== user.id && d.username !== user.username);
           return [newRecord, ...filtered];
         });
 
         if (gasConfig.connected && gasConfig.webAppUrl) {
-          const res = await callGasApi('saveMemberDossier', {
-            userId: user.id,
-            username: user.username,
-            dossier: updatedDossier
-          });
+          try {
+            const res = await callGasApi('saveMemberDossier', {
+              userId: user.id,
+              username: user.username,
+              dossier: updatedDossier
+            });
 
-          if (res && res.status === 'ok') {
-            triggerToast("Sukses! 15 Berkas & Identitas tersimpan di Google Drive & Sheets Admin!", "success");
-            syncFromGas();
-          } else {
-            triggerToast(res?.message || "Berkas tersimpan lokal. Periksa koneksi backend GAS.", "warning");
+            if (res && res.status === 'ok') {
+              triggerToast("Sukses! 15 Berkas & Identitas tersimpan di Google Drive & Sheets Admin!", "success");
+              // Perbarui dengan link drive riil dari Google Drive
+              if (res.dossier) {
+                setSubmittedDossiers(prev => [res.dossier, ...prev.filter(d => d.username !== user.username)]);
+              }
+              syncFromGas();
+            } else {
+              triggerToast(res?.message || "Berkas tersimpan lokal. Periksa koneksi backend GAS.", "warning");
+            }
+          } catch (err) {
+            triggerToast("Gagal mengunggah berkas ke GAS. Periksa jaringan internet.", "danger");
           }
         } else {
           triggerToast("Berkas tersimpan lokal. Hubungkan URL GAS di header untuk upload ke Drive.", "warning");
@@ -1112,35 +1227,31 @@
         setIsSavingDossier(false);
       };
 
-      const handleAddExtraDocument = (e) => {
+      const handleAddExtraDocument = async (e) => {
         e.preventDefault();
         if (!newExtraDocTitle.trim() || !newExtraDocFile) {
           triggerToast("Masukkan judul dokumen dan pilih berkas!", "warning");
           return;
         }
 
-        const file = newExtraDocFile;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          const newDoc = {
-            id: "doc-" + Date.now(),
-            title: newExtraDocTitle.trim(),
-            fileName: file.name,
-            type: file.type || "application/octet-stream",
-            size: (file.size / (1024 * 1024)).toFixed(2) + " MB",
-            uploadedAt: new Date().toLocaleDateString('id-ID'),
-            base64: ev.target.result
-          };
-
-          setMemberDossier(prev => ({
-            ...prev,
-            extraDocs: [...(prev.extraDocs || []), newDoc]
-          }));
-          setNewExtraDocTitle("");
-          setNewExtraDocFile(null);
-          triggerToast(`Dokumen "${newDoc.title}" siap dikirim ke Google Drive!`);
+        const compressed = await compressImageFile(newExtraDocFile);
+        const newDoc = {
+          id: "doc-" + Date.now(),
+          title: newExtraDocTitle.trim(),
+          fileName: compressed.name,
+          type: compressed.type,
+          size: compressed.size,
+          uploadedAt: new Date().toLocaleDateString('id-ID'),
+          base64: compressed.base64
         };
-        reader.readAsDataURL(file);
+
+        setMemberDossier(prev => ({
+          ...prev,
+          extraDocs: [...(prev.extraDocs || []), newDoc]
+        }));
+        setNewExtraDocTitle("");
+        setNewExtraDocFile(null);
+        triggerToast(`Dokumen "${newDoc.title}" siap dikirim ke Google Drive!`);
       };
 
       const handleAdminCreateRedeemCode = (e) => {
@@ -2044,7 +2155,7 @@
                   {/* TAB 5: MY SECURE VAULT */}
                   {activeTab === "vault" && (
                     <div className="space-y-6">
-                      {!vaultUnlocked && user?.role !== "admin" ? (
+                      {!vaultUnlocked ? (
                         <div className="max-w-xl mx-auto p-6 sm:p-8 rounded-2xl bg-pch-surface border border-pch-gold/40 shadow-card-elevated space-y-6 text-center">
                           <div className="w-16 h-16 rounded-2xl bg-pch-gold/15 border border-pch-gold/40 text-pch-gold mx-auto flex items-center justify-center shadow-gold-glow">
                             <Icons.Key className="w-8 h-8" />
@@ -2052,13 +2163,13 @@
 
                           <div className="space-y-2">
                             <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-amber-950/80 text-pch-goldLight border border-pch-gold/40 uppercase tracking-wider">
-                              Akses Privat Terproteksi (Validitas 90 Detik)
+                              Akses Privat Terproteksi (Sesi Aktif 1 Jam)
                             </span>
                             <h2 className="text-xl sm:text-2xl font-bold text-pch-text">
                               Buka Akses My Secure Vault
                             </h2>
                             <p className="text-xs sm:text-sm text-pch-muted max-w-md mx-auto leading-relaxed">
-                              Masukkan <strong>Redeem Code / Token Akses Privat</strong> yang diberikan Admin Panua Community untuk membuka brankas Anda. Kode hanya aktif selama 1.5 menit (90 detik).
+                              Masukkan <strong>Redeem Code</strong> yang diterbitkan Admin (berlaku 90 detik). Setelah diverifikasi, brankas Anda terbuka selama <strong>1 Jam</strong> sebelum terkunci otomatis.
                             </p>
                           </div>
 
@@ -2081,13 +2192,13 @@
                               className="w-full py-2.5 rounded-xl bg-pch-gold text-black font-bold text-sm hover:bg-pch-goldLight transition-all shadow-gold-glow flex items-center justify-center gap-2 disabled:opacity-50"
                             >
                               <Icons.Lock className="w-4 h-4" />
-                              <span>{isVerifyingCode ? "Memverifikasi Kode..." : "Verifikasi & Masuk ke Brankas"}</span>
+                              <span>{isVerifyingCode ? "Memverifikasi Kode..." : "Buka Akses Brankas (1 Jam)"}</span>
                             </button>
                           </form>
 
                           <div className="pt-4 border-t border-pch-border/70 space-y-3">
                             <p className="text-xs text-pch-muted">
-                              Belum memiliki Redeem Code atau kode sebelumnya sudah lewat 90 detik?
+                              Belum memiliki Redeem Code atau sesi 1 jam sebelumnya telah berakhir?
                             </p>
                             <button 
                               type="button"
@@ -2108,12 +2219,18 @@
                                 <Icons.Check className="w-5 h-5" />
                               </div>
                               <div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-wrap">
                                   <h3 className="font-bold text-sm sm:text-base text-pch-text">My Secure Vault — Sesi Akses Terbuka</h3>
                                   <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-pch-success border border-pch-success/30 font-mono font-bold">15 Berkas Lengkap</span>
+                                  {vaultUnlockedUntil > 0 && (
+                                    <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-950/80 text-pch-warning border border-pch-warning/40 font-mono font-bold flex items-center gap-1">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-current animate-ping"></span>
+                                      <span>Sisa Sesi: {Math.max(0, Math.floor((vaultUnlockedUntil - currentTime) / 60000))}m {Math.max(0, Math.floor(((vaultUnlockedUntil - currentTime) % 60000) / 1000))}s (Maks 1 Jam)</span>
+                                    </span>
+                                  )}
                                 </div>
                                 <p className="text-xs text-pch-muted">
-                                  Sinkronisasi Drive Admin: <strong>{memberDossier.lastSynced}</strong>
+                                  Status Arsip Drive: <strong>{memberDossier.lastSynced}</strong>
                                 </p>
                               </div>
                             </div>
@@ -2121,18 +2238,23 @@
                             <div className="flex items-center gap-2">
                               <button 
                                 onClick={handleSaveAndSendDossierToAdmin}
-                                className="px-3.5 py-2 rounded-xl bg-pch-gold text-black text-xs font-bold hover:bg-pch-goldLight flex items-center gap-1.5 shadow-gold-glow"
+                                disabled={isSavingDossier}
+                                className="px-3.5 py-2 rounded-xl bg-pch-gold text-black text-xs font-bold hover:bg-pch-goldLight flex items-center gap-1.5 shadow-gold-glow disabled:opacity-50"
                               >
                                 <Icons.Upload className="w-3.5 h-3.5" />
-                                <span>Simpan & Kirim ke Drive Admin</span>
+                                <span>{isSavingDossier ? "Mengunggah ke Drive..." : "Simpan & Kirim ke Drive Admin"}</span>
                               </button>
 
                               {user?.role !== "admin" && (
                                 <button 
-                                  onClick={() => { setVaultUnlocked(false); triggerToast("Sesi brankas telah dikunci.", "warning"); }}
+                                  onClick={() => {
+                                    setVaultUnlockedUntil(0);
+                                    localStorage.removeItem('panua_vault_unlock_until');
+                                    triggerToast("Sesi brankas telah dikunci.", "warning");
+                                  }}
                                   className="px-3 py-2 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted hover:text-pch-danger text-xs font-semibold"
                                 >
-                                  Kunci Kembali
+                                  Kunci Sesi
                                 </button>
                               )}
                             </div>
@@ -2299,7 +2421,7 @@
                                     <span className="text-[10px] text-pch-muted mt-1 block">
                                       {item.data?.driveUrl ? (
                                         <a href={item.data.driveUrl} target="_blank" rel="noreferrer" className="text-pch-success underline font-semibold flex items-center gap-1">
-                                          <Icons.Check className="w-3 h-3" /> Ada di Drive
+                                          <Icons.Check className="w-3 h-3" /> Ada di Drive (Klik Lihat)
                                         </a>
                                       ) : item.data?.base64 ? (
                                         <span className="text-pch-goldLight">Siap upload ({item.data.size})</span>
@@ -2315,27 +2437,19 @@
                                       type="file" 
                                       accept=".pdf,image/*" 
                                       className="hidden"
-                                      onChange={(e) => {
+                                      onChange={async (e) => {
                                         const file = e.target.files[0];
                                         if (file) {
-                                          if (file.size > 8 * 1024 * 1024) {
-                                            triggerToast("Ukuran file maksimal 8MB!", "danger");
+                                          if (file.size > 15 * 1024 * 1024) {
+                                            triggerToast("Ukuran file maksimal 15MB!", "danger");
                                             return;
                                           }
-                                          const reader = new FileReader();
-                                          reader.onload = (ev) => {
-                                            setMemberDossier(prev => ({
-                                              ...prev,
-                                              [item.key]: {
-                                                name: file.name,
-                                                type: file.type || "application/octet-stream",
-                                                size: (file.size / (1024 * 1024)).toFixed(2) + " MB",
-                                                base64: ev.target.result
-                                              }
-                                            }));
-                                            triggerToast(`File ${item.label} siap disimpan ke Google Drive!`);
-                                          };
-                                          reader.readAsDataURL(file);
+                                          const compressed = await compressImageFile(file);
+                                          setMemberDossier(prev => ({
+                                            ...prev,
+                                            [item.key]: compressed
+                                          }));
+                                          triggerToast(`File ${item.label} siap disimpan ke Google Drive!`);
                                         }
                                       }}
                                     />
@@ -2834,7 +2948,15 @@
 
                         {/* 3. Arsip Berkas Anggota di Drive */}
                         <div className="space-y-2 pt-4 border-t border-pch-border">
-                          <span className="text-xs font-bold text-pch-text block">Arsip Berkas Brankas Anggota di Google Drive Admin</span>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-pch-text block">Arsip Berkas Brankas Anggota di Google Drive Admin ({submittedDossiers.length} Berkas)</span>
+                            <button
+                              onClick={() => syncFromGas()}
+                              className="text-[11px] text-pch-gold underline hover:opacity-80"
+                            >
+                              Segarkan Arsip Cloud
+                            </button>
+                          </div>
                           <div className="overflow-x-auto">
                             <table className="w-full text-xs text-left">
                               <thead className="bg-pch-secondary text-pch-muted uppercase border-b border-pch-border">
@@ -2843,14 +2965,15 @@
                                   <th className="p-3">Kontak (WA)</th>
                                   <th className="p-3">Username Pi / NIK</th>
                                   <th className="p-3">Status Drive</th>
+                                  <th className="p-3">Inspeksi Berkas</th>
                                   <th className="p-3">Kirim Kode / Akses</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-pch-border">
                                 {submittedDossiers.length === 0 ? (
                                   <tr>
-                                    <td colSpan="5" className="p-4 text-center text-pch-muted italic">
-                                      Belum ada berkas anggota yang diunggah.
+                                    <td colSpan="6" className="p-4 text-center text-pch-muted italic">
+                                      Belum ada berkas anggota yang diunggah. Klik "Sinkronkan Cloud" untuk memuat arsip dari Google Sheets & Drive.
                                     </td>
                                   </tr>
                                 ) : (
@@ -2866,9 +2989,18 @@
                                         <span className="text-[10px] text-pch-muted font-mono">NIK: {dos.nik}</span>
                                       </td>
                                       <td className="p-3">
-                                        <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-pch-success border border-pch-success/30 font-semibold">
-                                          {dos.status} ({dos.docsCount} Berkas)
+                                        <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-pch-success border border-pch-success/30 font-semibold block w-fit">
+                                          {dos.status} ({dos.docsCount || 5} Berkas)
                                         </span>
+                                      </td>
+                                      <td className="p-3">
+                                        <button 
+                                          onClick={() => setSelectedDossierDetail(dos)}
+                                          className="px-2.5 py-1 rounded bg-pch-secondary border border-pch-gold/40 text-pch-goldLight hover:bg-pch-surface text-xs font-semibold flex items-center gap-1"
+                                        >
+                                          <Icons.Eye className="w-3.5 h-3.5" />
+                                          <span>Buka Berkas</span>
+                                        </button>
                                       </td>
                                       <td className="p-3">
                                         <button 
@@ -2876,7 +3008,7 @@
                                           className="px-3 py-1.5 rounded-lg bg-emerald-950/80 border border-pch-success text-pch-success hover:bg-emerald-900/60 font-semibold text-xs flex items-center gap-1.5"
                                         >
                                           <Icons.Phone className="w-3.5 h-3.5" />
-                                          <span>Kirim via WA</span>
+                                          <span>Kirim WA</span>
                                         </button>
                                       </td>
                                     </tr>
@@ -3270,6 +3402,104 @@ function doPost(e) {
                     className="flex-1 py-2 rounded-xl bg-pch-danger text-white text-xs font-semibold hover:bg-red-600 shadow-sm"
                   >
                     Konfirmasi
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL: DETAIL INSPEKSI 15 BERKAS DOSSIER ANGGOTA OLEH ADMIN */}
+          {selectedDossierDetail && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+              <div className="bg-pch-surface border border-pch-gold/50 rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-card-elevated my-8">
+                <div className="flex items-center justify-between pb-3 border-b border-pch-border">
+                  <div>
+                    <h3 className="font-bold text-base text-pch-text flex items-center gap-2">
+                      <Icons.Shield className="w-4 h-4 text-pch-gold" />
+                      <span>Arsip Lengkap Brankas: {selectedDossierDetail.namaLengkap}</span>
+                    </h3>
+                    <p className="text-xs text-pch-muted font-mono">@{selectedDossierDetail.username} • Kontak: {selectedDossierDetail.noHp}</p>
+                  </div>
+                  <button onClick={() => setSelectedDossierDetail(null)} className="text-pch-muted hover:text-pch-text">
+                    <Icons.X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
+                    <span className="text-pch-muted block font-semibold">Username Pi Network</span>
+                    <span className="text-pch-goldLight font-mono font-bold">{selectedDossierDetail.usernamePi || "-"}</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
+                    <span className="text-pch-muted block font-semibold">NIK (Nomor Induk Kependudukan)</span>
+                    <span className="text-pch-text font-mono font-bold">{selectedDossierDetail.nik || "-"}</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
+                    <span className="text-pch-muted block font-semibold">Tempat & Tanggal Lahir (TTL)</span>
+                    <span className="text-pch-text">{selectedDossierDetail.ttl || "-"}</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
+                    <span className="text-pch-muted block font-semibold">Rekening Bank</span>
+                    <span className="text-pch-text font-mono">{selectedDossierDetail.rekening || "-"}</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
+                    <span className="text-pch-muted block font-semibold">Alamat Wallet Pi</span>
+                    <span className="text-pch-goldLight font-mono truncate block">{selectedDossierDetail.walletPi || "-"}</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
+                    <span className="text-pch-muted block font-semibold">Alamat Wallet OKX</span>
+                    <span className="text-pch-purpleLight font-mono truncate block">{selectedDossierDetail.walletOkx || "-"}</span>
+                  </div>
+                  <div className="sm:col-span-2 p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
+                    <span className="text-pch-muted block font-semibold">Alamat Domisili Lengkap</span>
+                    <span className="text-pch-text">{selectedDossierDetail.alamatLengkap || "-"}</span>
+                  </div>
+                </div>
+
+                {/* Tautan Berkas Fisik di Google Drive */}
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-pch-goldLight block">Berkas Fisik Tersimpan di Google Drive:</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    {[
+                      { label: "Foto KTP Elektronik", url: selectedDossierDetail.fotoKtpUrl },
+                      { label: "Foto Kartu Keluarga (KK)", url: selectedDossierDetail.fotoKkUrl },
+                      { label: "Foto NPWP", url: selectedDossierDetail.fotoNpwpUrl },
+                      { label: "Pasfoto Formal (4x6)", url: selectedDossierDetail.pasfotoUrl },
+                      { label: "Kartu Keanggotaan Panua", url: selectedDossierDetail.ktaUrl }
+                    ].map((f, idx) => (
+                      <div key={idx} className="p-2.5 rounded-lg bg-pch-secondary border border-pch-border flex items-center justify-between">
+                        <span className="text-pch-text">{f.label}</span>
+                        {f.url && f.url.startsWith("http") ? (
+                          <a 
+                            href={f.url} 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            className="text-pch-success underline font-semibold flex items-center gap-1"
+                          >
+                            <Icons.ExternalLink className="w-3.5 h-3.5" />
+                            <span>Buka di Drive</span>
+                          </a>
+                        ) : (
+                          <span className="text-pch-muted italic">Belum diunggah</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                  <button 
+                    onClick={() => handleAdminSendDossierViaWA(selectedDossierDetail, activeRedeemCodes[0]?.code)}
+                    className="flex-1 py-2.5 rounded-xl bg-emerald-950/80 border border-pch-success text-pch-success hover:bg-emerald-900/60 font-semibold text-xs flex items-center justify-center gap-2"
+                  >
+                    <Icons.Phone className="w-4 h-4" />
+                    <span>Kirim Informasi Lengkap via WhatsApp Anggota</span>
+                  </button>
+                  <button 
+                    onClick={() => setSelectedDossierDetail(null)}
+                    className="px-5 py-2.5 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted text-xs font-semibold hover:text-pch-text"
+                  >
+                    Tutup
                   </button>
                 </div>
               </div>
