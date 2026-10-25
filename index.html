@@ -687,56 +687,20 @@
       const [chatMessages, setChatMessages] = useState([]);
       const [chatInput, setChatInput] = useState("");
       const [replyingTo, setReplyingTo] = useState(null);
+      const chatScrollRef = useRef(null);
 
-      // Jitsi Meeting States
+      // Jitsi Meeting States (Disinkronkan ke Supabase Realtime)
       const [activeJitsiRoom, setActiveJitsiRoom] = useState(null);
-      const [meetings, setMeetings] = useState([
-        {
-          id: "meet-1",
-          title: "Evaluasi Node & Ekosistem Pi Gorontalo",
-          host: "Administrator Utama",
-          date: "Hari Ini, 20:00 WITA",
-          duration: "60 Menit",
-          room: "Panua-Gorontalo-Node-01",
-          status: "Terjadwal"
-        }
-      ]);
+      const [meetings, setMeetings] = useState([]);
       const [showCreateMeetingModal, setShowCreateMeetingModal] = useState(false);
       const [newMeetingTitle, setNewMeetingTitle] = useState("");
       const [newMeetingHost, setNewMeetingHost] = useState("");
       const [newMeetingDate, setNewMeetingDate] = useState("");
       const [newMeetingDuration, setNewMeetingDuration] = useState("60 Menit");
 
-      // Community Groups
-      const [groups, setGroups] = useState([
-        {
-          id: "grp-1",
-          name: "Pionir Panua Kota Gorontalo",
-          category: "Wilayah",
-          memberCount: 24,
-          isOfficial: true,
-          joined: true,
-          description: "Grup koordinasi pionir wilayah Kota Gorontalo dan sekitarnya."
-        },
-        {
-          id: "grp-2",
-          name: "Edukasi & Utilitas Pi Gorontalo",
-          category: "Edukasi",
-          memberCount: 18,
-          isOfficial: true,
-          joined: true,
-          description: "Diskusi pemahaman ekosistem, validasi node, dan literasi blockchain."
-        },
-        {
-          id: "grp-3",
-          name: "Barter & UMKM Panua Gorontalo",
-          category: "Bisnis",
-          memberCount: 31,
-          isOfficial: false,
-          joined: false,
-          description: "Wadah kolaborasi pelaku usaha lokal dan pionir pendukung utilitas nyata."
-        }
-      ]);
+      // Community Groups (Disinkronkan ke Supabase Realtime)
+      const [groups, setGroups] = useState([]);
+      const [userJoinedGroupIds, setUserJoinedGroupIds] = useState(new Set());
       const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
       const [newGroupName, setNewGroupName] = useState("");
       const [newGroupCategory, setNewGroupCategory] = useState("Umum");
@@ -763,13 +727,15 @@
 
         try {
           // Eksekusi semua query secara paralel menggunakan Promise.allSettled
-          // agar jika salah satu tabel tertunda, tabel lainnya tetap berhasil diperbarui
-          const [usersRes, dosRes, brandRes, codesRes, chatRes] = await Promise.allSettled([
+          const [usersRes, dosRes, brandRes, codesRes, chatRes, meetsRes, groupsRes, membershipsRes] = await Promise.allSettled([
             supabase.from('users_registry').select('*').order('created_at', { ascending: false }),
             supabase.from('dossiers').select('*').order('updated_at', { ascending: false }),
             supabase.from('app_branding').select('*').limit(1).maybeSingle(),
             supabase.from('redeem_codes').select('*').eq('is_active', true),
-            supabase.from('chat_messages').select('*').order('created_at', { ascending: true }).limit(60)
+            supabase.from('chat_messages').select('*').order('created_at', { ascending: true }).limit(80),
+            supabase.from('online_meetings').select('*').order('created_at', { ascending: false }),
+            supabase.from('community_groups').select('*').order('created_at', { ascending: false }),
+            supabase.from('group_memberships').select('*')
           ]);
 
           // 1. Sinkronisasi Pengguna Terdaftar (users_registry)
@@ -889,6 +855,43 @@
             })));
           }
 
+          // 6. Sinkronisasi Rapat Online (online_meetings)
+          if (meetsRes.status === 'fulfilled' && Array.isArray(meetsRes.value.data)) {
+            setMeetings(meetsRes.value.data.map(m => ({
+              id: m.id,
+              title: m.title,
+              host: m.host,
+              date: m.date_schedule || "Hari Ini",
+              duration: m.duration || "60 Menit",
+              room: m.room,
+              status: m.status || "Terjadwal",
+              createdBy: m.created_by
+            })));
+          }
+
+          // 7. Sinkronisasi Grup Panua & Keanggotaan (community_groups & group_memberships)
+          const joinedIds = new Set();
+          if (membershipsRes.status === 'fulfilled' && Array.isArray(membershipsRes.value.data)) {
+            membershipsRes.value.data.forEach(mb => {
+              if (user && (mb.user_id === user.id || mb.username === user.username)) {
+                joinedIds.add(mb.group_id);
+              }
+            });
+          }
+          setUserJoinedGroupIds(joinedIds);
+
+          if (groupsRes.status === 'fulfilled' && Array.isArray(groupsRes.value.data)) {
+            setGroups(groupsRes.value.data.map(g => ({
+              id: g.id,
+              name: g.name,
+              category: g.category || 'Umum',
+              memberCount: g.member_count || 1,
+              isOfficial: !!g.is_official,
+              joined: joinedIds.has(g.id),
+              description: g.description || ''
+            })));
+          }
+
           setIsRealtimeActive(true);
           if (!isSilent) {
             triggerToast("Database Cloud Supabase berhasil disinkronkan!", "success");
@@ -910,23 +913,19 @@
           return;
         }
 
-        // 1. Panggilan awal saat sistem aktif
         fetchLatestFromSupabase(true);
 
-        // 2. Channel Realtime WebSocket Streaming (Aktif di production di luar sandbox Canvas)
         let channel;
         if (!isWebSocketRestricted && !SafeRealtimeTransport.isRestricted) {
           try {
             channel = supabase.channel('panua_auto_stream_' + Date.now())
               .on('postgres_changes', { event: '*', schema: 'public', table: 'users_registry' }, (payload) => {
-                // Otomatis tarik data lengkap tanpa delay
                 fetchLatestFromSupabase(true);
                 if (payload.eventType === 'INSERT' && user?.role === 'admin') {
                   triggerToast(`Pendaftaran Realtime: @${payload.new?.username || 'Anggota'} baru saja masuk!`, "success");
                 }
               })
               .on('postgres_changes', { event: '*', schema: 'public', table: 'dossiers' }, (payload) => {
-                // Otomatis perbarui arsip brankas saat anggota mengirim dokumen
                 fetchLatestFromSupabase(true);
                 if (user?.role === 'admin') {
                   triggerToast(`Brankas @${payload.new?.username || 'Anggota'} baru saja diperbarui di Cloud!`, "success");
@@ -936,6 +935,18 @@
                 fetchLatestFromSupabase(true);
               })
               .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages' }, () => {
+                fetchLatestFromSupabase(true);
+              })
+              .on('postgres_changes', { event: '*', schema: 'public', table: 'online_meetings' }, (payload) => {
+                fetchLatestFromSupabase(true);
+                if (payload.eventType === 'INSERT') {
+                  triggerToast(`Jadwal Rapat Baru: "${payload.new?.title || 'Rapat'}" ditambahkan!`, "normal");
+                }
+              })
+              .on('postgres_changes', { event: '*', schema: 'public', table: 'community_groups' }, () => {
+                fetchLatestFromSupabase(true);
+              })
+              .on('postgres_changes', { event: '*', schema: 'public', table: 'group_memberships' }, () => {
                 fetchLatestFromSupabase(true);
               })
               .subscribe((status, err) => {
@@ -950,18 +961,13 @@
             SafeRealtimeTransport.isRestricted = true;
           }
         } else {
-          // Di dalam Canvas iframe, realtime dijamin melalui continuous high-frequency HTTP REST polling
           setIsRealtimeActive(true);
         }
 
-        // 3. Smart Background Auto-Sync Timer (Setiap 3 Detik)
-        // Menjamin 100% data pendaftaran & dokumen baru langsung masuk secara otomatis
-        // ke layar Admin tanpa perlu menekan tombol sinkron apa pun.
         const autoSyncTimer = setInterval(() => {
           fetchLatestFromSupabase(true);
         }, 3000);
 
-        // 4. Auto-Sync saat layar browser/HP kembali aktif
         const handleAutoFocusSync = () => fetchLatestFromSupabase(true);
         window.addEventListener('focus', handleAutoFocusSync);
         document.addEventListener('visibilitychange', handleAutoFocusSync);
@@ -976,9 +982,16 @@
         };
       }, [supabase, fetchLatestFromSupabase, user?.role]);
 
-      // 5. Auto-sync instan setiap kali Admin membuka menu Admin atau Vault
+      // Scroll Chat otomatis ke bawah
       useEffect(() => {
-        if (supabase && (activeTab === 'admin' || activeTab === 'vault')) {
+        if (activeTab === "chat" && chatScrollRef.current) {
+          chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+        }
+      }, [chatMessages, activeTab]);
+
+      // Auto-sync instan saat tab dibuka
+      useEffect(() => {
+        if (supabase) {
           fetchLatestFromSupabase(true);
         }
       }, [activeTab, supabase, fetchLatestFromSupabase]);
@@ -1622,7 +1635,8 @@
         }
       };
 
-      const handleCreateNewMeeting = (e) => {
+      // Handler Rapat Online (Disimpan ke Supabase)
+      const handleCreateNewMeeting = async (e) => {
         e.preventDefault();
         if (!newMeetingTitle.trim()) {
           triggerToast("Masukkan judul rapat online!", "warning");
@@ -1634,21 +1648,58 @@
           id: "meet-" + Date.now(),
           title: newMeetingTitle.trim(),
           host: newMeetingHost.trim() || user.name,
-          date: newMeetingDate.trim() || "Hari Ini",
+          date_schedule: newMeetingDate.trim() || "Hari Ini",
           duration: newMeetingDuration,
           room: roomSlug,
-          status: "Terjadwal"
+          status: "Terjadwal",
+          created_by: user.username
         };
 
-        setMeetings(prev => [newMeet, ...prev]);
+        setMeetings(prev => [newMeet, ...prev.filter(m => m.id !== newMeet.id)]);
         setShowCreateMeetingModal(false);
         setNewMeetingTitle("");
         setNewMeetingHost("");
         setNewMeetingDate("");
-        triggerToast(`Rapat "${newMeet.title}" berhasil dijadwalkan!`);
+        triggerToast(`Rapat "${newMeet.title}" berhasil dijadwalkan di Cloud!`, "success");
+
+        if (supabase) {
+          try {
+            await supabase.from('online_meetings').insert([newMeet]);
+          } catch (err) {
+            console.error("Supabase create meeting error:", err);
+          }
+        }
       };
 
-      const handleCreateNewGroup = (e) => {
+      // Handler Hapus Rapat (Admin & Host)
+      const handleDeleteMeeting = async (meetId, meetTitle) => {
+        setConfirmDialog({
+          title: "Batalkan Rapat",
+          message: `Apakah Anda yakin ingin membatalkan dan menghapus jadwal rapat "${meetTitle}"?`,
+          onConfirm: async () => {
+            setMeetings(prev => prev.filter(m => m.id !== meetId));
+            setConfirmDialog(null);
+            triggerToast(`Rapat "${meetTitle}" dihapus.`, "warning");
+            if (supabase) {
+              try {
+                await supabase.from('online_meetings').delete().eq('id', meetId);
+              } catch (err) {
+                console.error("Supabase delete meeting error:", err);
+              }
+            }
+          }
+        });
+      };
+
+      // Handler Bagikan Rapat ke WhatsApp
+      const handleShareMeetingToWA = (meet) => {
+        const meetUrl = `https://${appBranding.meetingProvider}/${meet.room}`;
+        const text = `📢 *UNDANGAN RAPAT ONLINE — ${appBranding.title}*\n\n📌 *Topik:* ${meet.title}\n👤 *Host:* ${meet.host}\n🗓️ *Jadwal:* ${meet.date}\n⏱️ *Durasi:* ${meet.duration}\n\n👉 *Tautan Langsung Rapat:* ${meetUrl}\n\nSilakan bergabung melalui browser atau aplikasi Jitsi Meet. Terima kasih!`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+      };
+
+      // Handler Buat Grup Komunitas Baru (Disimpan ke Supabase)
+      const handleCreateNewGroup = async (e) => {
         e.preventDefault();
         if (!newGroupName.trim() || !newGroupDesc.trim()) {
           triggerToast("Lengkapi nama grup dan deskripsi!", "warning");
@@ -1659,17 +1710,77 @@
           id: "grp-" + Date.now(),
           name: newGroupName.trim(),
           category: newGroupCategory,
-          memberCount: 1,
-          isOfficial: user?.role === "admin",
-          joined: true,
-          description: newGroupDesc.trim()
+          member_count: 1,
+          is_official: user?.role === "admin",
+          description: newGroupDesc.trim(),
+          created_by: user.username
         };
 
-        setGroups(prev => [newGrp, ...prev]);
+        setGroups(prev => [{ ...newGrp, joined: true }, ...prev]);
+        setUserJoinedGroupIds(prev => new Set([...prev, newGrp.id]));
         setShowCreateGroupModal(false);
         setNewGroupName("");
         setNewGroupDesc("");
-        triggerToast(`Grup "${newGrp.name}" berhasil dibuat!`);
+        triggerToast(`Grup "${newGrp.name}" berhasil dibuat di Cloud!`, "success");
+
+        if (supabase) {
+          try {
+            await supabase.from('community_groups').insert([newGrp]);
+            await supabase.from('group_memberships').insert([{
+              id: "gmb-" + Date.now(),
+              group_id: newGrp.id,
+              user_id: user.id,
+              username: user.username
+            }]);
+          } catch (err) {
+            console.error("Supabase create group error:", err);
+          }
+        }
+      };
+
+      // Handler Gabung / Keluar Grup Komunitas (Disinkronkan ke Supabase)
+      const handleToggleJoinGroup = async (group) => {
+        const willJoin = !group.joined;
+        setGroups(prev => prev.map(g => g.id === group.id ? { 
+          ...g, 
+          joined: willJoin, 
+          memberCount: willJoin ? g.memberCount + 1 : Math.max(1, g.memberCount - 1) 
+        } : g));
+
+        setUserJoinedGroupIds(prev => {
+          const nextSet = new Set(prev);
+          if (willJoin) nextSet.add(group.id);
+          else nextSet.delete(group.id);
+          return nextSet;
+        });
+
+        triggerToast(willJoin ? `Bergabung ke grup ${group.name}!` : `Keluar dari grup ${group.name}.`);
+
+        if (supabase && user) {
+          try {
+            if (willJoin) {
+              await supabase.from('group_memberships').insert([{
+                id: `gmb-${group.id}-${user.id}`,
+                group_id: group.id,
+                user_id: user.id,
+                username: user.username
+              }]);
+              await supabase.from('community_groups').update({ 
+                member_count: group.memberCount + 1 
+              }).eq('id', group.id);
+            } else {
+              await supabase.from('group_memberships').delete().match({
+                group_id: group.id,
+                user_id: user.id
+              });
+              await supabase.from('community_groups').update({ 
+                member_count: Math.max(1, group.memberCount - 1) 
+              }).eq('id', group.id);
+            }
+          } catch (err) {
+            console.error("Toggle group error:", err);
+          }
+        }
       };
 
       const handleDeleteRegisteredMember = async (targetId, targetName) => {
@@ -2184,7 +2295,7 @@
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                           <h2 className="text-xl font-bold text-pch-text">Direktori Grup Panua Community</h2>
-                          <p className="text-xs text-pch-muted">Wadah interaksi dan kolaborasi pionir Pi Network se-Gorontalo.</p>
+                          <p className="text-xs text-pch-muted">Wadah interaksi dan kolaborasi pionir Pi Network se-Gorontalo (Sinkron Cloud Realtime).</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
@@ -2207,40 +2318,63 @@
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {filteredGroups.map(grp => (
-                          <div key={grp.id} className="p-5 rounded-2xl bg-pch-surface border border-pch-border space-y-3">
-                            <div className="flex items-start justify-between gap-2">
-                              <span className="text-[10px] px-2 py-0.5 rounded bg-pch-secondary border border-pch-border text-pch-goldLight font-mono">
-                                {grp.category}
-                              </span>
-                              {grp.isOfficial && (
-                                <span className="text-[10px] px-2 py-0.5 rounded bg-amber-950/80 text-pch-gold border border-pch-gold/40">
-                                  Resmi Panua
-                                </span>
-                              )}
-                            </div>
-                            <h3 className="font-bold text-sm text-pch-text">{grp.name}</h3>
-                            <p className="text-xs text-pch-muted leading-relaxed">{grp.description}</p>
-                            <div className="pt-2 border-t border-pch-border flex items-center justify-between">
-                              <span className="text-xs text-pch-muted font-mono">{grp.memberCount} Anggota</span>
-                              <button
-                                onClick={() => {
-                                  setGroups(prev => prev.map(g => g.id === grp.id ? { ...g, joined: !g.joined } : g));
-                                  triggerToast(grp.joined ? `Keluar dari ${grp.name}` : `Bergabung ke ${grp.name}!`);
-                                }}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                                  grp.joined 
-                                    ? "bg-pch-secondary border border-pch-border text-pch-muted hover:text-pch-danger"
-                                    : "bg-pch-gold text-black hover:bg-pch-goldLight shadow-gold-glow"
-                                }`}
-                              >
-                                {grp.joined ? "Sudah Bergabung" : "Gabung Grup"}
-                              </button>
-                            </div>
-                          </div>
+                      {/* Category Filter Pills */}
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+                        {["Semua", "Wilayah", "Edukasi", "Bisnis", "Umum"].map(cat => (
+                          <button
+                            key={cat}
+                            onClick={() => setSelectedCategory(cat)}
+                            className={`px-3 py-1.5 rounded-xl font-semibold shrink-0 transition-all ${
+                              selectedCategory === cat 
+                                ? "bg-pch-gold text-black shadow-gold-glow" 
+                                : "bg-pch-surface border border-pch-border text-pch-muted hover:text-pch-text"
+                            }`}
+                          >
+                            {cat}
+                          </button>
                         ))}
                       </div>
+
+                      {filteredGroups.length === 0 ? (
+                        <div className="p-8 rounded-2xl bg-pch-surface border border-pch-border text-center space-y-3">
+                          <Icons.Users className="w-10 h-10 text-pch-muted mx-auto opacity-50" />
+                          <p className="text-sm text-pch-muted">Tidak ada grup pada kategori ini. Jadilah yang pertama membuat grup baru!</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {filteredGroups.map(grp => (
+                            <div key={grp.id} className="p-5 rounded-2xl bg-pch-surface border border-pch-border space-y-3 flex flex-col justify-between">
+                              <div className="space-y-2">
+                                <div className="flex items-start justify-between gap-2">
+                                  <span className="text-[10px] px-2 py-0.5 rounded bg-pch-secondary border border-pch-border text-pch-goldLight font-mono">
+                                    {grp.category}
+                                  </span>
+                                  {grp.isOfficial && (
+                                    <span className="text-[10px] px-2 py-0.5 rounded bg-amber-950/80 text-pch-gold border border-pch-gold/40">
+                                      Resmi Panua
+                                    </span>
+                                  )}
+                                </div>
+                                <h3 className="font-bold text-sm text-pch-text">{grp.name}</h3>
+                                <p className="text-xs text-pch-muted leading-relaxed line-clamp-3">{grp.description}</p>
+                              </div>
+                              <div className="pt-3 border-t border-pch-border flex items-center justify-between">
+                                <span className="text-xs text-pch-muted font-mono">{grp.memberCount} Anggota</span>
+                                <button
+                                  onClick={() => handleToggleJoinGroup(grp)}
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    grp.joined 
+                                      ? "bg-pch-secondary border border-pch-border text-pch-muted hover:text-pch-danger"
+                                      : "bg-pch-gold text-black hover:bg-pch-goldLight shadow-gold-glow"
+                                  }`}
+                                >
+                                  {grp.joined ? "Sudah Bergabung" : "Gabung Grup"}
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -2252,12 +2386,16 @@
                           <BrandLogo config={appBranding} size="sm" />
                           <div>
                             <h3 className="font-bold text-sm text-pch-text">Forum Resmi Panua Community Gorontalo</h3>
-                            <p className="text-[10px] text-pch-muted">Komunikasi publik perintis & anggota secara realtime di Supabase</p>
+                            <p className="text-[10px] text-pch-muted">Komunikasi publik perintis & anggota secara realtime di Supabase ({chatMessages.length} Pesan)</p>
                           </div>
                         </div>
+                        <span className="text-[10px] px-2.5 py-1 rounded-full bg-emerald-950/80 border border-pch-success text-pch-success font-semibold flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-current animate-ping"></span>
+                          <span>Streaming Aktif</span>
+                        </span>
                       </div>
 
-                      <div className="flex-1 overflow-y-auto py-4 space-y-3.5 pr-2">
+                      <div ref={chatScrollRef} className="flex-1 overflow-y-auto py-4 space-y-3.5 pr-2">
                         {chatMessages.length === 0 ? (
                           <div className="h-full flex flex-col items-center justify-center text-pch-muted space-y-2">
                             <Icons.MessageSquare className="w-8 h-8 opacity-40" />
@@ -2277,7 +2415,7 @@
                                 : "bg-pch-secondary border border-pch-border text-pch-text rounded-bl-sm"
                               }`}>
                                 {!msg.isMe && <span className="font-bold text-pch-goldLight block text-[11px]">{msg.sender}</span>}
-                                <p className="leading-relaxed">{msg.text}</p>
+                                <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                                 <div className="flex items-center justify-end gap-2 text-[10px] opacity-70 pt-0.5">
                                   <span>{msg.time}</span>
                                   {!msg.isMe && (
@@ -2330,7 +2468,7 @@
                             <h2 className="text-lg font-bold text-pch-text">Rapat Online Pionir Panua (WebRTC Dedicated)</h2>
                           </div>
                           <p className="text-xs text-pch-muted mt-1">
-                            Audio, video, mic, dan kamera ditangani server rapat independen ({appBranding.meetingProvider}).
+                            Audio, video, mic, dan kamera ditangani server rapat independen ({appBranding.meetingProvider}). Jadwal disinkronkan ke Supabase Realtime.
                           </p>
                         </div>
                         <button
@@ -2344,7 +2482,7 @@
 
                       {activeJitsiRoom ? (
                         <div className="space-y-3">
-                          <div className="flex items-center justify-between p-3 rounded-xl bg-pch-surface border border-pch-gold/40">
+                          <div className="flex items-center justify-between p-3 rounded-xl bg-pch-surface border border-pch-gold/40 flex-wrap gap-2">
                             <span className="text-xs font-bold text-pch-goldLight">Ruang Aktif: {activeJitsiRoom}</span>
                             <div className="flex items-center gap-2">
                               <a 
@@ -2354,7 +2492,7 @@
                                 className="px-3 py-1.5 rounded-lg bg-pch-secondary border border-pch-border text-pch-text text-xs hover:border-pch-gold flex items-center gap-1"
                               >
                                 <Icons.ExternalLink className="w-3.5 h-3.5" />
-                                <span>Buka Tab Baru</span>
+                                <span>Buka di Aplikasi / Browser</span>
                               </a>
                               <button 
                                 onClick={() => setActiveJitsiRoom(null)}
@@ -2376,29 +2514,61 @@
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {meetings.map(meet => (
-                            <div key={meet.id} className="p-5 rounded-2xl bg-pch-surface border border-pch-border space-y-4">
-                              <div className="flex items-start justify-between">
-                                <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-emerald-950 text-pch-success border border-pch-success/40">
-                                  {meet.status}
-                                </span>
-                                <span className="text-xs text-pch-muted font-mono">{meet.date}</span>
-                              </div>
-
-                              <div>
-                                <h3 className="font-bold text-sm sm:text-base text-pch-text">{meet.title}</h3>
-                                <p className="text-xs text-pch-muted mt-1">Host: {meet.host} • Durasi: {meet.duration}</p>
-                              </div>
-
-                              <button 
-                                onClick={() => setActiveJitsiRoom(meet.room)}
-                                className="w-full py-2.5 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight transition-all shadow-gold-glow flex items-center justify-center gap-2"
-                              >
-                                <Icons.Video className="w-4 h-4" />
-                                <span>Gabung Rapat Sekarang</span>
-                              </button>
+                          {meetings.length === 0 ? (
+                            <div className="md:col-span-2 p-8 rounded-2xl bg-pch-surface border border-pch-border text-center space-y-2">
+                              <Icons.Video className="w-10 h-10 text-pch-muted mx-auto opacity-50" />
+                              <p className="text-sm text-pch-muted">Belum ada rapat yang dijadwalkan. Klik tombol di atas untuk membuat rapat pertama!</p>
                             </div>
-                          ))}
+                          ) : (
+                            meetings.map(meet => (
+                              <div key={meet.id} className="p-5 rounded-2xl bg-pch-surface border border-pch-border space-y-4 flex flex-col justify-between">
+                                <div className="space-y-3">
+                                  <div className="flex items-start justify-between">
+                                    <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-emerald-950 text-pch-success border border-pch-success/40">
+                                      {meet.status}
+                                    </span>
+                                    <span className="text-xs text-pch-muted font-mono">{meet.date}</span>
+                                  </div>
+
+                                  <div>
+                                    <h3 className="font-bold text-sm sm:text-base text-pch-text">{meet.title}</h3>
+                                    <p className="text-xs text-pch-muted mt-1">Host: {meet.host} • Durasi: {meet.duration}</p>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-2 pt-2 border-t border-pch-border">
+                                  <button 
+                                    onClick={() => setActiveJitsiRoom(meet.room)}
+                                    className="w-full py-2.5 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight transition-all shadow-gold-glow flex items-center justify-center gap-2"
+                                  >
+                                    <Icons.Video className="w-4 h-4" />
+                                    <span>Gabung Rapat Sekarang</span>
+                                  </button>
+
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => handleShareMeetingToWA(meet)}
+                                      className="flex-1 py-1.5 rounded-lg bg-emerald-950/70 border border-pch-success/60 text-pch-success text-xs font-semibold hover:bg-emerald-900/60 flex items-center justify-center gap-1.5"
+                                      title="Kirim Undangan Rapat ke WhatsApp"
+                                    >
+                                      <Icons.Phone className="w-3.5 h-3.5" />
+                                      <span>Bagikan ke WA</span>
+                                    </button>
+
+                                    {(user?.role === "admin" || user?.username === meet.createdBy) && (
+                                      <button
+                                        onClick={() => handleDeleteMeeting(meet.id, meet.title)}
+                                        className="px-3 py-1.5 rounded-lg bg-red-950/60 border border-pch-danger/60 text-pch-danger text-xs font-semibold hover:bg-red-900/60"
+                                        title="Hapus Rapat"
+                                      >
+                                        <Icons.Trash className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          )}
                         </div>
                       )}
                     </div>
