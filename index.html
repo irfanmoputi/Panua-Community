@@ -690,52 +690,22 @@
       const chatScrollRef = useRef(null);
 
       // =======================================================================
-      // SISTEM RAPAT ONLINE TERPISAH (DIRECT WEBRTC ENGINE — TANPA KENDALA DATABASE)
+      // SISTEM RAPAT ONLINE TERPISAH (LIGHTWEIGHT WEBRTC & DIRECT CONNECT)
+      // Bebas hambatan moderator login, super ringan, kamera & mic langsung aktif
       // =======================================================================
-      const DEFAULT_MEETINGS = [
-        {
-          id: "meet-utama",
-          title: "Ruang Rapat Utama Panua Gorontalo",
-          host: "Administrator Panua",
-          date: "Siaga 24 Jam (Siap Digunakan)",
-          duration: "Tanpa Batas",
-          room: "Panua-Gorontalo-Ruang-Utama",
-          status: "Aktif",
-          createdBy: "Welcome"
-        },
-        {
-          id: "meet-edukasi",
-          title: "Ruang Diskusi & Edukasi Pionir Pi Network",
-          host: "Tim Edukasi Panua",
-          date: "Terbuka Kapan Saja",
-          duration: "Bebas",
-          room: "Panua-Gorontalo-Edukasi-Pionir",
-          status: "Aktif",
-          createdBy: "Welcome"
-        },
-        {
-          id: "meet-umkm",
-          title: "Ruang Kolaborasi Barter & Node Gorontalo",
-          host: "Divisi Utilitas Panua",
-          date: "Terbuka Kapan Saja",
-          duration: "Bebas",
-          room: "Panua-Gorontalo-Kolaborasi-Utilitas",
-          status: "Aktif",
-          createdBy: "Welcome"
-        }
-      ];
-
       const [activeJitsiRoom, setActiveJitsiRoom] = useState(null);
-      const [instantRoomInput, setInstantRoomInput] = useState("");
       const [meetings, setMeetings] = useState(() => {
         try {
           const saved = localStorage.getItem('panua_direct_meetings_list');
           if (saved) {
             const parsed = JSON.parse(saved);
-            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            if (Array.isArray(parsed)) {
+              // Bersihkan ruangan dummy lama agar halaman mulai dalam kondisi kosong
+              return parsed.filter(m => !['meet-utama', 'meet-edukasi', 'meet-umkm'].includes(m.id));
+            }
           }
         } catch (e) {}
-        return DEFAULT_MEETINGS;
+        return [];
       });
 
       useEffect(() => {
@@ -749,24 +719,98 @@
       const [newMeetingHost, setNewMeetingHost] = useState("");
       const [newMeetingDate, setNewMeetingDate] = useState("");
       const [newMeetingDuration, setNewMeetingDuration] = useState("60 Menit");
+      const [newMeetingProvider, setNewMeetingProvider] = useState("mirotalk"); // mirotalk | google-meet | custom
+      const [newMeetingCustomUrl, setNewMeetingCustomUrl] = useState("");
 
-      // Helper Langsung Buka Rapat (Direct Connect)
-      const handleDirectJoinRoom = (roomSlug, openInNewTab = true) => {
-        if (!roomSlug || !roomSlug.trim()) {
-          triggerToast("Masukkan nama ruang rapat!", "warning");
-          return;
+      // Helper Buka Rapat (Langsung Terhubung WebRTC Ringan Tanpa Login Moderator)
+      const handleDirectJoinRoom = (meet, openInNewTab = true) => {
+        if (!meet) return;
+
+        let meetingUrl = "";
+        if (meet.provider === "custom" && meet.directUrl) {
+          meetingUrl = meet.directUrl;
+        } else if (meet.provider === "google-meet") {
+          meetingUrl = meet.directUrl || "https://meet.google.com/new";
+        } else {
+          // MiroTalk P2P WebRTC: Sangat ringan, tanpa login akun/moderator, mic & kamera langsung aktif
+          const cleanRoom = (meet.room || "Panua-Rapat").trim().replace(/[^a-zA-Z0-9_-]/g, '-');
+          const cleanName = encodeURIComponent(user?.name || "Pionir Panua");
+          meetingUrl = `https://p2p.mirotalk.com/join?room=${cleanRoom}&name=${cleanName}`;
         }
-        const cleanRoom = roomSlug.trim().replace(/[^a-zA-Z0-9_-]/g, '-');
-        const meetingProvider = appBranding.meetingProvider || "meet.jit.si";
-        const meetingUrl = `https://${meetingProvider}/${cleanRoom}`;
 
         if (openInNewTab) {
           window.open(meetingUrl, '_blank');
-          triggerToast(`Membuka ruang rapat "${cleanRoom}" langsung di browser/aplikasi...`, "success");
+          triggerToast(`Membuka ruang rapat "${meet.title}" langsung di browser (Mikrofon & Kamera aktif)...`, "success");
         } else {
-          setActiveJitsiRoom(cleanRoom);
-          triggerToast(`Menghubungkan ke ruang rapat "${cleanRoom}"...`, "normal");
+          setActiveJitsiRoom({ room: meet.room, title: meet.title, url: meetingUrl, provider: meet.provider });
+          triggerToast(`Menghubungkan ke ruang rapat "${meet.title}"...`, "normal");
         }
+      };
+
+      // Handler Simpan Rapat Baru
+      const handleCreateNewMeeting = (e) => {
+        e.preventDefault();
+        if (!newMeetingTitle.trim()) {
+          triggerToast("Masukkan judul atau topik rapat!", "warning");
+          return;
+        }
+
+        if (newMeetingProvider === "custom" && !newMeetingCustomUrl.trim()) {
+          triggerToast("Masukkan tautan rapat kustom Anda!", "warning");
+          return;
+        }
+
+        const roomSlug = "Panua-" + newMeetingTitle.trim().replace(/[^a-zA-Z0-9]/g, "-") + "-" + Math.floor(100 + Math.random() * 900);
+        let directUrl = "";
+        if (newMeetingProvider === "custom") {
+          directUrl = newMeetingCustomUrl.trim();
+        } else if (newMeetingProvider === "google-meet") {
+          directUrl = "https://meet.google.com/new";
+        } else {
+          directUrl = `https://p2p.mirotalk.com/join?room=${roomSlug}&name=${encodeURIComponent(user?.name || "Pionir Panua")}`;
+        }
+
+        const newMeet = {
+          id: "meet-" + Date.now(),
+          title: newMeetingTitle.trim(),
+          host: newMeetingHost.trim() || user?.name || "Pionir",
+          date: newMeetingDate.trim() || "Hari Ini",
+          duration: newMeetingDuration,
+          room: roomSlug,
+          provider: newMeetingProvider,
+          directUrl: directUrl,
+          status: "Aktif",
+          createdBy: user?.username || "user"
+        };
+
+        setMeetings(prev => [newMeet, ...prev]);
+        setShowCreateMeetingModal(false);
+        setNewMeetingTitle("");
+        setNewMeetingHost("");
+        setNewMeetingDate("");
+        setNewMeetingCustomUrl("");
+        triggerToast(`Rapat "${newMeet.title}" berhasil dibuat dan siap digunakan!`, "success");
+      };
+
+      // Handler Hapus Rapat
+      const handleDeleteMeeting = (meetId, meetTitle) => {
+        setConfirmDialog({
+          title: "Hapus Ruang Rapat",
+          message: `Apakah Anda yakin ingin menghapus ruang rapat "${meetTitle}"?`,
+          onConfirm: () => {
+            setMeetings(prev => prev.filter(m => m.id !== meetId));
+            setConfirmDialog(null);
+            triggerToast(`Rapat "${meetTitle}" dihapus.`, "warning");
+          }
+        });
+      };
+
+      // Handler Bagikan Rapat ke WhatsApp
+      const handleShareMeetingToWA = (meet) => {
+        const meetingUrl = meet.directUrl || `https://p2p.mirotalk.com/join?room=${meet.room}&name=${encodeURIComponent(user?.name || 'Pionir')}`;
+        const providerLabel = meet.provider === "google-meet" ? "Google Meet" : meet.provider === "custom" ? "Tautan Langsung" : "MiroTalk WebRTC (Ringan & Cepat)";
+        const text = `📢 *UNDANGAN RAPAT ONLINE — ${appBranding.title}*\n\n📌 *Topik:* ${meet.title}\n👤 *Host:* ${meet.host}\n🗓️ *Jadwal:* ${meet.date}\n⏱️ *Durasi:* ${meet.duration}\n🌐 *Platform:* ${providerLabel}\n\n👉 *Tautan Langsung Rapat:* ${meetingUrl}\n\n(Klik tautan di atas untuk langsung bergabung. Tanpa perlu login akun/moderator, mikrofon dan kamera langsung aktif). Salam Pionir!`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
       };
 
       // Community Groups (Disinkronkan ke Supabase Realtime)
@@ -1691,55 +1735,6 @@
         }
       };
 
-      // Handler Rapat Online Mandiri (Langsung Terkoneksi & Siap Digunakan)
-      const handleCreateNewMeeting = (e) => {
-        e.preventDefault();
-        if (!newMeetingTitle.trim()) {
-          triggerToast("Masukkan judul atau topik rapat!", "warning");
-          return;
-        }
-
-        const roomSlug = "Panua-" + newMeetingTitle.trim().replace(/[^a-zA-Z0-9]/g, "-") + "-" + Math.floor(100 + Math.random() * 900);
-        const newMeet = {
-          id: "meet-" + Date.now(),
-          title: newMeetingTitle.trim(),
-          host: newMeetingHost.trim() || user.name,
-          date: newMeetingDate.trim() || "Hari Ini",
-          duration: newMeetingDuration,
-          room: roomSlug,
-          status: "Aktif",
-          createdBy: user.username
-        };
-
-        setMeetings(prev => [newMeet, ...prev]);
-        setShowCreateMeetingModal(false);
-        setNewMeetingTitle("");
-        setNewMeetingHost("");
-        setNewMeetingDate("");
-        triggerToast(`Rapat "${newMeet.title}" berhasil dibuat dan siap digunakan!`, "success");
-      };
-
-      // Handler Hapus Rapat (Admin & Host)
-      const handleDeleteMeeting = (meetId, meetTitle) => {
-        setConfirmDialog({
-          title: "Hapus Ruang Rapat",
-          message: `Apakah Anda yakin ingin menghapus ruang rapat "${meetTitle}"?`,
-          onConfirm: () => {
-            setMeetings(prev => prev.filter(m => m.id !== meetId));
-            setConfirmDialog(null);
-            triggerToast(`Rapat "${meetTitle}" dihapus.`, "warning");
-          }
-        });
-      };
-
-      // Handler Bagikan Rapat ke WhatsApp
-      const handleShareMeetingToWA = (meet) => {
-        const meetingProvider = appBranding.meetingProvider || "meet.jit.si";
-        const meetUrl = `https://${meetingProvider}/${meet.room}`;
-        const text = `📢 *UNDANGAN RAPAT ONLINE — ${appBranding.title}*\n\n📌 *Topik:* ${meet.title}\n👤 *Host:* ${meet.host}\n🗓️ *Jadwal:* ${meet.date}\n⏱️ *Durasi:* ${meet.duration}\n\n👉 *Tautan Langsung Rapat:* ${meetUrl}\n\n(Klik tautan di atas untuk langsung bergabung via browser atau aplikasi Jitsi Meet. Mikrofon dan kamera langsung aktif). Salam Pionir!`;
-        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-      };
-
       // Handler Buat Grup Komunitas Baru (Disimpan ke Supabase)
       const handleCreateNewGroup = async (e) => {
         e.preventDefault();
@@ -2508,75 +2503,21 @@
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full bg-pch-success animate-ping"></span>
-                            <h2 className="text-lg font-bold text-pch-text">Rapat Online Mandiri (Langsung Terhubung WebRTC)</h2>
+                            <h2 className="text-lg font-bold text-pch-text">Rapat Online Komunitas (WebRTC Ringan & Bebas Hambatan)</h2>
                           </div>
                           <p className="text-xs text-pch-muted mt-1">
-                            Audio, video, mic, dan kamera langsung terhubung ke server rapat independen ({appBranding.meetingProvider}). Tanpa hambatan database.
+                            Konferensi video cepat tanpa perlu login moderator. Audio, mikrofon, kamera, dan screen share langsung terhubung.
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
                             onClick={() => setShowCreateMeetingModal(true)}
-                            className="px-4 py-2.5 rounded-xl bg-pch-purple text-white text-xs font-bold hover:bg-pch-purpleLight flex items-center gap-1.5 shadow-purple-glow shrink-0 transition-all cursor-pointer"
+                            className="px-4 py-2.5 rounded-xl bg-pch-gold text-black text-xs font-bold hover:bg-pch-goldLight flex items-center gap-1.5 shadow-gold-glow shrink-0 transition-all cursor-pointer"
                           >
                             <Icons.Plus className="w-4 h-4" />
                             <span>Jadwalkan Rapat Baru</span>
                           </button>
-                        </div>
-                      </div>
-
-                      {/* QUICK CONNECT BAR: MASUK LANGSUNG KE RAPAT */}
-                      <div className="p-4 sm:p-5 rounded-2xl bg-pch-surface border border-pch-gold/40 shadow-card-elevated space-y-3">
-                        <div className="flex items-center justify-between flex-wrap gap-2">
-                          <span className="text-xs font-bold text-pch-goldLight flex items-center gap-2">
-                            <Icons.Zap className="w-4 h-4 text-pch-gold" />
-                            <span>Koneksi Rapat Cepat (Buka Ruang Rapat Seketika)</span>
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleDirectJoinRoom("Panua-Gorontalo-Ruang-Utama", true)}
-                            className="px-3 py-1.5 rounded-lg bg-pch-gold text-black text-xs font-bold hover:bg-pch-goldLight shadow-gold-glow flex items-center gap-1.5"
-                          >
-                            <Icons.Video className="w-3.5 h-3.5" />
-                            <span>Masuk Ruang Utama Sekarang</span>
-                          </button>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
-                          <input 
-                            type="text"
-                            placeholder="Ketik nama ruang atau topik rapat (contoh: Rapat-Pionir-Gorontalo)..."
-                            value={instantRoomInput}
-                            onChange={(e) => setInstantRoomInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                handleDirectJoinRoom(instantRoomInput || "Panua-Gorontalo-Diskusi", true);
-                              }
-                            }}
-                            className="w-full sm:flex-1 bg-pch-secondary border border-pch-border rounded-xl px-4 py-2.5 text-xs text-pch-text focus:outline-none focus:border-pch-gold"
-                          />
-                          <div className="flex items-center gap-2 w-full sm:w-auto">
-                            <button
-                              type="button"
-                              onClick={() => handleDirectJoinRoom(instantRoomInput || "Panua-Gorontalo-Diskusi", true)}
-                              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-pch-secondary border border-pch-gold/60 text-pch-goldLight hover:bg-pch-surface text-xs font-bold flex items-center justify-center gap-1.5"
-                              title="Buka langsung di tab baru (Direkomendasikan untuk mic & kamera)"
-                            >
-                              <Icons.ExternalLink className="w-3.5 h-3.5" />
-                              <span>Buka Langsung (Tab Baru)</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDirectJoinRoom(instantRoomInput || "Panua-Gorontalo-Diskusi", false)}
-                              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-pch-surface border border-pch-border hover:border-pch-purple text-pch-text text-xs font-semibold flex items-center justify-center gap-1.5"
-                              title="Tampilkan rapat di dalam aplikasi"
-                            >
-                              <Icons.Eye className="w-3.5 h-3.5" />
-                              <span>Di Aplikasi</span>
-                            </button>
-                          </div>
                         </div>
                       </div>
 
@@ -2586,25 +2527,27 @@
                           <div className="flex items-center justify-between p-3.5 rounded-xl bg-pch-surface border border-pch-gold/40 flex-wrap gap-2">
                             <div className="flex items-center gap-2">
                               <span className="w-2.5 h-2.5 rounded-full bg-pch-success animate-ping"></span>
-                              <span className="text-xs font-bold text-pch-goldLight">Sedang Berlangsung: {activeJitsiRoom}</span>
+                              <span className="text-xs font-bold text-pch-goldLight">Sedang Berlangsung: {activeJitsiRoom.title}</span>
                             </div>
                             <div className="flex items-center gap-2 flex-wrap">
                               <a 
-                                href={`https://${appBranding.meetingProvider || "meet.jit.si"}/${activeJitsiRoom}`}
+                                href={activeJitsiRoom.url}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="px-3 py-1.5 rounded-lg bg-pch-gold text-black text-xs font-bold hover:bg-pch-goldLight shadow-gold-glow flex items-center gap-1"
                               >
                                 <Icons.ExternalLink className="w-3.5 h-3.5" />
-                                <span>Buka Layar Penuh (Kamera & Mic Lancar)</span>
+                                <span>Buka Layar Penuh (Mikrofon & Kamera Optimal)</span>
                               </a>
                               <button
                                 onClick={() => handleShareMeetingToWA({
-                                  title: activeJitsiRoom,
-                                  host: user.name,
+                                  title: activeJitsiRoom.title,
+                                  host: user?.name || "Host",
                                   date: "Sedang Berlangsung",
                                   duration: "Live",
-                                  room: activeJitsiRoom
+                                  room: activeJitsiRoom.room,
+                                  directUrl: activeJitsiRoom.url,
+                                  provider: activeJitsiRoom.provider
                                 })}
                                 className="px-3 py-1.5 rounded-lg bg-emerald-950/80 border border-pch-success text-pch-success text-xs font-semibold flex items-center gap-1"
                               >
@@ -2620,80 +2563,111 @@
                             </div>
                           </div>
 
-                          <div className="w-full h-[540px] rounded-2xl overflow-hidden border border-pch-border bg-black shadow-card-elevated">
+                          <div className="w-full h-[560px] rounded-2xl overflow-hidden border border-pch-border bg-black shadow-card-elevated">
                             <iframe 
-                              src={`https://${appBranding.meetingProvider || "meet.jit.si"}/${activeJitsiRoom}#config.prejoinPageEnabled=false`}
-                              title="Jitsi Video Conference"
+                              src={activeJitsiRoom.url}
+                              title="WebRTC Video Conference"
                               allow="camera; microphone; fullscreen; display-capture; autoplay"
                               className="w-full h-full border-0"
                             ></iframe>
                           </div>
                         </div>
                       ) : (
-                        /* DAFTAR RUANG RAPAT RESMI & TERJADWAL */
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {meetings.map(meet => (
-                            <div key={meet.id} className="p-5 rounded-2xl bg-pch-surface border border-pch-border space-y-4 flex flex-col justify-between hover:border-pch-gold/50 transition-all shadow-card-elevated">
-                              <div className="space-y-3">
-                                <div className="flex items-start justify-between gap-2">
-                                  <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-emerald-950 text-pch-success border border-pch-success/40 flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
-                                    <span>{meet.status || "Aktif"}</span>
-                                  </span>
-                                  <span className="text-[11px] text-pch-muted font-mono">{meet.date}</span>
-                                </div>
-
-                                <div>
-                                  <h3 className="font-bold text-sm text-pch-text">{meet.title}</h3>
-                                  <p className="text-xs text-pch-muted mt-1">Host: <strong>{meet.host}</strong> • Durasi: {meet.duration}</p>
-                                  <p className="text-[10px] text-pch-gold font-mono mt-1 bg-pch-secondary px-2 py-1 rounded border border-pch-border/60 truncate">
-                                    Ruang: {meet.room}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="space-y-2 pt-3 border-t border-pch-border">
-                                <button 
-                                  onClick={() => handleDirectJoinRoom(meet.room, true)}
-                                  className="w-full py-2.5 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight transition-all shadow-gold-glow flex items-center justify-center gap-2"
-                                  title="Langsung membuka ruang rapat tanpa hambatan"
-                                >
-                                  <Icons.Video className="w-4 h-4" />
-                                  <span>Masuk Rapat Langsung (WebRTC)</span>
-                                </button>
-
-                                <div className="grid grid-cols-2 gap-2">
-                                  <button
-                                    onClick={() => handleDirectJoinRoom(meet.room, false)}
-                                    className="py-1.5 rounded-lg bg-pch-secondary border border-pch-border text-pch-text text-xs hover:border-pch-purple flex items-center justify-center gap-1"
-                                    title="Tampilkan rapat di dalam kotak aplikasi"
-                                  >
-                                    <Icons.Eye className="w-3.5 h-3.5 text-pch-purpleLight" />
-                                    <span>Di Aplikasi</span>
-                                  </button>
-
-                                  <button
-                                    onClick={() => handleShareMeetingToWA(meet)}
-                                    className="py-1.5 rounded-lg bg-emerald-950/70 border border-pch-success/60 text-pch-success text-xs font-semibold hover:bg-emerald-900/60 flex items-center justify-center gap-1"
-                                    title="Kirim Undangan Rapat ke WhatsApp"
-                                  >
-                                    <Icons.Phone className="w-3.5 h-3.5" />
-                                    <span>Kirim ke WA</span>
-                                  </button>
-                                </div>
-
-                                {(user?.role === "admin" || user?.username === meet.createdBy) && meet.id !== "meet-utama" && (
-                                  <button
-                                    onClick={() => handleDeleteMeeting(meet.id, meet.title)}
-                                    className="w-full py-1 text-[11px] text-pch-muted hover:text-pch-danger text-center"
-                                  >
-                                    Hapus Ruang Rapat
-                                  </button>
-                                )}
-                              </div>
+                        /* KONDISI RAPAT: KOSONG SECARA DEFAULT ATAU MENAMPILKAN JADWAL YANG TELAH DIBUAT */
+                        meetings.length === 0 ? (
+                          /* EMPTY STATE RESMI (HALAMAN KOSONG SAAT BELUM ADA RAPAT) */
+                          <div className="p-8 sm:p-12 rounded-2xl bg-pch-surface border border-pch-border text-center space-y-4 max-w-lg mx-auto shadow-card-elevated my-6">
+                            <div className="w-16 h-16 rounded-2xl bg-pch-secondary border border-pch-gold/40 text-pch-gold mx-auto flex items-center justify-center shadow-gold-glow">
+                              <Icons.Video className="w-8 h-8" />
                             </div>
-                          ))}
-                        </div>
+                            <div className="space-y-1.5">
+                              <h3 className="text-base sm:text-lg font-bold text-pch-text">Belum Ada Jadwal Rapat Online</h3>
+                              <p className="text-xs text-pch-muted leading-relaxed">
+                                Halaman rapat masih kosong. Ketika Anda atau pengurus menjadwalkan rapat baru, daftar ruangan rapat beserta fitur kamera, mikrofon, dan tautan bergabung akan muncul di sini.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setShowCreateMeetingModal(true)}
+                              className="px-5 py-2.5 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight transition-all shadow-gold-glow inline-flex items-center gap-2"
+                            >
+                              <Icons.Plus className="w-4 h-4" />
+                              <span>Jadwalkan Rapat Sekarang</span>
+                            </button>
+                          </div>
+                        ) : (
+                          /* DAFTAR RUANG RAPAT YANG DIBUAT */
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {meetings.map(meet => {
+                              const providerName = meet.provider === "google-meet" 
+                                ? "Google Meet" 
+                                : meet.provider === "custom" 
+                                ? "Tautan Kustom" 
+                                : "MiroTalk WebRTC (Ringan)";
+                              return (
+                                <div key={meet.id} className="p-5 rounded-2xl bg-pch-surface border border-pch-border space-y-4 flex flex-col justify-between hover:border-pch-gold/50 transition-all shadow-card-elevated">
+                                  <div className="space-y-3">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-emerald-950 text-pch-success border border-pch-success/40 flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+                                        <span>{meet.status || "Aktif"}</span>
+                                      </span>
+                                      <span className="text-[10px] px-2 py-0.5 rounded bg-pch-secondary border border-pch-border text-pch-goldLight font-mono">
+                                        {providerName}
+                                      </span>
+                                    </div>
+
+                                    <div>
+                                      <h3 className="font-bold text-sm text-pch-text">{meet.title}</h3>
+                                      <p className="text-xs text-pch-muted mt-1">Host: <strong>{meet.host}</strong> • Durasi: {meet.duration}</p>
+                                      <p className="text-[11px] text-pch-muted font-mono mt-0.5">Jadwal: {meet.date}</p>
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-2 pt-3 border-t border-pch-border">
+                                    <button 
+                                      onClick={() => handleDirectJoinRoom(meet, true)}
+                                      className="w-full py-2.5 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight transition-all shadow-gold-glow flex items-center justify-center gap-2"
+                                      title="Masuk langsung ke ruang rapat (Tanpa Login Moderator)"
+                                    >
+                                      <Icons.Video className="w-4 h-4" />
+                                      <span>Masuk Rapat Langsung</span>
+                                    </button>
+
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <button
+                                        onClick={() => handleDirectJoinRoom(meet, false)}
+                                        className="py-1.5 rounded-lg bg-pch-secondary border border-pch-border text-pch-text text-xs hover:border-pch-purple flex items-center justify-center gap-1"
+                                        title="Buka rapat di dalam kotak aplikasi"
+                                      >
+                                        <Icons.Eye className="w-3.5 h-3.5 text-pch-purpleLight" />
+                                        <span>Di Aplikasi</span>
+                                      </button>
+
+                                      <button
+                                        onClick={() => handleShareMeetingToWA(meet)}
+                                        className="py-1.5 rounded-lg bg-emerald-950/70 border border-pch-success/60 text-pch-success text-xs font-semibold hover:bg-emerald-900/60 flex items-center justify-center gap-1"
+                                        title="Kirim Undangan Rapat ke WhatsApp"
+                                      >
+                                        <Icons.Phone className="w-3.5 h-3.5" />
+                                        <span>Kirim ke WA</span>
+                                      </button>
+                                    </div>
+
+                                    {(user?.role === "admin" || user?.username === meet.createdBy) && (
+                                      <button
+                                        onClick={() => handleDeleteMeeting(meet.id, meet.title)}
+                                        className="w-full py-1 text-[11px] text-pch-muted hover:text-pch-danger text-center"
+                                      >
+                                        Hapus Ruang Rapat
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )
                       )}
                     </div>
                   )}
@@ -3760,7 +3734,7 @@
                 <div className="flex items-center justify-between pb-2 border-b border-pch-border">
                   <h3 className="font-bold text-base text-pch-text flex items-center gap-2">
                     <Icons.Video className="w-5 h-5 text-pch-gold" />
-                    <span>Jadwalkan / Mulai Rapat Online</span>
+                    <span>Jadwalkan Rapat Online Baru</span>
                   </h3>
                   <button 
                     type="button" 
@@ -3777,12 +3751,44 @@
                     <input 
                       type="text" 
                       required
-                      placeholder="Contoh: Rapat Koordinasi Pionir Panua"
+                      placeholder="Contoh: Diskusi Edukasi Pionir Panua"
                       value={newMeetingTitle}
                       onChange={(e) => setNewMeetingTitle(e.target.value)}
                       className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2.5 text-xs text-pch-text focus:outline-none focus:border-pch-gold"
                     />
                   </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-pch-muted block mb-1">Pilihan Platform Rapat</label>
+                    <select
+                      value={newMeetingProvider}
+                      onChange={(e) => setNewMeetingProvider(e.target.value)}
+                      className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2.5 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                    >
+                      <option value="mirotalk">MiroTalk P2P WebRTC (Sangat Ringan, 100% Tanpa Login/Moderator)</option>
+                      <option value="google-meet">Google Meet (meet.google.com/new)</option>
+                      <option value="custom">Tautan Rapat Kustom (Zoom / Link Rapat Sendiri)</option>
+                    </select>
+                    <span className="text-[10px] text-pch-muted block mt-1">
+                      {newMeetingProvider === "mirotalk" && "Direkomendasikan: Kamera, mikrofon, dan layar langsung aktif tanpa perlu akun apa pun."}
+                      {newMeetingProvider === "google-meet" && "Akan membuat tautan Google Meet baru secara instan."}
+                      {newMeetingProvider === "custom" && "Masukkan tautan Zoom, Teams, atau room rapat yang Anda miliki."}
+                    </span>
+                  </div>
+
+                  {newMeetingProvider === "custom" && (
+                    <div>
+                      <label className="text-xs font-semibold text-pch-muted block mb-1">Tautan / Link Rapat</label>
+                      <input 
+                        type="url" 
+                        required
+                        placeholder="https://zoom.us/j/... atau link rapat Anda"
+                        value={newMeetingCustomUrl}
+                        onChange={(e) => setNewMeetingCustomUrl(e.target.value)}
+                        className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                      />
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
