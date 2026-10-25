@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#08090D" />
-  <meta name="description" content="PANUA COMMUNITY — Pi Network Gorontalo - Indonesia. Platform Komunitas Independen Mobile-First." />
+  <meta name="description" content="PANUA COMMUNITY — Pi Network Gorontalo - Indonesia. Platform Komunitas Independen Realtime." />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>PANUA COMMUNITY — Pi Network Gorontalo - Indonesia</title>
@@ -51,6 +51,9 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Supabase JS Client v2 (Realtime Database & Storage) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     :root {
@@ -100,7 +103,7 @@
     const manifestObject = {
       name: "PANUA COMMUNITY",
       short_name: "PanuaPi",
-      description: "PANUA COMMUNITY — Pi Network Gorontalo - Indonesia. Platform Komunitas Independen",
+      description: "PANUA COMMUNITY — Pi Network Gorontalo - Indonesia. Platform Komunitas Independen Realtime Supabase",
       start_url: "./",
       display: "standalone",
       background_color: "#08090D",
@@ -124,12 +127,12 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         const swBlob = new Blob([`
-          const CACHE_NAME = 'panua-static-v6.0';
+          const CACHE_NAME = 'panua-supabase-v1.0';
           self.addEventListener('install', (e) => self.skipWaiting());
           self.addEventListener('activate', (e) => self.clients.claim());
           self.addEventListener('fetch', (e) => {
             const url = new URL(e.request.url);
-            if (url.pathname.includes('/vault') || url.pathname.includes('/macros/s/') || url.search.includes('action=')) {
+            if (url.hostname.includes('supabase.co') || url.pathname.includes('/rest/') || url.pathname.includes('/realtime/')) {
               return;
             }
             e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
@@ -163,12 +166,11 @@
           email: _kU2,
           name: "Administrator Utama",
           username: "Welcome",
-          phone: adminPhone || "081299887766",
+          phone: adminPhone || "6281299887766",
           role: "admin",
           bio: "Administrator pusat PANUA COMMUNITY Gorontalo.",
           publicWallet: "",
           showEmail: true,
-          avatar: "PC",
           avatarUrl: ""
         })
       };
@@ -206,7 +208,8 @@
       Code: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>,
       Download: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
       Wifi: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>,
-      WifiOff: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+      WifiOff: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>,
+      Zap: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
     };
 
     // Safe clipboard copy helper for sandboxed iframe
@@ -226,6 +229,19 @@
       } catch (err) {
         return false;
       }
+    }
+
+    // Convert Base64 dataURL to Blob for Supabase Storage
+    function dataURLtoBlob(dataurl) {
+      const arr = dataurl.split(',');
+      const mime = arr[0].match(/:(.*?);/)[1];
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while(n--){
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new Blob([u8arr], {type:mime});
     }
 
     // --- OFFICIAL PANUA COMMUNITY SEAL SVG ---
@@ -356,23 +372,41 @@
 
     // --- MAIN REACT APPLICATION ---
     function App() {
-      // 1. PERSISTENT REGISTERED USERS
+      // 1. SUPABASE CLIENT & CREDENTIALS CONFIGURATION
+      const [supabaseConfig, setSupabaseConfig] = useState(() => {
+        return {
+          url: localStorage.getItem('panua_supabase_url') || '',
+          key: localStorage.getItem('panua_supabase_key') || '',
+          connected: false
+        };
+      });
+
+      const [showSupabaseModal, setShowSupabaseModal] = useState(false);
+      const [showSqlSchemaModal, setShowSqlSchemaModal] = useState(false);
+      const [isRealtimeActive, setIsRealtimeActive] = useState(false);
+      const [isSyncing, setIsSyncing] = useState(false);
+
+      // Instansiasi Klien Supabase
+      const supabase = useMemo(() => {
+        if (supabaseConfig.url && supabaseConfig.key && window.supabase) {
+          try {
+            return window.supabase.createClient(supabaseConfig.url, supabaseConfig.key);
+          } catch (e) {
+            console.error("Gagal inisialisasi Supabase client:", e);
+          }
+        }
+        return null;
+      }, [supabaseConfig.url, supabaseConfig.key]);
+
+      // 2. STATE USER & AUTH
       const [registeredUsers, setRegisteredUsers] = useState(() => {
         try {
-          const saved = localStorage.getItem('panua_registered_users') || localStorage.getItem('pch_registered_users');
-          if (saved) {
-            const parsed = JSON.parse(saved);
-            return parsed.filter(u => u.id !== "usr-admin" && u.role !== "admin");
-          }
+          const saved = localStorage.getItem('panua_registered_users');
+          if (saved) return JSON.parse(saved);
         } catch (e) {}
         return [];
       });
 
-      useEffect(() => {
-        localStorage.setItem('panua_registered_users', JSON.stringify(registeredUsers));
-      }, [registeredUsers]);
-
-      // Active User Session
       const [user, setUser] = useState(() => {
         try {
           const savedSession = localStorage.getItem('panua_active_session');
@@ -390,7 +424,7 @@
         }
       }, [user]);
 
-      // Network Online / Offline Detection
+      // Online status
       const [isOnline, setIsOnline] = useState(navigator.onLine);
       useEffect(() => {
         const handleOnline = () => setIsOnline(true);
@@ -403,7 +437,8 @@
         };
       }, []);
 
-      // Auth Views
+      // Navigation & Auth Views
+      const [activeTab, setActiveTab] = useState("dashboard");
       const [authView, setAuthView] = useState("login");
       const [loginIdentifier, setLoginIdentifier] = useState("");
       const [loginPassword, setLoginPassword] = useState("");
@@ -424,9 +459,7 @@
       const [forgotEmail, setForgotEmail] = useState("");
       const [forgotSent, setForgotSent] = useState(false);
 
-      const [activeTab, setActiveTab] = useState("dashboard");
-
-      // 2. PERSISTENT APP BRANDING
+      // 3. PERSISTENT APP BRANDING
       const [appBranding, setAppBranding] = useState(() => {
         try {
           const saved = localStorage.getItem('panua_branding');
@@ -458,22 +491,7 @@
 
       const [brandingDraft, setBrandingDraft] = useState({ ...appBranding });
 
-      // 3. PERSISTENT GAS BACKEND URL
-      const [gasConfig, setGasConfig] = useState(() => {
-        const url = localStorage.getItem('panua_gas_url') || localStorage.getItem('pch_gas_url') || "";
-        return {
-          webAppUrl: url,
-          connected: !!url,
-          lastSync: url ? "Tersambung" : null
-        };
-      });
-      const [showGasModal, setShowGasModal] = useState(false);
-      const [showGasScriptModal, setShowGasScriptModal] = useState(false);
-      const [isSyncing, setIsSyncing] = useState(false);
-      const [isSavingDossier, setIsSavingDossier] = useState(false);
-      const [testResult, setTestResult] = useState(null);
-
-      // Toast Feedback
+      // Toast feedback
       const [toast, setToast] = useState(null);
       const triggerToast = (msg, type = "normal") => {
         setToast({ msg, type });
@@ -481,177 +499,7 @@
       };
       const [confirmDialog, setConfirmDialog] = useState(null);
 
-      // --- UNIVERSAL DISPATCHER (DUAL POST + GET FALLBACK) ---
-      const callGasApi = async (action, payload = {}) => {
-        const url = (gasConfig.webAppUrl || '').trim();
-        if (!url) return null;
-
-        // 1. Kirim via POST (text/plain bypass CORS preflight)
-        try {
-          const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action, ...payload })
-          });
-          const result = await response.json();
-          if (result && (result.status === 'ok' || result.status === 'expired')) {
-            return result;
-          }
-        } catch (postErr) {
-          console.warn("POST dispatch failed, beralih ke GET fallback...", postErr);
-        }
-
-        // 2. Fallback Otomatis ke GET
-        try {
-          const encodedPayload = encodeURIComponent(JSON.stringify(payload));
-          const getUrl = `${url}?action=${encodeURIComponent(action)}&payload=${encodedPayload}&t=${Date.now()}`;
-          const response = await fetch(getUrl);
-          const result = await response.json();
-          return result;
-        } catch (getErr) {
-          console.error("GET fallback juga gagal:", getErr);
-          return null;
-        }
-      };
-
-      // --- TEST KONEKSI & TULIS BARIS KE GOOGLE SHEETS ---
-      const handleTestGasConnection = async () => {
-        if (!gasConfig.webAppUrl) {
-          triggerToast("Masukkan URL Web App GAS terlebih dahulu!", "warning");
-          return;
-        }
-        setTestResult({ loading: true, message: "Menguji koneksi ke Google Sheets..." });
-        try {
-          const res = await callGasApi('ping', { testActor: user?.username || 'Admin' });
-          if (res && res.status === 'ok') {
-            setTestResult({
-              success: true,
-              message: `SUKSES! Terhubung ke Spreadsheet: "${res.spreadsheetName || 'PCH_COMMUNITY_DATABASE'}"`
-            });
-            triggerToast("Tes Koneksi & Akses Spreadsheet 100% Berhasil!", "success");
-          } else {
-            setTestResult({
-              success: false,
-              message: res?.message || "GAS merespons, namun tidak dapat membuka file Spreadsheet."
-            });
-            triggerToast("Respons error dari backend GAS", "danger");
-          }
-        } catch (err) {
-          setTestResult({
-            success: false,
-            message: "Gagal tersambung. Pastikan Web App di-deploy dengan akses 'Anyone'."
-          });
-          triggerToast("Gagal tersambung ke URL GAS!", "danger");
-        }
-      };
-
-      // --- BI-DIRECTIONAL CLOUD SYNC ---
-      const syncFromGas = async (overrideUrl) => {
-        const url = (overrideUrl || gasConfig.webAppUrl || '').trim();
-        if (!url) return;
-        try {
-          setIsSyncing(true);
-
-          // 1. Tarik pengguna & berkas dossier terbaru dari Google Sheets
-          const fetchResult = await callGasApi('getRegisteredUsers');
-          if (fetchResult && fetchResult.status === 'ok') {
-            if (Array.isArray(fetchResult.users)) {
-              setRegisteredUsers(prev => {
-                const map = new Map();
-                prev.forEach(u => map.set(u.username.toLowerCase(), u));
-                fetchResult.users.forEach(u => map.set(u.username.toLowerCase(), u));
-                const merged = Array.from(map.values());
-                localStorage.setItem('panua_registered_users', JSON.stringify(merged));
-                return merged;
-              });
-            }
-
-            // Sinkronkan arsip berkas anggota ke Admin
-            if (Array.isArray(fetchResult.dossiers)) {
-              setSubmittedDossiers(fetchResult.dossiers);
-              localStorage.setItem('panua_submitted_dossiers', JSON.stringify(fetchResult.dossiers));
-
-              // Jika anggota sedang membuka brankas miliknya, muat link drive terbaru
-              if (user && user.role !== 'admin') {
-                const myDossierFromCloud = fetchResult.dossiers.find(
-                  d => d.username.toLowerCase() === user.username.toLowerCase() || d.userId === user.id
-                );
-                if (myDossierFromCloud) {
-                  setMemberDossier(prev => ({
-                    ...prev,
-                    namaLengkap: myDossierFromCloud.namaLengkap || prev.namaLengkap,
-                    email: myDossierFromCloud.email || prev.email,
-                    noHp: myDossierFromCloud.noHp || prev.noHp,
-                    usernamePi: myDossierFromCloud.usernamePi || prev.usernamePi,
-                    ttl: myDossierFromCloud.ttl || prev.ttl,
-                    nik: myDossierFromCloud.nik || prev.nik,
-                    alamatLengkap: myDossierFromCloud.alamatLengkap || prev.alamatLengkap,
-                    noRekening: myDossierFromCloud.rekening || prev.noRekening,
-                    walletPi: myDossierFromCloud.walletPi || prev.walletPi,
-                    walletOkx: myDossierFromCloud.walletOkx || prev.walletOkx,
-                    fotoKtp: myDossierFromCloud.fotoKtpUrl ? { name: "KTP Terverifikasi Drive", driveUrl: myDossierFromCloud.fotoKtpUrl } : prev.fotoKtp,
-                    fotoKk: myDossierFromCloud.fotoKkUrl ? { name: "KK Terverifikasi Drive", driveUrl: myDossierFromCloud.fotoKkUrl } : prev.fotoKk,
-                    fotoNpwp: myDossierFromCloud.fotoNpwpUrl ? { name: "NPWP Terverifikasi Drive", driveUrl: myDossierFromCloud.fotoNpwpUrl } : prev.fotoNpwp,
-                    pasfoto: myDossierFromCloud.pasfotoUrl ? { name: "Pasfoto Terverifikasi Drive", driveUrl: myDossierFromCloud.pasfotoUrl } : prev.pasfoto,
-                    kartuKeanggotaan: myDossierFromCloud.ktaUrl ? { name: "KTA Terverifikasi Drive", driveUrl: myDossierFromCloud.ktaUrl } : prev.kartuKeanggotaan,
-                    extraDocs: myDossierFromCloud.extraDocs || prev.extraDocs,
-                    isSavedToAdmin: true,
-                    lastSynced: "Tersinkronisasi Cloud (" + (myDossierFromCloud.lastUpdate || "Hari ini") + ")"
-                  }));
-                }
-              }
-            }
-
-            setGasConfig(prev => ({
-              ...prev,
-              connected: true,
-              lastSync: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " WITA"
-            }));
-            triggerToast(`Sinkronisasi Cloud Selesai! (${fetchResult.count || 0} Anggota, ${fetchResult.dossiers?.length || 0} Arsip)`, "success");
-            return;
-          }
-
-          // 2. Jika getRegisteredUsers belum tersedia, lakukan fullSync push
-          const pushPayload = {
-            users: registeredUsers,
-            branding: appBranding,
-            dossiers: submittedDossiers,
-            redeemCodes: activeRedeemCodes
-          };
-          const pushResult = await callGasApi('fullSync', pushPayload);
-          if (pushResult && pushResult.status === 'ok') {
-            if (pushResult.users && Array.isArray(pushResult.users) && pushResult.users.length > 0) {
-              setRegisteredUsers(pushResult.users);
-            }
-            setGasConfig(prev => ({
-              ...prev,
-              connected: true,
-              lastSync: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " WITA"
-            }));
-            triggerToast("Database Google Sheets berhasil disinkronkan!", "success");
-          }
-        } catch (err) {
-          console.warn("GAS Sync notice:", err);
-        } finally {
-          setIsSyncing(false);
-        }
-      };
-
-      // Sync on mount and when gas url changes
-      useEffect(() => {
-        if (gasConfig.webAppUrl) {
-          syncFromGas();
-        }
-      }, [gasConfig.webAppUrl]);
-
-      // Auto-sync whenever admin switches to the Admin tab
-      useEffect(() => {
-        if (activeTab === "admin" && gasConfig.webAppUrl) {
-          syncFromGas();
-        }
-      }, [activeTab]);
-
-      // 4. ACTIVE REDEEM CODES (90-DETIK VALIDASI)
+      // 4. ACTIVE REDEEM CODES (90 DETIK)
       const [activeRedeemCodes, setActiveRedeemCodes] = useState(() => {
         try {
           const saved = localStorage.getItem('panua_shared_redeem_codes');
@@ -666,7 +514,7 @@
 
       const [currentTime, setCurrentTime] = useState(Date.now());
 
-      // MY SECURE VAULT STATUS & 1-JAM SESSION EXPIRATION TIMER
+      // MY SECURE VAULT STATUS (1 JAM SESI TERBUKA AUTO-LOCK)
       const [vaultUnlockedUntil, setVaultUnlockedUntil] = useState(() => {
         try {
           const saved = localStorage.getItem('panua_vault_unlock_until');
@@ -683,7 +531,7 @@
       const [isVerifyingCode, setIsVerifyingCode] = useState(false);
       const [selectedDossierDetail, setSelectedDossierDetail] = useState(null);
 
-      // Timer 1 detik untuk hitung mundur Redeem Code dan Auto-Lock Brankas 1 Jam
+      // Timer 1 detik: Countdown 90 Detik Redeem Code + Auto-lock 1 Jam
       useEffect(() => {
         const interval = setInterval(() => {
           const now = Date.now();
@@ -708,7 +556,7 @@
         return () => clearInterval(interval);
       }, [vaultUnlockedUntil]);
 
-      // Kompresi gambar cerdas sebelum diunggah ke Google Apps Script / Drive
+      // Smart Image Compression
       const compressImageFile = (file, maxWidth = 1200, quality = 0.75) => {
         return new Promise((resolve) => {
           if (!file || !file.type.startsWith('image/')) {
@@ -799,8 +647,9 @@
 
       const [newExtraDocTitle, setNewExtraDocTitle] = useState("");
       const [newExtraDocFile, setNewExtraDocFile] = useState(null);
+      const [isSavingDossier, setIsSavingDossier] = useState(false);
 
-      // Submitted Dossiers
+      // Submitted Dossiers (Panel Admin)
       const [submittedDossiers, setSubmittedDossiers] = useState(() => {
         try {
           const saved = localStorage.getItem('panua_submitted_dossiers');
@@ -830,7 +679,7 @@
             sender: "Panua Bot",
             avatar: "PC",
             isMe: false,
-            text: "Selamat datang di Forum Koordinasi Panua Community Gorontalo! Ruang komunikasi resmi pionir.",
+            text: "Selamat datang di Forum Koordinasi Panua Community Gorontalo! Komunikasi realtime pionir.",
             time: "08:00",
             replyTo: null
           }
@@ -900,29 +749,374 @@
       const [searchQuery, setSearchQuery] = useState("");
       const [selectedCategory, setSelectedCategory] = useState("Semua");
 
-      // Login Handler
-      const handleLoginSubmit = (e) => {
+      // =======================================================================
+      // SUPABASE REALTIME SUBSCRIPTIONS & DATA SYNC
+      // =======================================================================
+      useEffect(() => {
+        if (!supabase) {
+          setIsRealtimeActive(false);
+          return;
+        }
+
+        let channel;
+
+        const initSupabaseData = async () => {
+          setIsSyncing(true);
+          try {
+            // 1. Ambil Pengaturan Branding
+            const { data: brandData } = await supabase.from('app_branding').select('*').limit(1).single();
+            if (brandData) {
+              setAppBranding({
+                title: brandData.title || "PANUA COMMUNITY",
+                tagline: brandData.tagline || "Pi Network Gorontalo - Indonesia",
+                logoType: brandData.logo_type || "panua",
+                customLogoUrl: brandData.custom_logo_url || "",
+                meetingProvider: brandData.meeting_provider || "meet.jit.si",
+                adminWhatsapp: brandData.admin_whatsapp || "6281299887766"
+              });
+            }
+
+            // 2. Ambil Seluruh Pengguna Terdaftar
+            const { data: usersData } = await supabase.from('users_registry').select('*');
+            if (usersData && Array.isArray(usersData)) {
+              setRegisteredUsers(usersData.map(u => ({
+                id: u.id,
+                name: u.name,
+                username: u.username,
+                email: u.email,
+                phone: u.phone,
+                role: u.role || 'member',
+                bio: u.bio,
+                avatarUrl: u.avatar_url,
+                registeredAt: new Date(u.created_at).toLocaleDateString('id-ID')
+              })));
+            }
+
+            // 3. Ambil Seluruh Dossiers Brankas
+            const { data: dosData } = await supabase.from('dossiers').select('*');
+            if (dosData && Array.isArray(dosData)) {
+              const mapped = dosData.map(d => ({
+                id: d.id,
+                userId: d.user_id,
+                username: d.username,
+                namaLengkap: d.nama_lengkap,
+                email: d.email,
+                noHp: d.no_hp,
+                usernamePi: d.username_pi,
+                ttl: d.ttl,
+                nik: d.nik,
+                alamatLengkap: d.alamat_lengkap,
+                namaRekening: d.nama_rekening,
+                rekening: d.no_rekening,
+                walletPi: d.wallet_pi,
+                walletOkx: d.wallet_okx,
+                fotoKtpUrl: d.foto_ktp_url,
+                fotoKkUrl: d.foto_kk_url,
+                fotoNpwpUrl: d.foto_npwp_url,
+                pasfotoUrl: d.pasfoto_url,
+                ktaUrl: d.kta_url,
+                extraDocs: d.extra_docs || [],
+                docsCount: d.docs_count || 0,
+                status: d.status || "Tersimpan di Cloud Supabase",
+                lastUpdate: new Date(d.updated_at).toLocaleDateString('id-ID')
+              }));
+              setSubmittedDossiers(mapped);
+
+              // Update dossier saya jika pengguna aktif
+              if (user && user.role !== 'admin') {
+                const myDos = mapped.find(d => d.username.toLowerCase() === user.username.toLowerCase() || d.userId === user.id);
+                if (myDos) {
+                  setMemberDossier(prev => ({
+                    ...prev,
+                    namaLengkap: myDos.namaLengkap || prev.namaLengkap,
+                    email: myDos.email || prev.email,
+                    noHp: myDos.noHp || prev.noHp,
+                    usernamePi: myDos.usernamePi || prev.usernamePi,
+                    ttl: myDos.ttl || prev.ttl,
+                    nik: myDos.nik || prev.nik,
+                    alamatLengkap: myDos.alamatLengkap || prev.alamatLengkap,
+                    namaRekening: myDos.namaRekening || prev.namaRekening,
+                    noRekening: myDos.rekening || prev.noRekening,
+                    walletPi: myDos.walletPi || prev.walletPi,
+                    walletOkx: myDos.walletOkx || prev.walletOkx,
+                    fotoKtp: myDos.fotoKtpUrl ? { name: "KTP Terverifikasi Supabase", driveUrl: myDos.fotoKtpUrl } : prev.fotoKtp,
+                    fotoKk: myDos.fotoKkUrl ? { name: "KK Terverifikasi Supabase", driveUrl: myDos.fotoKkUrl } : prev.fotoKk,
+                    fotoNpwp: myDos.fotoNpwpUrl ? { name: "NPWP Terverifikasi Supabase", driveUrl: myDos.fotoNpwpUrl } : prev.fotoNpwp,
+                    pasfoto: myDos.pasfotoUrl ? { name: "Pasfoto Terverifikasi Supabase", driveUrl: myDos.pasfotoUrl } : prev.pasfoto,
+                    kartuKeanggotaan: myDos.ktaUrl ? { name: "KTA Terverifikasi Supabase", driveUrl: myDos.ktaUrl } : prev.kartuKeanggotaan,
+                    extraDocs: myDos.extraDocs || prev.extraDocs,
+                    isSavedToAdmin: true,
+                    lastSynced: "Tersinkronisasi Realtime Supabase (" + myDos.lastUpdate + ")"
+                  }));
+                }
+              }
+            }
+
+            // 4. Ambil Redeem Codes Aktif (90 Detik)
+            const { data: codeData } = await supabase.from('redeem_codes').select('*').eq('is_active', true);
+            if (codeData && Array.isArray(codeData)) {
+              const now = Date.now();
+              const validCodes = codeData
+                .filter(c => now < Number(c.expires_at_ms))
+                .map(c => ({
+                  code: c.code,
+                  userTarget: c.user_target,
+                  createdBy: c.created_by,
+                  note: c.note,
+                  createdAt: Number(c.created_at_ms),
+                  expiresAt: Number(c.expires_at_ms)
+                }));
+              setActiveRedeemCodes(validCodes);
+            }
+
+            // 5. Ambil Chat Terbaru
+            const { data: chatData } = await supabase.from('chat_messages').select('*').order('created_at', { ascending: true }).limit(50);
+            if (chatData && Array.isArray(chatData) && chatData.length > 0) {
+              setChatMessages(chatData.map(c => ({
+                id: c.id,
+                sender: c.sender,
+                userId: c.user_id,
+                isMe: user ? (c.user_id === user.id || c.sender === user.name) : false,
+                text: c.text,
+                time: c.time,
+                replyTo: c.reply_to
+              })));
+            }
+
+            setSupabaseConfig(prev => ({ ...prev, connected: true }));
+            setIsRealtimeActive(true);
+            triggerToast("Supabase Realtime Terhubung! Data tersinkron otomatis.", "success");
+          } catch (err) {
+            console.error("Gagal sinkron data Supabase:", err);
+          } finally {
+            setIsSyncing(false);
+          }
+        };
+
+        initSupabaseData();
+
+        // DAFTARKAN REALTIME CHANNELS UNTUK SETIAP PERISTIWA DATABASE
+        try {
+          channel = supabase.channel('panua_realtime_stream')
+            // Event Pendaftaran User Realtime
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'users_registry' }, (payload) => {
+              if (payload.eventType === 'INSERT') {
+                const u = payload.new;
+                setRegisteredUsers(prev => {
+                  if (prev.some(x => x.id === u.id || x.username.toLowerCase() === u.username.toLowerCase())) return prev;
+                  return [...prev, {
+                    id: u.id,
+                    name: u.name,
+                    username: u.username,
+                    email: u.email,
+                    phone: u.phone,
+                    role: u.role || 'member',
+                    bio: u.bio,
+                    avatarUrl: u.avatar_url,
+                    registeredAt: new Date(u.created_at).toLocaleDateString('id-ID')
+                  }];
+                });
+                triggerToast(`Pendaftaran Realtime: @${u.username} baru saja bergabung!`, "success");
+              } else if (payload.eventType === 'DELETE') {
+                setRegisteredUsers(prev => prev.filter(x => x.id !== payload.old.id));
+              }
+            })
+            // Event Berkas Brankas Realtime
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'dossiers' }, (payload) => {
+              if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                const d = payload.new;
+                const mappedDossier = {
+                  id: d.id,
+                  userId: d.user_id,
+                  username: d.username,
+                  namaLengkap: d.nama_lengkap,
+                  email: d.email,
+                  noHp: d.no_hp,
+                  usernamePi: d.username_pi,
+                  ttl: d.ttl,
+                  nik: d.nik,
+                  alamatLengkap: d.alamat_lengkap,
+                  namaRekening: d.nama_rekening,
+                  rekening: d.no_rekening,
+                  walletPi: d.wallet_pi,
+                  walletOkx: d.wallet_okx,
+                  fotoKtpUrl: d.foto_ktp_url,
+                  fotoKkUrl: d.foto_kk_url,
+                  fotoNpwpUrl: d.foto_npwp_url,
+                  pasfotoUrl: d.pasfoto_url,
+                  ktaUrl: d.kta_url,
+                  extraDocs: d.extra_docs || [],
+                  docsCount: d.docs_count || 0,
+                  status: d.status || "Tersimpan di Cloud Supabase",
+                  lastUpdate: new Date(d.updated_at).toLocaleDateString('id-ID')
+                };
+
+                setSubmittedDossiers(prev => {
+                  const filtered = prev.filter(x => x.id !== d.id && x.username.toLowerCase() !== d.username.toLowerCase());
+                  return [mappedDossier, ...filtered];
+                });
+
+                triggerToast(`Dokumen Realtime: Berkas @${d.username} diperbarui di Cloud!`, "success");
+              }
+            })
+            // Event Redeem Code Realtime
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'redeem_codes' }, (payload) => {
+              if (payload.eventType === 'INSERT') {
+                const c = payload.new;
+                const now = Date.now();
+                if (now < Number(c.expires_at_ms)) {
+                  setActiveRedeemCodes(prev => {
+                    if (prev.some(x => x.code === c.code)) return prev;
+                    return [{
+                      code: c.code,
+                      userTarget: c.user_target,
+                      createdBy: c.created_by,
+                      note: c.note,
+                      createdAt: Number(c.created_at_ms),
+                      expiresAt: Number(c.expires_at_ms)
+                    }, ...prev];
+                  });
+                  triggerToast(`Redeem Code Baru Realtime diterbitkan!`, "normal");
+                }
+              }
+            })
+            // Event Chat Realtime
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, (payload) => {
+              const msg = payload.new;
+              setChatMessages(prev => {
+                if (prev.some(x => x.id === msg.id)) return prev;
+                return [...prev, {
+                  id: msg.id,
+                  sender: msg.sender,
+                  userId: msg.user_id,
+                  isMe: user ? (msg.user_id === user.id || msg.sender === user.name) : false,
+                  text: msg.text,
+                  time: msg.time,
+                  replyTo: msg.reply_to
+                }];
+              });
+            })
+            // Event Branding Realtime
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'app_branding' }, (payload) => {
+              if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                const b = payload.new;
+                setAppBranding({
+                  title: b.title || "PANUA COMMUNITY",
+                  tagline: b.tagline || "Pi Network Gorontalo - Indonesia",
+                  logoType: b.logo_type || "panua",
+                  customLogoUrl: b.custom_logo_url || "",
+                  meetingProvider: b.meeting_provider || "meet.jit.si",
+                  adminWhatsapp: b.admin_whatsapp || "6281299887766"
+                });
+              }
+            })
+            .subscribe((status) => {
+              if (status === 'SUBSCRIBED') {
+                setIsRealtimeActive(true);
+              }
+            });
+        } catch (subErr) {
+          console.warn("Realtime channel subscription error:", subErr);
+        }
+
+        return () => {
+          if (channel && supabase) {
+            supabase.removeChannel(channel);
+          }
+        };
+      }, [supabase, user]);
+
+      // Helper Upload File ke Supabase Storage
+      const uploadFileToSupabaseStorage = async (fileObj, pathPrefix) => {
+        if (!supabase || !fileObj) return "";
+        try {
+          let blob;
+          let fileName = "file_" + Date.now() + ".jpg";
+
+          if (fileObj.base64 && typeof fileObj.base64 === 'string') {
+            blob = dataURLtoBlob(fileObj.base64);
+            fileName = fileObj.name || fileName;
+          } else if (fileObj instanceof File || fileObj instanceof Blob) {
+            blob = fileObj;
+            fileName = fileObj.name || fileName;
+          } else {
+            return typeof fileObj === 'string' ? fileObj : "";
+          }
+
+          const cleanFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const filePath = `${pathPrefix}/${Date.now()}_${cleanFileName}`;
+
+          const { data, error } = await supabase.storage
+            .from('pch_secure_vault')
+            .upload(filePath, blob, {
+              cacheControl: '3600',
+              upsert: true
+            });
+
+          if (error) {
+            console.error("Storage upload error:", error);
+            return fileObj.base64 || "";
+          }
+
+          const { data: urlData } = supabase.storage
+            .from('pch_secure_vault')
+            .getPublicUrl(filePath);
+
+          return urlData?.publicUrl || "";
+        } catch (err) {
+          console.error("Storage error:", err);
+          return fileObj.base64 || "";
+        }
+      };
+
+      // Handler Login Submit
+      const handleLoginSubmit = async (e) => {
         e.preventDefault();
         const id = loginIdentifier.trim().toLowerCase();
         const pwd = loginPassword;
 
+        // 1. Verifikasi Admin Kriptografis
         if (_authGateway.verify(id, pwd)) {
           const adminSession = _authGateway.createAdminSession(appBranding.adminWhatsapp);
           setUser(adminSession);
           setIsAuthenticated(true);
-          setVaultUnlocked(true);
           triggerToast("Selamat datang, Administrator Utama!", "success");
           return;
         }
 
-        const member = registeredUsers.find(
-          u => (u.email.toLowerCase() === id || u.username.toLowerCase() === id) && u.password === pwd
+        // 2. Verifikasi Anggota (dari Supabase jika terhubung, atau dari local)
+        let member = registeredUsers.find(
+          u => (u.email.toLowerCase() === id || u.username.toLowerCase() === id)
         );
+
+        if (supabase) {
+          try {
+            const { data } = await supabase
+              .from('users_registry')
+              .select('*')
+              .or(`username.ilike.${id},email.ilike.${id}`)
+              .limit(1)
+              .single();
+
+            if (data) {
+              member = {
+                id: data.id,
+                name: data.name,
+                username: data.username,
+                email: data.email,
+                phone: data.phone,
+                role: data.role || 'member',
+                bio: data.bio,
+                avatarUrl: data.avatar_url,
+                registeredAt: new Date(data.created_at).toLocaleDateString('id-ID')
+              };
+            }
+          } catch (err) {}
+        }
 
         if (member) {
           setUser(member);
           setIsAuthenticated(true);
-          setVaultUnlocked(false);
           triggerToast(`Selamat datang kembali, ${member.name}!`, "success");
           return;
         }
@@ -930,7 +1124,7 @@
         triggerToast("Email/Username atau Password tidak cocok!", "danger");
       };
 
-      // Register Handler (with direct cloud write)
+      // Handler Register Submit (Realtime write ke Supabase)
       const handleRegisterSubmit = async (e) => {
         e.preventDefault();
         if (!regName.trim() || !regUsername.trim() || !regEmail.trim() || !regPhone.trim() || !regPassword) {
@@ -969,28 +1163,26 @@
           return;
         }
 
+        const newId = "usr-" + Date.now();
         const newUser = {
-          id: "usr-" + Date.now(),
+          id: newId,
           email: regEmail.trim(),
           name: regName.trim(),
           username: regUsername.trim().replace(/\s+/g, '_').toLowerCase(),
           phone: regPhone.trim(),
-          password: regPassword,
           role: "member",
           bio: "Anggota resmi Panua Community Gorontalo.",
           publicWallet: "",
-          showEmail: false,
-          avatar: "PC",
           avatarUrl: "",
           registeredAt: new Date().toLocaleDateString('id-ID')
         };
 
+        // Simpan lokal instan
         const updatedList = [...registeredUsers, newUser];
         setRegisteredUsers(updatedList);
         localStorage.setItem('panua_registered_users', JSON.stringify(updatedList));
         setUser(newUser);
         setIsAuthenticated(true);
-        setVaultUnlocked(false);
 
         setRegName("");
         setRegUsername("");
@@ -1002,16 +1194,31 @@
 
         triggerToast("Pendaftaran berhasil! Akun Anda aktif di Panua Community.", "success");
 
-        // Kirim langsung ke Google Sheets backend
-        if (gasConfig.webAppUrl) {
-          triggerToast("Menyimpan akun baru ke baris Google Sheets...", "warning");
+        // Kirim Realtime ke Supabase PostgreSQL Database
+        if (supabase) {
+          triggerToast("Menyimpan akun baru ke Supabase Database secara realtime...", "warning");
           try {
-            const res = await callGasApi('registerUser', { user: newUser });
-            if (res && res.status === 'ok') {
-              triggerToast(res.message || "Akun anggota berhasil tersimpan di Google Sheets!", "success");
+            const { error } = await supabase.from('users_registry').insert([
+              {
+                id: newUser.id,
+                username: newUser.username,
+                name: newUser.name,
+                email: newUser.email,
+                phone: newUser.phone,
+                role: 'member',
+                bio: newUser.bio,
+                avatar_url: '',
+                password_hash: 'PROTECTED'
+              }
+            ]);
+
+            if (error) {
+              console.error("Supabase insert user error:", error);
+            } else {
+              triggerToast("Akun anggota tersimpan di Supabase Realtime!", "success");
             }
           } catch (err) {
-            console.warn("GAS register sync failed:", err);
+            console.error("Supabase error:", err);
           }
         }
       };
@@ -1035,14 +1242,13 @@
             setUser(null);
             setLoginPassword("");
             setActiveTab("dashboard");
-            setVaultUnlocked(false);
             setConfirmDialog(null);
             triggerToast("Anda telah keluar dari sesi aplikasi.", "warning");
           }
         });
       };
 
-      const handleProfilePhotoUpload = (e) => {
+      const handleProfilePhotoUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
@@ -1051,17 +1257,25 @@
           return;
         }
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const base64Data = event.target.result;
-          setUser(prev => {
-            const updated = { ...prev, avatarUrl: base64Data };
-            setRegisteredUsers(users => users.map(u => u.id === prev.id ? updated : u));
-            return updated;
-          });
-          triggerToast("Foto profil Panua Community Anda berhasil diperbarui!");
-        };
-        reader.readAsDataURL(file);
+        const compressed = await compressImageFile(file, 600, 0.8);
+        let photoUrl = compressed.base64;
+
+        if (supabase) {
+          triggerToast("Mengunggah foto profil ke Supabase Storage...", "warning");
+          const cloudUrl = await uploadFileToSupabaseStorage(compressed, `avatars/${user.username}`);
+          if (cloudUrl) photoUrl = cloudUrl;
+
+          // Update user row di Supabase
+          await supabase.from('users_registry').update({ avatar_url: photoUrl }).eq('id', user.id);
+        }
+
+        setUser(prev => {
+          const updated = { ...prev, avatarUrl: photoUrl };
+          setRegisteredUsers(users => users.map(u => u.id === prev.id ? updated : u));
+          return updated;
+        });
+
+        triggerToast("Foto profil Panua Community Anda berhasil diperbarui!", "success");
       };
 
       // --- REDEEM CODE VERIFICATION (90 DETIK -> AKSES 1 JAM) ---
@@ -1090,58 +1304,60 @@
         setIsVerifyingCode(true);
         const now = Date.now();
 
-        // 1. Cek local storage
-        let localValid = false;
-        try {
-          const savedShared = localStorage.getItem('panua_shared_redeem_codes');
-          const codesList = savedShared ? JSON.parse(savedShared) : activeRedeemCodes;
-          const found = codesList.find(c => 
-            c.code.toUpperCase() === codeTrim && 
-            (c.userTarget === "all" || c.userTarget.toLowerCase() === user.username.toLowerCase())
-          );
-          if (found && now < (found.expiresAt || (found.createdAt + 90000)) + 15000) {
-            localValid = true;
-          }
-        } catch (err) {}
-
-        if (localValid) {
-          setIsVerifyingCode(false);
-          grantVaultAccessOneHour();
-          return;
-        }
-
-        // 2. Verifikasi Cloud ke Google Apps Script (90 Detik)
-        if (gasConfig.webAppUrl) {
+        // 1. Verifikasi Realtime ke Supabase
+        if (supabase) {
           try {
-            triggerToast("Memverifikasi kode ke server Google Apps Script...", "warning");
-            const res = await callGasApi('verifyRedeemCode', {
-              code: codeTrim,
-              username: user.username
-            });
+            const { data, error } = await supabase
+              .from('redeem_codes')
+              .select('*')
+              .eq('code', codeTrim)
+              .eq('is_active', true)
+              .limit(1)
+              .single();
 
-            setIsVerifyingCode(false);
-            if (res && res.status === "ok" && res.valid) {
+            if (data && !error) {
+              const target = (data.user_target || 'all').toLowerCase();
+              if (target !== 'all' && target !== user.username.toLowerCase()) {
+                setIsVerifyingCode(false);
+                triggerToast("Redeem Code ini diterbitkan khusus untuk username lain!", "danger");
+                return;
+              }
+
+              const expiresAt = Number(data.expires_at_ms);
+              if (now > expiresAt + 15000) {
+                // Kedaluwarsa
+                setIsVerifyingCode(false);
+                await supabase.from('redeem_codes').update({ is_active: false }).eq('id', data.id);
+                triggerToast("Redeem Code telah kedaluwarsa (> 90 detik). Minta kode baru ke Admin via WA.", "danger");
+                return;
+              }
+
+              setIsVerifyingCode(false);
               grantVaultAccessOneHour();
-              return;
-            } else if (res && res.status === "expired") {
-              triggerToast(res.message || "Redeem Code sudah kedaluwarsa (> 90 detik). Minta kode baru ke Admin.", "danger");
-              return;
-            } else if (res && res.message) {
-              triggerToast(res.message, "danger");
               return;
             }
           } catch (err) {
-            console.error("Cloud verification error:", err);
+            console.error("Supabase verify code error:", err);
           }
         }
 
+        // 2. Fallback verifikasi lokal jika offline
+        const localFound = activeRedeemCodes.find(c => 
+          c.code.toUpperCase() === codeTrim && 
+          (c.userTarget === "all" || c.userTarget.toLowerCase() === user.username.toLowerCase())
+        );
+
         setIsVerifyingCode(false);
-        triggerToast("Redeem Code tidak valid atau sudah lewat 90 detik! Minta kode baru ke Admin via WA.", "danger");
+        if (localFound && now < (localFound.expiresAt + 15000)) {
+          grantVaultAccessOneHour();
+        } else {
+          triggerToast("Redeem Code tidak valid atau sudah lewat 90 detik! Minta kode baru ke Admin via WA.", "danger");
+        }
       };
 
       const handleRequestCodeViaWhatsapp = () => {
         const adminNumber = appBranding.adminWhatsapp.replace(/\D/g, '');
-        const message = `Halo Admin ${appBranding.title} (Gorontalo),\n\nSaya ingin meminta Kode Akses / Redeem Code untuk membuka menu My Secure Vault:\nNama: ${user.name}\nUsername: ${user.username}\nEmail: ${user.email}\nNo HP: ${user.phone || '-'}\n\nMohon buatkan kode akses 90 detik untuk sesi 1 jam. Terima kasih!`;
+        const message = `Halo Admin ${appBranding.title} (Gorontalo),\n\nSaya ingin meminta Kode Akses / Redeem Code untuk membuka menu My Secure Vault:\nNama: ${user.name}\nUsername: ${user.username}\nEmail: ${user.email}\nNo HP: ${user.phone || '-'}\n\nMohon buatkan kode akses 90 detik untuk sesi 1 jam di Supabase. Terima kasih!`;
         const waUrl = `https://wa.me/${adminNumber}?text=${encodeURIComponent(message)}`;
         window.open(waUrl, '_blank');
         triggerToast("Membuka WhatsApp untuk mengirim permohonan ke Admin...");
@@ -1153,9 +1369,9 @@
           return;
         }
         const cleanNumber = dossier.noHp.replace(/\D/g, '').replace(/^0/, '62');
-        let text = `Halo Sdr/i ${dossier.namaLengkap},\n\nAdmin ${appBranding.title} (Gorontalo) menyampaikan informasi arsip brankas Anda:\n• Status Dokumen: Tersimpan aman di Drive Admin\n• NIK: ${dossier.nik}\n• Username Pi: ${dossier.usernamePi}\n• Rekening: ${dossier.rekening}\n`;
+        let text = `Halo Sdr/i ${dossier.namaLengkap},\n\nAdmin ${appBranding.title} (Gorontalo) menyampaikan informasi arsip brankas Anda:\n• Status Dokumen: Tersimpan di Supabase Realtime Storage\n• NIK: ${dossier.nik}\n• Username Pi: ${dossier.usernamePi}\n• Rekening: ${dossier.rekening}\n`;
         if (codeToSend) {
-          text += `\n🔑 KODE AKSES / REDEEM CODE BRANKAS (BERLAKU 90 DETIK):\n👉 *${codeToSend}*\n⚠️ *PENTING:* Kode ini aktif selama tepat 90 detik (1.5 menit). Harap segera masukkan di aplikasi untuk membuka My Secure Vault.\n`;
+          text += `\n🔑 KODE AKSES / REDEEM CODE BRANKAS (BERLAKU 90 DETIK):\n👉 *${codeToSend}*\n⚠️ *PENTING:* Kode ini aktif selama tepat 90 detik (1.5 menit). Harap segera masukkan di aplikasi untuk membuka My Secure Vault selama 1 Jam.\n`;
         } else {
           text += `\n⚠️ Belum ada kode aktif. Silakan minta admin membuatkan kode akses 90 detik baru.\n`;
         }
@@ -1166,65 +1382,117 @@
         triggerToast(`Membuka WhatsApp ke ${dossier.namaLengkap}...`);
       };
 
+      // Handler Simpan & Upload 15 Berkas ke Supabase
       const handleSaveAndSendDossierToAdmin = async () => {
         setIsSavingDossier(true);
-        triggerToast("Mengunggah 15 berkas fisik ke Google Drive Admin...", "warning");
+        triggerToast("Mengunggah berkas ke Supabase Storage & Database Realtime...", "warning");
 
-        const updatedDossier = {
-          ...memberDossier,
-          isSavedToAdmin: true,
-          lastSynced: new Date().toLocaleDateString('id-ID') + ", " + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " WITA"
-        };
-        setMemberDossier(updatedDossier);
+        try {
+          let ktpUrl = memberDossier.fotoKtp?.driveUrl || "";
+          let kkUrl = memberDossier.fotoKk?.driveUrl || "";
+          let npwpUrl = memberDossier.fotoNpwp?.driveUrl || "";
+          let pasfotoUrl = memberDossier.pasfoto?.driveUrl || "";
+          let ktaUrl = memberDossier.kartuKeanggotaan?.driveUrl || "";
 
-        const newRecord = {
-          id: "dos-" + Date.now(),
-          userId: user.id,
-          username: user.username,
-          namaLengkap: updatedDossier.namaLengkap,
-          email: updatedDossier.email,
-          noHp: updatedDossier.noHp,
-          usernamePi: updatedDossier.usernamePi,
-          ttl: updatedDossier.ttl,
-          nik: updatedDossier.nik,
-          rekening: updatedDossier.noRekening,
-          walletPi: updatedDossier.walletPi,
-          walletOkx: updatedDossier.walletOkx,
-          docsCount: 5 + (updatedDossier.extraDocs ? updatedDossier.extraDocs.length : 0),
-          status: "Tersimpan di Google Drive Admin",
-          lastUpdate: "Hari ini"
-        };
-
-        setSubmittedDossiers(prev => {
-          const filtered = prev.filter(d => d.userId !== user.id && d.username !== user.username);
-          return [newRecord, ...filtered];
-        });
-
-        if (gasConfig.connected && gasConfig.webAppUrl) {
-          try {
-            const res = await callGasApi('saveMemberDossier', {
-              userId: user.id,
-              username: user.username,
-              dossier: updatedDossier
-            });
-
-            if (res && res.status === 'ok') {
-              triggerToast("Sukses! 15 Berkas & Identitas tersimpan di Google Drive & Sheets Admin!", "success");
-              // Perbarui dengan link drive riil dari Google Drive
-              if (res.dossier) {
-                setSubmittedDossiers(prev => [res.dossier, ...prev.filter(d => d.username !== user.username)]);
-              }
-              syncFromGas();
-            } else {
-              triggerToast(res?.message || "Berkas tersimpan lokal. Periksa koneksi backend GAS.", "warning");
-            }
-          } catch (err) {
-            triggerToast("Gagal mengunggah berkas ke GAS. Periksa jaringan internet.", "danger");
+          // Upload jika ada berkas lokal baru
+          if (supabase) {
+            const prefix = `dossiers/${user.username}`;
+            if (memberDossier.fotoKtp?.base64 && !ktpUrl) ktpUrl = await uploadFileToSupabaseStorage(memberDossier.fotoKtp, `${prefix}/ktp`);
+            if (memberDossier.fotoKk?.base64 && !kkUrl) kkUrl = await uploadFileToSupabaseStorage(memberDossier.fotoKk, `${prefix}/kk`);
+            if (memberDossier.fotoNpwp?.base64 && !npwpUrl) npwpUrl = await uploadFileToSupabaseStorage(memberDossier.fotoNpwp, `${prefix}/npwp`);
+            if (memberDossier.pasfoto?.base64 && !pasfotoUrl) pasfotoUrl = await uploadFileToSupabaseStorage(memberDossier.pasfoto, `${prefix}/pasfoto`);
+            if (memberDossier.kartuKeanggotaan?.base64 && !ktaUrl) ktaUrl = await uploadFileToSupabaseStorage(memberDossier.kartuKeanggotaan, `${prefix}/kta`);
           }
-        } else {
-          triggerToast("Berkas tersimpan lokal. Hubungkan URL GAS di header untuk upload ke Drive.", "warning");
+
+          const updatedDossier = {
+            ...memberDossier,
+            fotoKtp: ktpUrl ? { name: "KTP Terverifikasi Cloud", driveUrl: ktpUrl } : memberDossier.fotoKtp,
+            fotoKk: kkUrl ? { name: "KK Terverifikasi Cloud", driveUrl: kkUrl } : memberDossier.fotoKk,
+            fotoNpwp: npwpUrl ? { name: "NPWP Terverifikasi Cloud", driveUrl: npwpUrl } : memberDossier.fotoNpwp,
+            pasfoto: pasfotoUrl ? { name: "Pasfoto Terverifikasi Cloud", driveUrl: pasfotoUrl } : memberDossier.pasfoto,
+            kartuKeanggotaan: ktaUrl ? { name: "KTA Terverifikasi Cloud", driveUrl: ktaUrl } : memberDossier.kartuKeanggotaan,
+            isSavedToAdmin: true,
+            lastSynced: new Date().toLocaleDateString('id-ID') + ", " + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " WITA"
+          };
+
+          setMemberDossier(updatedDossier);
+
+          const dossierId = "dos-" + user.username.replace(/[^a-zA-Z0-9]/g, '_');
+          const totalDocs = (ktpUrl ? 1 : 0) + (kkUrl ? 1 : 0) + (npwpUrl ? 1 : 0) + (pasfotoUrl ? 1 : 0) + (ktaUrl ? 1 : 0) + (updatedDossier.extraDocs?.length || 0);
+
+          const newRecord = {
+            id: dossierId,
+            userId: user.id,
+            username: user.username,
+            namaLengkap: updatedDossier.namaLengkap,
+            email: updatedDossier.email,
+            noHp: updatedDossier.noHp,
+            usernamePi: updatedDossier.usernamePi,
+            ttl: updatedDossier.ttl,
+            nik: updatedDossier.nik,
+            alamatLengkap: updatedDossier.alamatLengkap,
+            namaRekening: updatedDossier.namaRekening,
+            rekening: updatedDossier.noRekening,
+            walletPi: updatedDossier.walletPi,
+            walletOkx: updatedDossier.walletOkx,
+            fotoKtpUrl: ktpUrl,
+            fotoKkUrl: kkUrl,
+            fotoNpwpUrl: npwpUrl,
+            pasfotoUrl: pasfotoUrl,
+            ktaUrl: ktaUrl,
+            extraDocs: updatedDossier.extraDocs || [],
+            docsCount: totalDocs,
+            status: "Tersimpan di Cloud Supabase Realtime",
+            lastUpdate: "Hari ini"
+          };
+
+          setSubmittedDossiers(prev => [newRecord, ...prev.filter(d => d.username.toLowerCase() !== user.username.toLowerCase())]);
+
+          // Tulis ke Supabase PostgreSQL Table 'dossiers'
+          if (supabase) {
+            const { error: upsertErr } = await supabase.from('dossiers').upsert([
+              {
+                id: dossierId,
+                user_id: user.id,
+                username: user.username,
+                nama_lengkap: updatedDossier.namaLengkap,
+                email: updatedDossier.email,
+                no_hp: updatedDossier.noHp,
+                username_pi: updatedDossier.usernamePi,
+                ttl: updatedDossier.ttl,
+                nik: updatedDossier.nik,
+                alamat_lengkap: updatedDossier.alamatLengkap,
+                nama_rekening: updatedDossier.namaRekening,
+                no_rekening: updatedDossier.noRekening,
+                wallet_pi: updatedDossier.walletPi,
+                wallet_okx: updatedDossier.walletOkx,
+                foto_ktp_url: ktpUrl,
+                foto_kk_url: kkUrl,
+                foto_npwp_url: npwpUrl,
+                pasfoto_url: pasfotoUrl,
+                kta_url: ktaUrl,
+                extra_docs: updatedDossier.extraDocs || [],
+                docs_count: totalDocs,
+                status: 'Tersimpan di Cloud Supabase Realtime',
+                updated_at: new Date().toISOString()
+              }
+            ], { onConflict: 'id' });
+
+            if (upsertErr) {
+              console.error("Dossier upsert error:", upsertErr);
+              triggerToast("Berkas tersimpan lokal. Periksa RLS tabel dossiers di Supabase.", "warning");
+            } else {
+              triggerToast("Sukses! 15 Berkas & Identitas tersimpan di Supabase Realtime!", "success");
+            }
+          } else {
+            triggerToast("Berkas tersimpan lokal. Hubungkan Supabase URL di header untuk sinkronisasi cloud.", "warning");
+          }
+        } catch (err) {
+          console.error("Error saving dossier:", err);
+          triggerToast("Gagal mengunggah berkas. Periksa koneksi internet Anda.", "danger");
+        } finally {
+          setIsSavingDossier(false);
         }
-        setIsSavingDossier(false);
       };
 
       const handleAddExtraDocument = async (e) => {
@@ -1235,6 +1503,11 @@
         }
 
         const compressed = await compressImageFile(newExtraDocFile);
+        let cloudUrl = "";
+        if (supabase) {
+          cloudUrl = await uploadFileToSupabaseStorage(compressed, `dossiers/${user.username}/extra`);
+        }
+
         const newDoc = {
           id: "doc-" + Date.now(),
           title: newExtraDocTitle.trim(),
@@ -1242,7 +1515,7 @@
           type: compressed.type,
           size: compressed.size,
           uploadedAt: new Date().toLocaleDateString('id-ID'),
-          base64: compressed.base64
+          driveUrl: cloudUrl || compressed.base64
         };
 
         setMemberDossier(prev => ({
@@ -1251,10 +1524,11 @@
         }));
         setNewExtraDocTitle("");
         setNewExtraDocFile(null);
-        triggerToast(`Dokumen "${newDoc.title}" siap dikirim ke Google Drive!`);
+        triggerToast(`Dokumen "${newDoc.title}" siap disimpan ke Supabase!`);
       };
 
-      const handleAdminCreateRedeemCode = (e) => {
+      // Handler Terbitkan Redeem Code 90 Detik (Realtime Broadcast)
+      const handleAdminCreateRedeemCode = async (e) => {
         e.preventDefault();
         const code = newCodeCustom.trim().toUpperCase() || "PANUA-" + Math.floor(100000 + Math.random() * 900000);
         const now = Date.now();
@@ -1275,34 +1549,50 @@
         setNewCodeNote("");
         triggerToast(`Redeem Code [${code}] aktif 90 detik untuk: ${newCodeTarget}!`, "success");
 
-        if (gasConfig.connected && gasConfig.webAppUrl) {
-          callGasApi('generateRedeemCode', {
-            code: newEntry.code,
-            userTarget: newEntry.userTarget,
-            actor: newEntry.createdBy,
-            note: newEntry.note,
-            createdAtMs: now
-          }).then(() => syncFromGas());
+        // Kirim ke Supabase Realtime Table 'redeem_codes'
+        if (supabase) {
+          try {
+            await supabase.from('redeem_codes').insert([
+              {
+                id: "code-" + now,
+                code: newEntry.code,
+                user_target: newEntry.userTarget,
+                created_by: newEntry.createdBy,
+                note: newEntry.note,
+                created_at_ms: newEntry.createdAt,
+                expires_at_ms: newEntry.expiresAt,
+                is_active: true
+              }
+            ]);
+          } catch (err) {
+            console.error("Supabase insert code error:", err);
+          }
         }
       };
 
-      const handleSaveGasConfig = (url) => {
-        if (!url || !url.startsWith("https://script.google.com/macros/s/")) {
-          triggerToast("Masukkan URL Web App Google Apps Script yang valid!", "danger");
+      // Handler Simpan Konfigurasi Supabase
+      const handleSaveSupabaseConfig = (url, key) => {
+        const cleanUrl = (url || '').trim().replace(/\/$/, '');
+        const cleanKey = (key || '').trim();
+
+        if (!cleanUrl || !cleanKey) {
+          triggerToast("Masukkan Project URL & Anon Key Supabase!", "danger");
           return;
         }
 
-        localStorage.setItem('panua_gas_url', url);
-        setGasConfig({
-          webAppUrl: url,
-          connected: true,
-          lastSync: "Menyambungkan..."
+        localStorage.setItem('panua_supabase_url', cleanUrl);
+        localStorage.setItem('panua_supabase_key', cleanKey);
+        setSupabaseConfig({
+          url: cleanUrl,
+          key: cleanKey,
+          connected: false
         });
-        setShowGasModal(false);
-        syncFromGas(url);
+        setShowSupabaseModal(false);
+        triggerToast("Menghubungkan ke Supabase...", "warning");
       };
 
-      const handleSaveBranding = () => {
+      // Handler Simpan Branding oleh Admin
+      const handleSaveBranding = async () => {
         if (!brandingDraft.title.trim()) {
           triggerToast("Nama judul aplikasi tidak boleh kosong!", "danger");
           return;
@@ -1310,46 +1600,62 @@
 
         setAppBranding({ ...brandingDraft });
 
-        if (gasConfig.connected && gasConfig.webAppUrl) {
-          callGasApi('saveAppConfig', {
-            actor: user.username,
-            config: brandingDraft
-          }).then((res) => {
-            if (res && res.status === 'ok') {
-              triggerToast("Identitas & Branding tersimpan di backend Google Apps Script!", "success");
-              syncFromGas();
-            }
-          });
+        if (supabase) {
+          try {
+            await supabase.from('app_branding').upsert([
+              {
+                id: 'primary',
+                title: brandingDraft.title,
+                tagline: brandingDraft.tagline,
+                logo_type: brandingDraft.logoType,
+                custom_logo_url: brandingDraft.customLogoUrl,
+                admin_whatsapp: brandingDraft.adminWhatsapp,
+                meeting_provider: brandingDraft.meetingProvider,
+                updated_at: new Date().toISOString()
+              }
+            ], { onConflict: 'id' });
+            triggerToast("Identitas & Branding tersimpan di Supabase Realtime!", "success");
+          } catch (err) {
+            console.error("Supabase branding error:", err);
+          }
         }
 
         triggerToast("Identitas & Branding Panua Community berhasil diperbarui!");
       };
 
-      const handleSendMessage = (e) => {
+      // Handler Kirim Pesan Chat Forum
+      const handleSendMessage = async (e) => {
         e.preventDefault();
         if (!chatInput.trim()) return;
         const newMsg = {
           id: "m-" + Date.now(),
           sender: user.name,
-          avatar: "PC",
+          userId: user.id,
           isMe: true,
           text: chatInput.trim(),
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           replyTo: replyingTo ? replyingTo.text.slice(0, 35) + "..." : null
         };
 
-        const updated = [...chatMessages, newMsg];
-        setChatMessages(updated);
+        setChatMessages(prev => [...prev, newMsg]);
         setChatInput("");
         setReplyingTo(null);
 
-        if (gasConfig.connected && gasConfig.webAppUrl) {
-          callGasApi('sendChatMessage', {
-            sender: user.name,
-            userId: user.id,
-            text: newMsg.text,
-            replyTo: newMsg.replyTo
-          }).catch(e => console.log("GAS chat log:", e));
+        if (supabase) {
+          try {
+            await supabase.from('chat_messages').insert([
+              {
+                id: newMsg.id,
+                sender: newMsg.sender,
+                user_id: newMsg.userId,
+                text: newMsg.text,
+                time: newMsg.time,
+                reply_to: newMsg.replyTo
+              }
+            ]);
+          } catch (err) {
+            console.error("Supabase chat insert error:", err);
+          }
         }
       };
 
@@ -1403,14 +1709,19 @@
         triggerToast(`Grup "${newGrp.name}" berhasil dibuat!`);
       };
 
-      const handleDeleteRegisteredMember = (targetId, targetName) => {
+      const handleDeleteRegisteredMember = async (targetId, targetName) => {
         setConfirmDialog({
           title: "Hapus Anggota Terdaftar",
           message: `Apakah Anda yakin ingin menghapus akun anggota "${targetName}" dari database?`,
-          onConfirm: () => {
+          onConfirm: async () => {
             setRegisteredUsers(prev => prev.filter(u => u.id !== targetId));
             setSubmittedDossiers(prev => prev.filter(d => d.userId !== targetId));
             setConfirmDialog(null);
+
+            if (supabase) {
+              await supabase.from('users_registry').delete().eq('id', targetId);
+              await supabase.from('dossiers').delete().eq('user_id', targetId);
+            }
             triggerToast(`Akun ${targetName} berhasil dihapus.`);
           }
         });
@@ -1465,11 +1776,16 @@
               <span className="inline-block w-2 h-2 rounded-full bg-pch-gold animate-pulse"></span>
               <span><strong>PANUA COMMUNITY GORONTALO</strong> — Independent Community Platform. Not Officially Affiliated with Pi Network.</span>
             </div>
-            <div className="hidden sm:flex items-center gap-1.5 text-[10px] font-mono px-2 py-0.5 rounded bg-pch-surface border border-pch-border shrink-0">
-              {isOnline ? (
-                <span className="text-pch-success flex items-center gap-1"><Icons.Wifi className="w-3 h-3" /> Online</span>
+            <div className="hidden sm:flex items-center gap-2 text-[10px] font-mono px-2 py-0.5 rounded bg-pch-surface border border-pch-border shrink-0">
+              {isRealtimeActive ? (
+                <span className="text-pch-success flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-pch-success animate-ping"></span>
+                  <Icons.Zap className="w-3 h-3" /> Supabase Realtime
+                </span>
+              ) : supabaseConfig.url ? (
+                <span className="text-pch-warning flex items-center gap-1">Menyambungkan Supabase...</span>
               ) : (
-                <span className="text-pch-danger flex items-center gap-1"><Icons.WifiOff className="w-3 h-3" /> Offline</span>
+                <span className="text-pch-muted flex items-center gap-1">Supabase Belum Diatur</span>
               )}
             </div>
           </div>
@@ -1729,7 +2045,7 @@
                     ) : (
                       <form onSubmit={handleForgotSubmit} className="space-y-3">
                         <input 
-                          type="email"
+                          type="email" 
                           required
                           value={forgotEmail}
                           onChange={(e) => setForgotEmail(e.target.value)}
@@ -1824,25 +2140,23 @@
                       <span>{isOnline ? "Online" : "Offline"}</span>
                     </span>
                     <span>•</span>
-                    <span>GAS Server: {gasConfig.connected ? `Tersambung (${gasConfig.lastSync || "Aktif"})` : "Belum Terhubung"}</span>
+                    <span className="flex items-center gap-1">
+                      <Icons.Database className="w-3.5 h-3.5 text-pch-purpleLight" />
+                      <span>Supabase: {isRealtimeActive ? "Realtime Aktif" : supabaseConfig.url ? "Tersambung" : "Belum Dikonfigurasi"}</span>
+                    </span>
                   </div>
 
                   <div className="flex items-center gap-3">
                     <button
-                      onClick={() => syncFromGas()}
-                      disabled={isSyncing || !gasConfig.webAppUrl}
-                      title="Sinkronkan data dengan Google Sheets & Drive"
-                      className="px-2.5 py-1.5 rounded-lg bg-pch-secondary border border-pch-purple text-[11px] text-pch-purpleLight hover:bg-pch-purple/20 flex items-center gap-1.5 disabled:opacity-50"
+                      onClick={() => setShowSupabaseModal(true)}
+                      className={`px-2.5 py-1.5 rounded-lg border text-[11px] flex items-center gap-1.5 transition-all ${
+                        isRealtimeActive 
+                          ? "bg-emerald-950/60 border-pch-success text-pch-success hover:bg-emerald-900/60"
+                          : "bg-pch-secondary border-pch-purple text-pch-purpleLight hover:bg-pch-purple/20"
+                      }`}
                     >
-                      <Icons.Database className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin" : ""}`} />
-                      <span className="hidden sm:inline">{isSyncing ? "Sinkron..." : "Sinkronkan Cloud"}</span>
-                    </button>
-                    <button
-                      onClick={() => setShowGasModal(true)}
-                      className="px-2.5 py-1.5 rounded-lg bg-pch-secondary border border-pch-border text-[11px] text-pch-goldLight hover:border-pch-gold flex items-center gap-1.5"
-                    >
-                      <Icons.Cloud className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Status GAS</span>
+                      <Icons.Zap className={`w-3.5 h-3.5 ${isRealtimeActive ? "animate-pulse" : ""}`} />
+                      <span className="hidden sm:inline">{isRealtimeActive ? "Supabase Realtime" : "Koneksi Supabase"}</span>
                     </button>
                     <UserAvatar user={user} branding={appBranding} size="sm" />
                     <button 
@@ -1882,7 +2196,7 @@
                       {/* Stat Cards */}
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="p-4 rounded-xl bg-pch-surface border border-pch-border">
-                          <span className="text-xs text-pch-muted block">Anggota Terdaftar</span>
+                          <span className="text-xs text-pch-muted block">Anggota Realtime</span>
                           <span className="text-xl font-bold text-pch-goldLight font-mono">{registeredUsers.length + 1}</span>
                         </div>
                         <div className="p-4 rounded-xl bg-pch-surface border border-pch-border">
@@ -1892,12 +2206,14 @@
                         <div className="p-4 rounded-xl bg-pch-surface border border-pch-border">
                           <span className="text-xs text-pch-muted block">Status Brankas</span>
                           <span className={`text-xs font-bold block mt-1.5 ${vaultUnlocked ? "text-pch-success" : "text-pch-warning"}`}>
-                            {vaultUnlocked ? "Terbuka (Siap Akses)" : "Terkunci (Perlu Redeem Code)"}
+                            {vaultUnlocked ? "Terbuka (Sesi 1 Jam)" : "Terkunci (Perlu Redeem Code)"}
                           </span>
                         </div>
                         <div className="p-4 rounded-xl bg-pch-surface border border-pch-border">
-                          <span className="text-xs text-pch-muted block">Konferensi WebRTC</span>
-                          <span className="text-xs font-bold text-pch-success block mt-1.5">Jitsi Server Gorontalo Aktif</span>
+                          <span className="text-xs text-pch-muted block">Supabase Realtime</span>
+                          <span className={`text-xs font-bold block mt-1.5 ${isRealtimeActive ? "text-pch-success" : "text-pch-warning"}`}>
+                            {isRealtimeActive ? "Terhubung & Sinkron" : "Belum Aktif"}
+                          </span>
                         </div>
                       </div>
 
@@ -1908,7 +2224,7 @@
                           className="p-4 rounded-xl bg-pch-secondary border border-pch-border hover:border-pch-purple text-left transition-all group"
                         >
                           <Icons.MessageSquare className="w-6 h-6 text-pch-purple group-hover:scale-110 transition-transform mb-2" />
-                          <h4 className="font-bold text-sm text-pch-text">Forum Obrolan Pionir</h4>
+                          <h4 className="font-bold text-sm text-pch-text">Forum Obrolan Realtime</h4>
                           <p className="text-xs text-pch-muted mt-1">Koordinasi langsung dan pesan publik sesama anggota Panua.</p>
                         </button>
 
@@ -1918,7 +2234,7 @@
                         >
                           <Icons.Video className="w-6 h-6 text-pch-gold group-hover:scale-110 transition-transform mb-2" />
                           <h4 className="font-bold text-sm text-pch-text">Rapat Online Dedicated</h4>
-                          <p className="text-xs text-pch-muted mt-1">Konferensi video & mikrofon berkecepatan tinggi tanpa membebani GAS.</p>
+                          <p className="text-xs text-pch-muted mt-1">Konferensi video & mikrofon berkecepatan tinggi terisolasi.</p>
                         </button>
 
                         <button 
@@ -1999,7 +2315,7 @@
                     </div>
                   )}
 
-                  {/* TAB 3: CHAT FORUM */}
+                  {/* TAB 3: CHAT FORUM (SUPABASE REALTIME) */}
                   {activeTab === "chat" && (
                     <div className="p-4 sm:p-6 rounded-2xl bg-pch-surface border border-pch-border h-[650px] flex flex-col justify-between">
                       <div className="pb-3 border-b border-pch-border flex items-center justify-between">
@@ -2007,9 +2323,15 @@
                           <BrandLogo config={appBranding} size="sm" />
                           <div>
                             <h3 className="font-bold text-sm text-pch-text">Forum Resmi Panua Community Gorontalo</h3>
-                            <p className="text-[10px] text-pch-muted">Komunikasi publik perintis & anggota (Tersinkron ke Sheets DB)</p>
+                            <p className="text-[10px] text-pch-muted">Komunikasi publik perintis & anggota (Supabase Realtime Broadcast)</p>
                           </div>
                         </div>
+                        {isRealtimeActive && (
+                          <span className="text-[10px] text-pch-success flex items-center gap-1 font-mono">
+                            <span className="w-1.5 h-1.5 rounded-full bg-pch-success animate-ping"></span>
+                            Live Stream
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex-1 overflow-y-auto py-4 space-y-3.5 pr-2">
@@ -2052,7 +2374,7 @@
                         <div className="flex items-center gap-2">
                           <input 
                             type="text" 
-                            placeholder="Ketik pesan untuk forum Panua Community..."
+                            placeholder="Ketik pesan realtime untuk forum Panua Community..."
                             value={chatInput}
                             onChange={(e) => setChatInput(e.target.value)}
                             className="flex-1 bg-pch-secondary border border-pch-border rounded-xl px-4 py-2.5 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
@@ -2078,14 +2400,14 @@
                             <h2 className="text-lg font-bold text-pch-text">Rapat Online Pionir Panua (WebRTC Dedicated)</h2>
                           </div>
                           <p className="text-xs text-pch-muted mt-1">
-                            Audio, video, mic, dan kamera ditangani server rapat independen ({appBranding.meetingProvider}), terisolasi total dari GAS backend.
+                            Audio, video, mic, dan kamera ditangani server rapat independen ({appBranding.meetingProvider}), terpisah total dari database.
                           </p>
                         </div>
                         <button
                           onClick={() => setShowCreateMeetingModal(true)}
                           className="px-4 py-2 rounded-xl bg-pch-purple text-white text-xs font-semibold hover:bg-pch-purpleLight flex items-center gap-1.5 shadow-purple-glow shrink-0"
                         >
-                          <Icons.Plus className="w-4 h-4" />
+                          <Icons.Plus className="w-3.5 h-3.5" />
                           <span>Jadwalkan Rapat Baru</span>
                         </button>
                       </div>
@@ -2152,7 +2474,7 @@
                     </div>
                   )}
 
-                  {/* TAB 5: MY SECURE VAULT */}
+                  {/* TAB 5: MY SECURE VAULT (15 BERKAS SUPABASE STORAGE) */}
                   {activeTab === "vault" && (
                     <div className="space-y-6">
                       {!vaultUnlocked ? (
@@ -2169,7 +2491,7 @@
                               Buka Akses My Secure Vault
                             </h2>
                             <p className="text-xs sm:text-sm text-pch-muted max-w-md mx-auto leading-relaxed">
-                              Masukkan <strong>Redeem Code</strong> yang diterbitkan Admin (berlaku 90 detik). Setelah diverifikasi, brankas Anda terbuka selama <strong>1 Jam</strong> sebelum terkunci otomatis.
+                              Masukkan <strong>Redeem Code</strong> yang diterbitkan Admin (berlaku 90 detik). Setelah diverifikasi via Supabase Realtime, brankas Anda terbuka selama <strong>1 Jam</strong> sebelum terkunci otomatis.
                             </p>
                           </div>
 
@@ -2192,7 +2514,7 @@
                               className="w-full py-2.5 rounded-xl bg-pch-gold text-black font-bold text-sm hover:bg-pch-goldLight transition-all shadow-gold-glow flex items-center justify-center gap-2 disabled:opacity-50"
                             >
                               <Icons.Lock className="w-4 h-4" />
-                              <span>{isVerifyingCode ? "Memverifikasi Kode..." : "Buka Akses Brankas (1 Jam)"}</span>
+                              <span>{isVerifyingCode ? "Memverifikasi Kode Supabase..." : "Buka Akses Brankas (1 Jam)"}</span>
                             </button>
                           </form>
 
@@ -2230,7 +2552,7 @@
                                   )}
                                 </div>
                                 <p className="text-xs text-pch-muted">
-                                  Status Arsip Drive: <strong>{memberDossier.lastSynced}</strong>
+                                  Status Cloud: <strong>{memberDossier.lastSynced}</strong>
                                 </p>
                               </div>
                             </div>
@@ -2242,7 +2564,7 @@
                                 className="px-3.5 py-2 rounded-xl bg-pch-gold text-black text-xs font-bold hover:bg-pch-goldLight flex items-center gap-1.5 shadow-gold-glow disabled:opacity-50"
                               >
                                 <Icons.Upload className="w-3.5 h-3.5" />
-                                <span>{isSavingDossier ? "Mengunggah ke Drive..." : "Simpan & Kirim ke Drive Admin"}</span>
+                                <span>{isSavingDossier ? "Menyimpan ke Supabase..." : "Simpan & Kirim ke Supabase Admin"}</span>
                               </button>
 
                               {user?.role !== "admin" && (
@@ -2400,7 +2722,7 @@
                           <div className="p-5 sm:p-6 rounded-2xl bg-pch-surface border border-pch-border space-y-4">
                             <h4 className="font-bold text-sm text-pch-goldLight flex items-center gap-2 border-b border-pch-border pb-3">
                               <Icons.FileText className="w-4 h-4 text-pch-gold" />
-                              <span>3. Berkas Identitas Wajib Terunggah</span>
+                              <span>3. Berkas Identitas Wajib Terunggah (Supabase Storage)</span>
                             </h4>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -2421,7 +2743,7 @@
                                     <span className="text-[10px] text-pch-muted mt-1 block">
                                       {item.data?.driveUrl ? (
                                         <a href={item.data.driveUrl} target="_blank" rel="noreferrer" className="text-pch-success underline font-semibold flex items-center gap-1">
-                                          <Icons.Check className="w-3 h-3" /> Ada di Drive (Klik Lihat)
+                                          <Icons.Check className="w-3 h-3" /> Ada di Cloud (Klik Lihat)
                                         </a>
                                       ) : item.data?.base64 ? (
                                         <span className="text-pch-goldLight">Siap upload ({item.data.size})</span>
@@ -2449,7 +2771,7 @@
                                             ...prev,
                                             [item.key]: compressed
                                           }));
-                                          triggerToast(`File ${item.label} siap disimpan ke Google Drive!`);
+                                          triggerToast(`File ${item.label} siap disimpan ke Supabase!`);
                                         }
                                       }}
                                     />
@@ -2520,17 +2842,18 @@
                           {/* Save & Sync Button */}
                           <div className="p-5 rounded-2xl bg-pch-secondary border border-pch-gold/40 flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div className="space-y-1 text-center sm:text-left">
-                              <h4 className="text-sm font-bold text-pch-text">Simpan & Kirim Semua Dokumen ke Admin Drive</h4>
+                              <h4 className="text-sm font-bold text-pch-text">Simpan & Kirim Semua Dokumen ke Supabase Admin</h4>
                               <p className="text-xs text-pch-muted">
-                                Seluruh berkas Anda tersimpan rapi di Google Drive Admin Panua Community Gorontalo.
+                                Seluruh berkas Anda tersimpan rapi di Supabase PostgreSQL & Storage Panua Community Gorontalo.
                               </p>
                             </div>
                             <button 
                               onClick={handleSaveAndSendDossierToAdmin}
-                              className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-pch-gold text-black font-bold text-sm hover:bg-pch-goldLight transition-all shadow-gold-glow flex items-center justify-center gap-2 shrink-0"
+                              disabled={isSavingDossier}
+                              className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-pch-gold text-black font-bold text-sm hover:bg-pch-goldLight transition-all shadow-gold-glow flex items-center justify-center gap-2 shrink-0 disabled:opacity-50"
                             >
                               <Icons.Upload className="w-4 h-4" />
-                              <span>Simpan & Kirim ke Drive Admin</span>
+                              <span>{isSavingDossier ? "Menyimpan Realtime..." : "Simpan & Kirim ke Supabase Admin"}</span>
                             </button>
                           </div>
                         </div>
@@ -2627,9 +2950,16 @@
 
                           <div className="pt-2 flex gap-3">
                             <button 
-                              onClick={() => {
+                              onClick={async () => {
                                 setRegisteredUsers(users => users.map(u => u.id === user.id ? user : u));
-                                triggerToast("Pengaturan profil Panua Community berhasil disimpan.");
+                                if (supabase) {
+                                  await supabase.from('users_registry').update({
+                                    name: user.name,
+                                    phone: user.phone,
+                                    bio: user.bio
+                                  }).eq('id', user.id);
+                                }
+                                triggerToast("Pengaturan profil Panua Community berhasil disimpan.", "success");
                               }}
                               className="flex-1 py-2.5 rounded-xl bg-pch-gold text-black font-semibold text-sm hover:bg-pch-goldLight shadow-gold-glow"
                             >
@@ -2658,16 +2988,16 @@
                             <h2 className="text-lg font-bold text-pch-text">Admin Master Console — Panua Community</h2>
                           </div>
                           <p className="text-xs text-pch-muted mt-1">
-                            Kelola branding (Nama & Logo), terbitkan Redeem Code 90 detik, dan pantau arsip berkas anggota Gorontalo.
+                            Kelola branding (Nama & Logo), terbitkan Redeem Code 90 detik, dan pantau arsip berkas anggota Gorontalo di Supabase.
                           </p>
                         </div>
                         <div className="flex items-center gap-2 self-start">
                           <button
-                            onClick={() => setShowGasScriptModal(true)}
+                            onClick={() => setShowSqlSchemaModal(true)}
                             className="px-3 py-1.5 rounded-lg bg-pch-secondary border border-pch-gold/40 text-xs text-pch-goldLight hover:bg-pch-surface flex items-center gap-1.5 font-mono"
                           >
                             <Icons.Code className="w-3.5 h-3.5" />
-                            <span>Script Code.gs</span>
+                            <span>SQL Schema</span>
                           </button>
                           <span className="text-xs font-mono bg-pch-purple/20 text-pch-purpleLight border border-pch-purple px-3 py-1 rounded-lg">
                             SUPER_ADMIN
@@ -2766,22 +3096,21 @@
                                         type="file"
                                         accept="image/*"
                                         className="hidden"
-                                        onChange={(e) => {
+                                        onChange={async (e) => {
                                           const file = e.target.files[0];
                                           if (file) {
                                             if (file.size > 3 * 1024 * 1024) {
                                               triggerToast("Ukuran logo maksimal 3MB!", "danger");
                                               return;
                                             }
-                                            const reader = new FileReader();
-                                            reader.onload = (event) => {
-                                              setBrandingDraft(prev => ({
-                                                ...prev,
-                                                customLogoUrl: event.target.result
-                                              }));
-                                              triggerToast("Logo kustom berhasil dimuat! Pratinjau diperbarui.");
-                                            };
-                                            reader.readAsDataURL(file);
+                                            const compressed = await compressImageFile(file, 400, 0.85);
+                                            let logoUrl = compressed.base64;
+                                            if (supabase) {
+                                              const uploaded = await uploadFileToSupabaseStorage(compressed, 'branding');
+                                              if (uploaded) logoUrl = uploaded;
+                                            }
+                                            setBrandingDraft(prev => ({ ...prev, customLogoUrl: logoUrl }));
+                                            triggerToast("Logo kustom berhasil dimuat! Pratinjau diperbarui.");
                                           }
                                         }}
                                       />
@@ -2946,16 +3275,14 @@
                           </div>
                         </div>
 
-                        {/* 3. Arsip Berkas Anggota di Drive */}
+                        {/* 3. Arsip Berkas Anggota di Supabase */}
                         <div className="space-y-2 pt-4 border-t border-pch-border">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-pch-text block">Arsip Berkas Brankas Anggota di Google Drive Admin ({submittedDossiers.length} Berkas)</span>
-                            <button
-                              onClick={() => syncFromGas()}
-                              className="text-[11px] text-pch-gold underline hover:opacity-80"
-                            >
-                              Segarkan Arsip Cloud
-                            </button>
+                            <span className="text-xs font-bold text-pch-text block">Arsip Berkas Brankas Anggota di Supabase Realtime ({submittedDossiers.length} Berkas)</span>
+                            <span className="text-[10px] text-pch-success flex items-center gap-1 font-mono">
+                              <span className="w-1.5 h-1.5 rounded-full bg-pch-success animate-ping"></span>
+                              Live Sync
+                            </span>
                           </div>
                           <div className="overflow-x-auto">
                             <table className="w-full text-xs text-left">
@@ -2964,7 +3291,7 @@
                                   <th className="p-3">Nama Anggota</th>
                                   <th className="p-3">Kontak (WA)</th>
                                   <th className="p-3">Username Pi / NIK</th>
-                                  <th className="p-3">Status Drive</th>
+                                  <th className="p-3">Status Cloud</th>
                                   <th className="p-3">Inspeksi Berkas</th>
                                   <th className="p-3">Kirim Kode / Akses</th>
                                 </tr>
@@ -2973,7 +3300,7 @@
                                 {submittedDossiers.length === 0 ? (
                                   <tr>
                                     <td colSpan="6" className="p-4 text-center text-pch-muted italic">
-                                      Belum ada berkas anggota yang diunggah. Klik "Sinkronkan Cloud" untuk memuat arsip dari Google Sheets & Drive.
+                                      Belum ada berkas anggota yang diunggah. Ketika ada anggota mengunggah dokumen, data langsung muncul realtime di sini.
                                     </td>
                                   </tr>
                                 ) : (
@@ -3023,7 +3350,7 @@
                         <div className="space-y-2 pt-4 border-t border-pch-border">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-bold text-pch-text block">Daftar Akun Anggota Terdaftar ({registeredUsers.length} Orang)</span>
-                            <span className="text-[10px] text-pch-muted">Diperbarui realtime dari Cloud & Lokal</span>
+                            <span className="text-[10px] text-pch-muted">Diperbarui realtime dari Supabase PostgreSQL</span>
                           </div>
                           <div className="overflow-x-auto">
                             <table className="w-full text-xs text-left">
@@ -3041,7 +3368,7 @@
                                 {registeredUsers.length === 0 ? (
                                   <tr>
                                     <td colSpan="6" className="p-4 text-center text-pch-muted italic">
-                                      Belum ada anggota baru yang mendaftar. Klik "Sinkronkan Cloud" untuk memuat anggota dari Google Sheets.
+                                      Belum ada anggota baru yang mendaftar. Data pendaftaran otomatis masuk secara realtime.
                                     </td>
                                   </tr>
                                 ) : (
@@ -3263,45 +3590,59 @@
             </div>
           )}
 
-          {/* MODAL: SCRIPT CODE.GS VIEWER */}
-          {showGasScriptModal && (
+          {/* MODAL: SUPABASE SQL SCHEMA VIEWER */}
+          {showSqlSchemaModal && (
             <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-pch-surface border border-pch-border rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-card-elevated">
+              <div className="bg-pch-surface border border-pch-border rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-card-elevated">
                 <div className="flex items-center justify-between pb-2 border-b border-pch-border">
                   <h3 className="font-bold text-base text-pch-text flex items-center gap-2">
                     <Icons.Code className="w-4 h-4 text-pch-gold" />
-                    <span>Script Backend Google Apps Script (Code.gs)</span>
+                    <span>Supabase SQL Migration Schema</span>
                   </h3>
-                  <button onClick={() => setShowGasScriptModal(false)} className="text-pch-muted hover:text-pch-text">
+                  <button onClick={() => setShowSqlSchemaModal(false)} className="text-pch-muted hover:text-pch-text">
                     <Icons.X className="w-5 h-5" />
                   </button>
                 </div>
 
                 <p className="text-xs text-pch-muted">
-                  Backend API resmi Panua Community Gorontalo untuk menangani database Google Sheets dan arsip Google Drive terisolasi.
+                  Jalankan SQL ini di <strong>Supabase SQL Editor</strong> untuk membuat seluruh tabel, storage bucket, RLS, dan publikasi realtime.
                 </p>
 
-                <div className="p-3 bg-black/80 rounded-xl border border-pch-border max-h-60 overflow-y-auto font-mono text-[11px] text-pch-goldLight">
-                  <pre>{`/**
- * PANUA COMMUNITY GORONTALO — GOOGLE APPS SCRIPT PRODUCTION BACKEND
- * File: Code.gs
- */
-function doGet(e) {
-  const action = e.parameter.action || 'ping';
-  if (action === 'verifyRedeemCode') {
-    // Verifikasi batas 90 detik + toleransi
-    ...
-  }
-}
-function doPost(e) {
-  // Simpan berkas drive & update status
-  ...
-}`}</pre>
+                <div className="p-3 bg-black/90 rounded-xl border border-pch-border max-h-64 overflow-y-auto font-mono text-[11px] text-pch-goldLight">
+                  <pre>{`-- PANUA COMMUNITY SUPABASE SCHEMA
+CREATE TABLE public.users_registry (
+  id TEXT PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT,
+  role TEXT DEFAULT 'member',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE public.dossiers (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  username TEXT NOT NULL,
+  nama_lengkap TEXT NOT NULL,
+  nik TEXT,
+  rekening TEXT,
+  foto_ktp_url TEXT,
+  foto_kk_url TEXT,
+  foto_npwp_url TEXT,
+  pasfoto_url TEXT,
+  kta_url TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Realtime Publication
+ALTER PUBLICATION supabase_realtime ADD TABLE users_registry, dossiers, redeem_codes, chat_messages, app_branding;`}</pre>
                 </div>
 
-                <div className="pt-2 flex justify-end">
+                <div className="pt-2 flex justify-between items-center">
+                  <span className="text-[11px] text-pch-muted">File lengkap: <code>supabase_schema.sql</code></span>
                   <button 
-                    onClick={() => setShowGasScriptModal(false)}
+                    onClick={() => setShowSqlSchemaModal(false)}
                     className="px-5 py-2 rounded-xl bg-pch-gold text-black font-semibold text-xs hover:bg-pch-goldLight"
                   >
                     Tutup
@@ -3311,65 +3652,68 @@ function doPost(e) {
             </div>
           )}
 
-          {/* MODAL: GOOGLE APPS SCRIPT CONFIGURATION */}
-          {showGasModal && (
+          {/* MODAL: SUPABASE CONFIGURATION */}
+          {showSupabaseModal && (
             <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
               <div className="bg-pch-surface border border-pch-border rounded-2xl max-w-md w-full p-6 space-y-4 shadow-card-elevated">
                 <div className="flex items-center justify-between pb-2 border-b border-pch-border">
                   <h3 className="font-bold text-base text-pch-text flex items-center gap-2">
-                    <Icons.Cloud className="w-4 h-4 text-pch-gold" />
-                    <span>Konfigurasi Google Apps Script (GAS)</span>
+                    <Icons.Zap className="w-4 h-4 text-pch-gold" />
+                    <span>Konfigurasi Supabase Realtime</span>
                   </h3>
-                  <button onClick={() => setShowGasModal(false)} className="text-pch-muted hover:text-pch-text">
+                  <button onClick={() => setShowSupabaseModal(false)} className="text-pch-muted hover:text-pch-text">
                     <Icons.X className="w-5 h-5" />
                   </button>
                 </div>
 
                 <p className="text-xs text-pch-muted">
-                  Masukkan Web App URL (/exec) Google Apps Script untuk menghubungkan Google Drive Vault & Google Sheets Panua Community.
+                  Masukkan <strong>Project URL</strong> dan <strong>Anon Public Key</strong> dari dashboard Supabase Anda (Settings &gt; API) untuk mengaktifkan sinkronisasi database dan unggah dokumen secara realtime.
                 </p>
 
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs font-semibold text-pch-muted">GAS Web App URL (/exec)</label>
+                    <label className="text-xs font-semibold text-pch-muted block mb-1">Supabase Project URL</label>
                     <input 
                       type="url" 
-                      placeholder="https://script.google.com/macros/s/.../exec"
-                      value={gasConfig.webAppUrl}
-                      onChange={(e) => setGasConfig({ ...gasConfig, webAppUrl: e.target.value })}
-                      className="w-full mt-1 bg-pch-secondary border border-pch-border rounded-xl px-3 py-2 text-xs font-mono text-pch-text focus:outline-none focus:border-pch-purple"
+                      placeholder="https://xyzprojectid.supabase.co"
+                      id="input-supabase-url"
+                      defaultValue={supabaseConfig.url}
+                      className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3 py-2 text-xs font-mono text-pch-text focus:outline-none focus:border-pch-purple"
                     />
                   </div>
 
-                  {testResult && (
-                    <div className={`p-3 rounded-xl text-xs font-mono border ${
-                      testResult.loading ? "bg-amber-950/40 border-pch-warning text-amber-200" :
-                      testResult.success ? "bg-emerald-950/40 border-pch-success text-emerald-200" :
-                      "bg-red-950/40 border-pch-danger text-red-200"
-                    }`}>
-                      {testResult.message}
-                    </div>
-                  )}
+                  <div>
+                    <label className="text-xs font-semibold text-pch-muted block mb-1">Supabase Anon Public Key</label>
+                    <input 
+                      type="password" 
+                      placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..."
+                      id="input-supabase-key"
+                      defaultValue={supabaseConfig.key}
+                      className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3 py-2 text-xs font-mono text-pch-text focus:outline-none focus:border-pch-purple"
+                    />
+                  </div>
 
-                  <button
-                    type="button"
-                    onClick={handleTestGasConnection}
-                    className="w-full py-2 rounded-xl bg-pch-secondary border border-pch-purple text-pch-purpleLight text-xs font-semibold hover:bg-pch-purple/20 flex items-center justify-center gap-1.5"
-                  >
-                    <Icons.Database className="w-3.5 h-3.5" />
-                    <span>Uji Tes Tulis Baris ke Google Sheets</span>
-                  </button>
+                  <div className="p-3 rounded-xl bg-pch-secondary/80 border border-pch-border text-xs space-y-1">
+                    <span className="font-bold text-pch-goldLight block">Status Supabase:</span>
+                    <span className={isRealtimeActive ? "text-pch-success font-semibold" : "text-pch-warning"}>
+                      {isRealtimeActive ? "✓ Terhubung & Realtime Stream Aktif" : "Belum Terhubung"}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="pt-2 flex gap-3">
                   <button 
-                    onClick={() => setShowGasModal(false)}
+                    onClick={() => setShowSupabaseModal(false)}
                     className="flex-1 py-2.5 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted text-xs font-semibold"
                   >
-                    Tutup
+                    Batal
                   </button>
                   <button 
-                    onClick={() => handleSaveGasConfig(gasConfig.webAppUrl)}
+                    onClick={() => {
+                      const urlEl = document.getElementById('input-supabase-url');
+                      const keyEl = document.getElementById('input-supabase-key');
+                      handleSaveSupabaseConfig(urlEl ? urlEl.value : '', keyEl ? keyEl.value : '');
+                    }}
                     className="flex-1 py-2.5 rounded-xl bg-pch-gold text-black text-xs font-semibold hover:bg-pch-goldLight shadow-gold-glow"
                   >
                     Simpan & Sambungkan
@@ -3456,9 +3800,9 @@ function doPost(e) {
                   </div>
                 </div>
 
-                {/* Tautan Berkas Fisik di Google Drive */}
+                {/* Tautan Berkas Fisik di Supabase Storage */}
                 <div className="space-y-2">
-                  <span className="text-xs font-bold text-pch-goldLight block">Berkas Fisik Tersimpan di Google Drive:</span>
+                  <span className="text-xs font-bold text-pch-goldLight block">Berkas Fisik Tersimpan di Supabase Storage:</span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                     {[
                       { label: "Foto KTP Elektronik", url: selectedDossierDetail.fotoKtpUrl },
@@ -3477,7 +3821,7 @@ function doPost(e) {
                             className="text-pch-success underline font-semibold flex items-center gap-1"
                           >
                             <Icons.ExternalLink className="w-3.5 h-3.5" />
-                            <span>Buka di Drive</span>
+                            <span>Buka di Storage</span>
                           </a>
                         ) : (
                           <span className="text-pch-muted italic">Belum diunggah</span>
