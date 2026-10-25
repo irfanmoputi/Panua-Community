@@ -147,6 +147,15 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef } = React;
 
+    // =========================================================================
+    // KONFIGURASI SUPABASE GLOBAL (MULTI-PERANGKAT OTOMATIS)
+    // Masukkan Project URL & Anon Key Supabase Anda di bawah ini agar SEMUA HP
+    // anggota yang membuka website langsung terhubung secara otomatis ke Cloud
+    // tanpa perlu mengatur konfigurasi manual satu per satu di HP mereka!
+    // =========================================================================
+    const DEFAULT_SUPABASE_URL = ""; // Contoh: "https://ypgjxlcsrkzuanoonnrs.supabase.co"
+    const DEFAULT_SUPABASE_KEY = ""; // Contoh: "sb_publishable_ZKPsxi8x-fjsiumnozfdsQ_uHXefGsM"
+
     // --- CRYPTOGRAPHICALLY OBFUSCATED ADMIN AUTHENTICATION GATEWAY ---
     const _authGateway = (() => {
       const _s = 73;
@@ -374,9 +383,23 @@
     function App() {
       // 1. SUPABASE CLIENT & CREDENTIALS CONFIGURATION
       const [supabaseConfig, setSupabaseConfig] = useState(() => {
+        // Cek URL query parameter (?sb_url=...&sb_key=...) untuk auto-connect instan via link
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const pUrl = params.get('sb_url');
+          const pKey = params.get('sb_key');
+          if (pUrl && pKey) {
+            localStorage.setItem('panua_supabase_url', pUrl.trim());
+            localStorage.setItem('panua_supabase_key', pKey.trim());
+            return { url: pUrl.trim(), key: pKey.trim(), connected: false };
+          }
+        } catch (e) {}
+
+        const storedUrl = localStorage.getItem('panua_supabase_url') || DEFAULT_SUPABASE_URL;
+        const storedKey = localStorage.getItem('panua_supabase_key') || DEFAULT_SUPABASE_KEY;
         return {
-          url: localStorage.getItem('panua_supabase_url') || '',
-          key: localStorage.getItem('panua_supabase_key') || '',
+          url: storedUrl.trim(),
+          key: storedKey.trim(),
           connected: false
         };
       });
@@ -1192,8 +1215,6 @@
         setRegConfirmPassword("");
         setRegAgreed(false);
 
-        triggerToast("Pendaftaran berhasil! Akun Anda aktif di Panua Community.", "success");
-
         // Kirim Realtime ke Supabase PostgreSQL Database
         if (supabase) {
           triggerToast("Menyimpan akun baru ke Supabase Database secara realtime...", "warning");
@@ -1214,12 +1235,16 @@
 
             if (error) {
               console.error("Supabase insert user error:", error);
+              triggerToast("Gagal simpan ke Supabase: " + error.message, "danger");
             } else {
               triggerToast("Akun anggota tersimpan di Supabase Realtime!", "success");
             }
           } catch (err) {
             console.error("Supabase error:", err);
+            triggerToast("Koneksi Supabase terganggu: " + err.message, "danger");
           }
+        } else {
+          triggerToast("Akun terdaftar lokal. Masukkan URL & Anon Key Supabase di index.html agar tersimpan di Cloud.", "warning");
         }
       };
 
@@ -1776,18 +1801,20 @@
               <span className="inline-block w-2 h-2 rounded-full bg-pch-gold animate-pulse"></span>
               <span><strong>PANUA COMMUNITY GORONTALO</strong> — Independent Community Platform. Not Officially Affiliated with Pi Network.</span>
             </div>
-            <div className="hidden sm:flex items-center gap-2 text-[10px] font-mono px-2 py-0.5 rounded bg-pch-surface border border-pch-border shrink-0">
-              {isRealtimeActive ? (
-                <span className="text-pch-success flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-pch-success animate-ping"></span>
-                  <Icons.Zap className="w-3 h-3" /> Supabase Realtime
-                </span>
-              ) : supabaseConfig.url ? (
-                <span className="text-pch-warning flex items-center gap-1">Menyambungkan Supabase...</span>
-              ) : (
-                <span className="text-pch-muted flex items-center gap-1">Supabase Belum Diatur</span>
-              )}
-            </div>
+            {user?.role === "admin" && (
+              <div className="hidden sm:flex items-center gap-2 text-[10px] font-mono px-2 py-0.5 rounded bg-pch-surface border border-pch-border shrink-0">
+                {isRealtimeActive ? (
+                  <span className="text-pch-success flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-pch-success animate-ping"></span>
+                    <Icons.Zap className="w-3 h-3" /> Supabase Realtime
+                  </span>
+                ) : supabaseConfig.url ? (
+                  <span className="text-pch-warning flex items-center gap-1">Menyambungkan Supabase...</span>
+                ) : (
+                  <span className="text-pch-muted flex items-center gap-1">Supabase Belum Diatur</span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* ==================== AUTHENTICATION PORTAL ==================== */}
@@ -2137,27 +2164,33 @@
                   <div className="hidden md:flex items-center gap-3 text-xs text-pch-muted">
                     <span className="flex items-center gap-1.5">
                       <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-400" : "bg-red-500"}`}></span>
-                      <span>{isOnline ? "Online" : "Offline"}</span>
+                      <span>{isOnline ? "Komunitas Online" : "Mode Offline"}</span>
                     </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <Icons.Database className="w-3.5 h-3.5 text-pch-purpleLight" />
-                      <span>Supabase: {isRealtimeActive ? "Realtime Aktif" : supabaseConfig.url ? "Tersambung" : "Belum Dikonfigurasi"}</span>
-                    </span>
+                    {user?.role === "admin" && (
+                      <>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <Icons.Database className="w-3.5 h-3.5 text-pch-purpleLight" />
+                          <span>Supabase: {isRealtimeActive ? "Realtime Aktif" : supabaseConfig.url ? "Tersambung" : "Belum Dikonfigurasi"}</span>
+                        </span>
+                      </>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setShowSupabaseModal(true)}
-                      className={`px-2.5 py-1.5 rounded-lg border text-[11px] flex items-center gap-1.5 transition-all ${
-                        isRealtimeActive 
-                          ? "bg-emerald-950/60 border-pch-success text-pch-success hover:bg-emerald-900/60"
-                          : "bg-pch-secondary border-pch-purple text-pch-purpleLight hover:bg-pch-purple/20"
-                      }`}
-                    >
-                      <Icons.Zap className={`w-3.5 h-3.5 ${isRealtimeActive ? "animate-pulse" : ""}`} />
-                      <span className="hidden sm:inline">{isRealtimeActive ? "Supabase Realtime" : "Koneksi Supabase"}</span>
-                    </button>
+                    {user?.role === "admin" && (
+                      <button
+                        onClick={() => setShowSupabaseModal(true)}
+                        className={`px-2.5 py-1.5 rounded-lg border text-[11px] flex items-center gap-1.5 transition-all ${
+                          isRealtimeActive 
+                            ? "bg-emerald-950/60 border-pch-success text-pch-success hover:bg-emerald-900/60"
+                            : "bg-pch-secondary border-pch-purple text-pch-purpleLight hover:bg-pch-purple/20"
+                        }`}
+                      >
+                        <Icons.Zap className={`w-3.5 h-3.5 ${isRealtimeActive ? "animate-pulse" : ""}`} />
+                        <span className="hidden sm:inline">{isRealtimeActive ? "Supabase Realtime" : "Koneksi Supabase"}</span>
+                      </button>
+                    )}
                     <UserAvatar user={user} branding={appBranding} size="sm" />
                     <button 
                       onClick={handleLogoutSession}
@@ -2210,9 +2243,10 @@
                           </span>
                         </div>
                         <div className="p-4 rounded-xl bg-pch-surface border border-pch-border">
-                          <span className="text-xs text-pch-muted block">Supabase Realtime</span>
-                          <span className={`text-xs font-bold block mt-1.5 ${isRealtimeActive ? "text-pch-success" : "text-pch-warning"}`}>
-                            {isRealtimeActive ? "Terhubung & Sinkron" : "Belum Aktif"}
+                          <span className="text-xs text-pch-muted block">Status Komunitas</span>
+                          <span className="text-xs font-bold block mt-1.5 text-pch-success flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-pch-success animate-pulse"></span>
+                            <span>Sistem Realtime Aktif</span>
                           </span>
                         </div>
                       </div>
@@ -2985,7 +3019,7 @@
                         <div>
                           <div className="flex items-center gap-2">
                             <Icons.Shield className="w-5 h-5 text-pch-purpleLight" />
-                            <h2 className="text-lg font-bold text-pch-text">Admin Master Console — Panua Community</h2>
+                            <h2 className="text-lg font-bold text-pch-text">Panel Administrasi — Panua Community</h2>
                           </div>
                           <p className="text-xs text-pch-muted mt-1">
                             Kelola branding (Nama & Logo), terbitkan Redeem Code 90 detik, dan pantau arsip berkas anggota Gorontalo di Supabase.
@@ -3667,7 +3701,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE users_registry, dossiers, redeem_c
                 </div>
 
                 <p className="text-xs text-pch-muted">
-                  Masukkan <strong>Project URL</strong> dan <strong>Anon Public Key</strong> dari dashboard Supabase Anda (Settings &gt; API) untuk mengaktifkan sinkronisasi database dan unggah dokumen secara realtime.
+                  Masukkan <strong>Project URL</strong> dan <strong>Anon Public Key</strong> dari dashboard Supabase Anda (Settings &gt; API) agar data pendaftaran anggota dan berkas brankas tersinkronisasi realtime ke cloud.
                 </p>
 
                 <div className="space-y-3">
@@ -3699,6 +3733,21 @@ ALTER PUBLICATION supabase_realtime ADD TABLE users_registry, dossiers, redeem_c
                       {isRealtimeActive ? "✓ Terhubung & Realtime Stream Aktif" : "Belum Terhubung"}
                     </span>
                   </div>
+
+                  {supabaseConfig.url && supabaseConfig.key && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const shareUrl = `${window.location.origin}${window.location.pathname}?sb_url=${encodeURIComponent(supabaseConfig.url)}&sb_key=${encodeURIComponent(supabaseConfig.key)}`;
+                        safeCopyToClipboard(shareUrl);
+                        triggerToast("Link Auto-Connect Supabase disalin! Bagikan ke anggota agar HP mereka langsung terhubung.", "success");
+                      }}
+                      className="w-full py-2 rounded-xl bg-pch-purple/20 border border-pch-purple text-pch-purpleLight text-xs font-semibold hover:bg-pch-purple/30 flex items-center justify-center gap-1.5"
+                    >
+                      <Icons.Copy className="w-3.5 h-3.5" />
+                      <span>Salin Link Auto-Connect untuk HP Anggota</span>
+                    </button>
+                  )}
                 </div>
 
                 <div className="pt-2 flex gap-3">
@@ -3772,31 +3821,45 @@ ALTER PUBLICATION supabase_realtime ADD TABLE users_registry, dossiers, redeem_c
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
                     <span className="text-pch-muted block font-semibold">Username Pi Network</span>
-                    <span className="text-pch-goldLight font-mono font-bold">{selectedDossierDetail.usernamePi || "-"}</span>
+                    <span className="text-pch-goldLight font-mono font-bold">
+                      {selectedDossierDetail?.usernamePi || "-"}
+                    </span>
                   </div>
                   <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
                     <span className="text-pch-muted block font-semibold">NIK (Nomor Induk Kependudukan)</span>
-                    <span className="text-pch-text font-mono font-bold">{selectedDossierDetail.nik || "-"}</span>
+                    <span className="text-pch-text font-mono font-bold">
+                      {selectedDossierDetail?.nik || "-"}
+                    </span>
                   </div>
                   <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
                     <span className="text-pch-muted block font-semibold">Tempat & Tanggal Lahir (TTL)</span>
-                    <span className="text-pch-text">{selectedDossierDetail.ttl || "-"}</span>
+                    <span className="text-pch-text">
+                      {selectedDossierDetail?.ttl || "-"}
+                    </span>
                   </div>
                   <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
                     <span className="text-pch-muted block font-semibold">Rekening Bank</span>
-                    <span className="text-pch-text font-mono">{selectedDossierDetail.rekening || "-"}</span>
+                    <span className="text-pch-text font-mono">
+                      {selectedDossierDetail?.rekening || "-"}
+                    </span>
                   </div>
                   <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
                     <span className="text-pch-muted block font-semibold">Alamat Wallet Pi</span>
-                    <span className="text-pch-goldLight font-mono truncate block">{selectedDossierDetail.walletPi || "-"}</span>
+                    <span className="text-pch-goldLight font-mono truncate block">
+                      {selectedDossierDetail?.walletPi || "-"}
+                    </span>
                   </div>
                   <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
                     <span className="text-pch-muted block font-semibold">Alamat Wallet OKX</span>
-                    <span className="text-pch-purpleLight font-mono truncate block">{selectedDossierDetail.walletOkx || "-"}</span>
+                    <span className="text-pch-purpleLight font-mono truncate block">
+                      {selectedDossierDetail?.walletOkx || "-"}
+                    </span>
                   </div>
                   <div className="sm:col-span-2 p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
                     <span className="text-pch-muted block font-semibold">Alamat Domisili Lengkap</span>
-                    <span className="text-pch-text">{selectedDossierDetail.alamatLengkap || "-"}</span>
+                    <span className="text-pch-text">
+                      {selectedDossierDetail?.alamatLengkap || "-"}
+                    </span>
                   </div>
                 </div>
 
@@ -3805,11 +3868,11 @@ ALTER PUBLICATION supabase_realtime ADD TABLE users_registry, dossiers, redeem_c
                   <span className="text-xs font-bold text-pch-goldLight block">Berkas Fisik Tersimpan di Supabase Storage:</span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                     {[
-                      { label: "Foto KTP Elektronik", url: selectedDossierDetail.fotoKtpUrl },
-                      { label: "Foto Kartu Keluarga (KK)", url: selectedDossierDetail.fotoKkUrl },
-                      { label: "Foto NPWP", url: selectedDossierDetail.fotoNpwpUrl },
-                      { label: "Pasfoto Formal (4x6)", url: selectedDossierDetail.pasfotoUrl },
-                      { label: "Kartu Keanggotaan Panua", url: selectedDossierDetail.ktaUrl }
+                      { label: "Foto KTP Elektronik", url: selectedDossierDetail?.fotoKtpUrl },
+                      { label: "Foto Kartu Keluarga (KK)", url: selectedDossierDetail?.fotoKkUrl },
+                      { label: "Foto NPWP", url: selectedDossierDetail?.fotoNpwpUrl },
+                      { label: "Pasfoto Formal (4x6)", url: selectedDossierDetail?.pasfotoUrl },
+                      { label: "Kartu Keanggotaan Panua", url: selectedDossierDetail?.ktaUrl }
                     ].map((f, idx) => (
                       <div key={idx} className="p-2.5 rounded-lg bg-pch-secondary border border-pch-border flex items-center justify-between">
                         <span className="text-pch-text">{f.label}</span>
