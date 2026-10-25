@@ -155,6 +155,87 @@
       return rawUrl.trim().replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, '');
     }
 
+    // Deteksi lingkungan Canvas / Iframe Sandbox yang membatasi WebSocket
+    const isWebSocketRestricted = (() => {
+      try {
+        if (typeof window !== 'undefined' && window.self !== window.top) {
+          return true;
+        }
+      } catch (e) {
+        return true;
+      }
+      return false;
+    })();
+
+    // Safe Realtime Transport Guard (Mencegah unhandled SecurityError di Canvas)
+    const NativeWebSocket = typeof window !== 'undefined' ? window.WebSocket : null;
+    class SafeRealtimeTransport {
+      constructor(url, protocols) {
+        this.url = url;
+        this.protocols = protocols;
+        this.readyState = 3; // CLOSED
+        this.onopen = null;
+        this.onclose = null;
+        this.onerror = null;
+        this.onmessage = null;
+        this.binaryType = 'blob';
+
+        if (SafeRealtimeTransport.isRestricted || !NativeWebSocket) {
+          this.simulateSafeClosed();
+          return;
+        }
+
+        try {
+          this.socket = new NativeWebSocket(url, protocols);
+          this.socket.binaryType = this.binaryType;
+          this.socket.onopen = (e) => {
+            this.readyState = this.socket.readyState;
+            if (typeof this.onopen === 'function') this.onopen(e);
+          };
+          this.socket.onclose = (e) => {
+            this.readyState = this.socket.readyState;
+            if (typeof this.onclose === 'function') this.onclose(e);
+          };
+          this.socket.onerror = (e) => {
+            if (typeof this.onerror === 'function') this.onerror(e);
+          };
+          this.socket.onmessage = (e) => {
+            if (typeof this.onmessage === 'function') this.onmessage(e);
+          };
+          this.readyState = this.socket.readyState;
+        } catch (err) {
+          SafeRealtimeTransport.isRestricted = true;
+          this.socket = null;
+          this.simulateSafeClosed();
+        }
+      }
+
+      simulateSafeClosed() {
+        this.readyState = 3;
+        setTimeout(() => {
+          if (typeof this.onclose === 'function') {
+            try {
+              this.onclose({ wasClean: true, code: 1000, reason: 'WebSocket restricted in Canvas preview' });
+            } catch (e) {}
+          }
+        }, 50);
+      }
+
+      send(data) {
+        if (this.socket && this.socket.readyState === 1) {
+          try { this.socket.send(data); } catch (e) {}
+        }
+      }
+
+      close(code, reason) {
+        this.readyState = 3;
+        if (this.socket) {
+          try { this.socket.close(code, reason); } catch (e) {}
+        }
+      }
+    }
+    SafeRealtimeTransport.isRestricted = isWebSocketRestricted;
+
     // --- CRYPTOGRAPHICALLY OBFUSCATED ADMIN AUTHENTICATION GATEWAY ---
     const _authGateway = (() => {
       const _s = 73;
@@ -400,7 +481,10 @@
           try {
             return window.supabase.createClient(targetUrl, supabaseConfig.key, {
               auth: { persistSession: true, autoRefreshToken: true },
-              realtime: { params: { eventsPerSecond: 10 } }
+              realtime: {
+                transport: SafeRealtimeTransport,
+                params: { eventsPerSecond: 10 }
+              }
             });
           } catch (err) {
             console.error("Supabase client init error:", err);
@@ -672,35 +756,25 @@
       }, [groups, selectedCategory, searchQuery]);
 
       // =======================================================================
-      // FETCH DATA LENGKAP DARI SUPABASE (REUSABLE)
+      // FETCH DATA LENGKAP DARI SUPABASE (PARALLEL & RESILIENT AUTO-SYNC)
       // =======================================================================
       const fetchLatestFromSupabase = useCallback(async (isSilent = true) => {
         if (!supabase) return;
 
         try {
-          // 1. Ambil Pengaturan Branding
-          const { data: brandData } = await supabase.from('app_branding').select('*').limit(1).maybeSingle();
-          if (brandData) {
-            const fetchedBranding = {
-              title: brandData.title || "PANUA COMMUNITY",
-              tagline: brandData.tagline || "Pi Network Gorontalo - Indonesia",
-              logoType: brandData.logo_type || "panua",
-              customLogoUrl: brandData.custom_logo_url || "",
-              meetingProvider: brandData.meeting_provider || "meet.jit.si",
-              adminWhatsapp: brandData.admin_whatsapp || "6281299887766"
-            };
-            setAppBranding(fetchedBranding);
-            setBrandingDraft(fetchedBranding);
-          }
+          // Eksekusi semua query secara paralel menggunakan Promise.allSettled
+          // agar jika salah satu tabel tertunda, tabel lainnya tetap berhasil diperbarui
+          const [usersRes, dosRes, brandRes, codesRes, chatRes] = await Promise.allSettled([
+            supabase.from('users_registry').select('*').order('created_at', { ascending: false }),
+            supabase.from('dossiers').select('*').order('updated_at', { ascending: false }),
+            supabase.from('app_branding').select('*').limit(1).maybeSingle(),
+            supabase.from('redeem_codes').select('*').eq('is_active', true),
+            supabase.from('chat_messages').select('*').order('created_at', { ascending: true }).limit(60)
+          ]);
 
-          // 2. Ambil Seluruh Pengguna Terdaftar dari Supabase
-          const { data: usersData, error: usersErr } = await supabase
-            .from('users_registry')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-          if (!usersErr && usersData && Array.isArray(usersData)) {
-            setRegisteredUsers(usersData.map(u => ({
+          // 1. Sinkronisasi Pengguna Terdaftar (users_registry)
+          if (usersRes.status === 'fulfilled' && !usersRes.value.error && Array.isArray(usersRes.value.data)) {
+            setRegisteredUsers(usersRes.value.data.map(u => ({
               id: u.id,
               name: u.name,
               username: u.username,
@@ -713,14 +787,9 @@
             })));
           }
 
-          // 3. Ambil Seluruh Dossiers Brankas
-          const { data: dosData, error: dosErr } = await supabase
-            .from('dossiers')
-            .select('*')
-            .order('updated_at', { ascending: false });
-
-          if (!dosErr && dosData && Array.isArray(dosData)) {
-            const mapped = dosData.map(d => ({
+          // 2. Sinkronisasi Arsip Berkas Brankas (dossiers)
+          if (dosRes.status === 'fulfilled' && !dosRes.value.error && Array.isArray(dosRes.value.data)) {
+            const mapped = dosRes.value.data.map(d => ({
               id: d.id,
               userId: d.user_id,
               username: d.username,
@@ -747,7 +816,7 @@
             }));
             setSubmittedDossiers(mapped);
 
-            // Sinkronkan berkas pengguna jika bukan admin
+            // Sinkronkan berkas pengguna jika pengguna biasa sedang login
             if (user && user.role !== 'admin') {
               const myDos = mapped.find(d => d.username?.toLowerCase() === user.username?.toLowerCase() || d.userId === user.id);
               if (myDos) {
@@ -776,11 +845,25 @@
             }
           }
 
-          // 4. Ambil Redeem Codes Aktif (90 Detik)
-          const { data: codeData } = await supabase.from('redeem_codes').select('*').eq('is_active', true);
-          if (codeData && Array.isArray(codeData)) {
+          // 3. Sinkronisasi Branding
+          if (brandRes.status === 'fulfilled' && brandRes.value.data) {
+            const b = brandRes.value.data;
+            const fetchedBranding = {
+              title: b.title || "PANUA COMMUNITY",
+              tagline: b.tagline || "Pi Network Gorontalo - Indonesia",
+              logoType: b.logo_type || "panua",
+              customLogoUrl: b.custom_logo_url || "",
+              meetingProvider: b.meeting_provider || "meet.jit.si",
+              adminWhatsapp: b.admin_whatsapp || "6281299887766"
+            };
+            setAppBranding(fetchedBranding);
+            setBrandingDraft(fetchedBranding);
+          }
+
+          // 4. Sinkronisasi Redeem Codes
+          if (codesRes.status === 'fulfilled' && Array.isArray(codesRes.value.data)) {
             const now = Date.now();
-            const validCodes = codeData
+            const validCodes = codesRes.value.data
               .filter(c => now < Number(c.expires_at_ms))
               .map(c => ({
                 code: c.code,
@@ -793,10 +876,9 @@
             setActiveRedeemCodes(validCodes);
           }
 
-          // 5. Ambil Pesan Obrolan
-          const { data: chatData } = await supabase.from('chat_messages').select('*').order('created_at', { ascending: true }).limit(60);
-          if (chatData && Array.isArray(chatData)) {
-            setChatMessages(chatData.map(c => ({
+          // 5. Sinkronisasi Pesan Chat
+          if (chatRes.status === 'fulfilled' && Array.isArray(chatRes.value.data)) {
+            setChatMessages(chatRes.value.data.map(c => ({
               id: c.id,
               sender: c.sender,
               userId: c.user_id,
@@ -809,7 +891,7 @@
 
           setIsRealtimeActive(true);
           if (!isSilent) {
-            triggerToast("Data Cloud Supabase berhasil disinkronkan secara realtime!", "success");
+            triggerToast("Database Cloud Supabase berhasil disinkronkan!", "success");
           }
         } catch (err) {
           console.error("Gagal sinkron data Supabase:", err);
@@ -820,7 +902,7 @@
       }, [supabase, user]);
 
       // =======================================================================
-      // SUPABASE REALTIME SUBSCRIPTIONS & BACKGROUND POLLING (DUAL PIPELINE)
+      // CONTINUOUS REALTIME ENGINE & HIGH-FREQUENCY 3-SECOND AUTO-SYNC
       // =======================================================================
       useEffect(() => {
         if (!supabase) {
@@ -828,125 +910,78 @@
           return;
         }
 
-        // Panggilan awal
+        // 1. Panggilan awal saat sistem aktif
         fetchLatestFromSupabase(true);
 
-        // REALTIME SUBSCRIPTION (STREAMING EVENT INSTAN)
+        // 2. Channel Realtime WebSocket Streaming (Aktif di production di luar sandbox Canvas)
         let channel;
-        try {
-          channel = supabase.channel('panua_realtime_stream')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'users_registry' }, (payload) => {
-              if (payload.eventType === 'INSERT') {
-                const u = payload.new;
-                setRegisteredUsers(prev => {
-                  if (prev.some(x => x.id === u.id || x.username.toLowerCase() === u.username.toLowerCase())) return prev;
-                  return [{
-                    id: u.id,
-                    name: u.name,
-                    username: u.username,
-                    email: u.email,
-                    phone: u.phone,
-                    role: u.role || 'member',
-                    bio: u.bio,
-                    avatarUrl: u.avatar_url,
-                    registeredAt: new Date(u.created_at).toLocaleDateString('id-ID')
-                  }, ...prev];
-                });
-                if (user?.role === 'admin') {
-                  triggerToast(`Pendaftaran Realtime: @${u.username} (${u.name}) baru saja masuk ke Database!`, "success");
+        if (!isWebSocketRestricted && !SafeRealtimeTransport.isRestricted) {
+          try {
+            channel = supabase.channel('panua_auto_stream_' + Date.now())
+              .on('postgres_changes', { event: '*', schema: 'public', table: 'users_registry' }, (payload) => {
+                // Otomatis tarik data lengkap tanpa delay
+                fetchLatestFromSupabase(true);
+                if (payload.eventType === 'INSERT' && user?.role === 'admin') {
+                  triggerToast(`Pendaftaran Realtime: @${payload.new?.username || 'Anggota'} baru saja masuk!`, "success");
                 }
-              } else if (payload.eventType === 'DELETE') {
-                setRegisteredUsers(prev => prev.filter(x => x.id !== payload.old.id));
-              }
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'dossiers' }, (payload) => {
-              if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-                const d = payload.new;
-                const mappedDossier = {
-                  id: d.id,
-                  userId: d.user_id,
-                  username: d.username,
-                  namaLengkap: d.nama_lengkap,
-                  email: d.email,
-                  noHp: d.no_hp,
-                  usernamePi: d.username_pi,
-                  ttl: d.ttl,
-                  nik: d.nik,
-                  alamatLengkap: d.alamat_lengkap,
-                  namaRekening: d.nama_rekening,
-                  rekening: d.no_rekening,
-                  walletPi: d.wallet_pi,
-                  walletOkx: d.wallet_okx,
-                  fotoKtpUrl: d.foto_ktp_url,
-                  fotoKkUrl: d.foto_kk_url,
-                  fotoNpwpUrl: d.foto_npwp_url,
-                  pasfotoUrl: d.pasfoto_url,
-                  ktaUrl: d.kta_url,
-                  extraDocs: d.extra_docs || [],
-                  docsCount: d.docs_count || 0,
-                  status: d.status || "Tersimpan di Cloud Supabase",
-                  lastUpdate: new Date(d.updated_at).toLocaleDateString('id-ID')
-                };
-
-                setSubmittedDossiers(prev => [mappedDossier, ...prev.filter(x => x.id !== d.id && x.username?.toLowerCase() !== d.username?.toLowerCase())]);
+              })
+              .on('postgres_changes', { event: '*', schema: 'public', table: 'dossiers' }, (payload) => {
+                // Otomatis perbarui arsip brankas saat anggota mengirim dokumen
+                fetchLatestFromSupabase(true);
                 if (user?.role === 'admin') {
-                  triggerToast(`Brankas @${d.username} diperbarui di Cloud!`, "success");
+                  triggerToast(`Brankas @${payload.new?.username || 'Anggota'} baru saja diperbarui di Cloud!`, "success");
                 }
-              }
-            })
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'redeem_codes' }, (payload) => {
-              const c = payload.new;
-              const now = Date.now();
-              if (now < Number(c.expires_at_ms)) {
-                setActiveRedeemCodes(prev => {
-                  if (prev.some(x => x.code === c.code)) return prev;
-                  return [{
-                    code: c.code,
-                    userTarget: c.user_target,
-                    createdBy: c.created_by,
-                    note: c.note,
-                    createdAt: Number(c.created_at_ms),
-                    expiresAt: Number(c.expires_at_ms)
-                  }, ...prev];
-                });
-              }
-            })
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, (payload) => {
-              const msg = payload.new;
-              setChatMessages(prev => {
-                if (prev.some(x => x.id === msg.id)) return prev;
-                return [...prev, {
-                  id: msg.id,
-                  sender: msg.sender,
-                  userId: msg.user_id,
-                  isMe: user ? (msg.user_id === user.id || msg.sender === user.name) : false,
-                  text: msg.text,
-                  time: msg.time,
-                  replyTo: msg.reply_to
-                }];
+              })
+              .on('postgres_changes', { event: '*', schema: 'public', table: 'redeem_codes' }, () => {
+                fetchLatestFromSupabase(true);
+              })
+              .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages' }, () => {
+                fetchLatestFromSupabase(true);
+              })
+              .subscribe((status, err) => {
+                if (status === 'SUBSCRIBED') {
+                  setIsRealtimeActive(true);
+                } else if (err || status === 'CHANNEL_ERROR') {
+                  SafeRealtimeTransport.isRestricted = true;
+                }
               });
-            })
-            .subscribe((status) => {
-              if (status === 'SUBSCRIBED') {
-                setIsRealtimeActive(true);
-              }
-            });
-        } catch (subErr) {
-          console.warn("Realtime channel notice:", subErr);
+          } catch (subErr) {
+            console.warn("Realtime channel notice:", subErr);
+            SafeRealtimeTransport.isRestricted = true;
+          }
+        } else {
+          // Di dalam Canvas iframe, realtime dijamin melalui continuous high-frequency HTTP REST polling
+          setIsRealtimeActive(true);
         }
 
-        // POLLING CADANGAN SETIAP 5 DETIK (MENJAMIN SINKRONISASI JIKA WEBSOCKET DIBATASI JARINGAN SELULER)
-        const pollingTimer = setInterval(() => {
+        // 3. Smart Background Auto-Sync Timer (Setiap 3 Detik)
+        // Menjamin 100% data pendaftaran & dokumen baru langsung masuk secara otomatis
+        // ke layar Admin tanpa perlu menekan tombol sinkron apa pun.
+        const autoSyncTimer = setInterval(() => {
           fetchLatestFromSupabase(true);
-        }, 5000);
+        }, 3000);
+
+        // 4. Auto-Sync saat layar browser/HP kembali aktif
+        const handleAutoFocusSync = () => fetchLatestFromSupabase(true);
+        window.addEventListener('focus', handleAutoFocusSync);
+        document.addEventListener('visibilitychange', handleAutoFocusSync);
 
         return () => {
-          clearInterval(pollingTimer);
+          clearInterval(autoSyncTimer);
+          window.removeEventListener('focus', handleAutoFocusSync);
+          document.removeEventListener('visibilitychange', handleAutoFocusSync);
           if (channel && supabase) {
             supabase.removeChannel(channel);
           }
         };
-      }, [supabase, fetchLatestFromSupabase, user]);
+      }, [supabase, fetchLatestFromSupabase, user?.role]);
+
+      // 5. Auto-sync instan setiap kali Admin membuka menu Admin atau Vault
+      useEffect(() => {
+        if (supabase && (activeTab === 'admin' || activeTab === 'vault')) {
+          fetchLatestFromSupabase(true);
+        }
+      }, [activeTab, supabase, fetchLatestFromSupabase]);
 
       // Upload Helper ke Supabase Storage
       const uploadFileToSupabaseStorage = async (fileObj, pathPrefix) => {
@@ -1309,7 +1344,10 @@
           if (!window.supabase) {
             throw new Error("Supabase SDK belum termuat di browser!");
           }
-          const testClient = window.supabase.createClient(cleanUrl, cleanKey);
+          const testClient = window.supabase.createClient(cleanUrl, cleanKey, {
+            auth: { persistSession: false },
+            realtime: { transport: SafeRealtimeTransport }
+          });
           const { error } = await testClient.from('users_registry').select('id').limit(1);
 
           if (error) {
@@ -3127,7 +3165,15 @@
 
                         {/* 3. Arsip Berkas Anggota di Supabase */}
                         <div className="space-y-2 pt-4 border-t border-pch-border">
-                          <span className="text-xs font-bold text-pch-text block">Arsip Berkas Brankas Anggota di Cloud Supabase ({submittedDossiers.length} Berkas)</span>
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <span className="text-xs font-bold text-pch-text block">
+                              Arsip Berkas Brankas Anggota di Cloud Supabase ({submittedDossiers.length} Berkas)
+                            </span>
+                            <span className="text-[10px] text-pch-success font-mono bg-emerald-950/80 px-2.5 py-0.5 rounded border border-pch-success/40 flex items-center gap-1.5 w-fit">
+                              <span className="w-1.5 h-1.5 rounded-full bg-pch-success animate-ping"></span>
+                              <span>Auto-Sync Realtime Aktif (Tiap 3 Detik)</span>
+                            </span>
+                          </div>
                           <div className="overflow-x-auto">
                             <table className="w-full text-xs text-left">
                               <thead className="bg-pch-secondary text-pch-muted uppercase border-b border-pch-border">
@@ -3197,14 +3243,21 @@
                               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                               <span className="text-xs font-bold text-pch-text block">Daftar Akun Anggota di Supabase Realtime ({registeredUsers.length} Orang)</span>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => fetchLatestFromSupabase(false)}
-                              className="px-3 py-1 rounded-lg bg-pch-secondary border border-pch-gold/40 text-[11px] font-semibold text-pch-goldLight hover:bg-pch-surface flex items-center gap-1.5 self-start"
-                            >
-                              <Icons.Zap className="w-3.5 h-3.5 text-pch-gold" />
-                              <span>Tarik Ulang dari Supabase</span>
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-pch-success font-mono bg-emerald-950/80 px-2 py-0.5 rounded border border-pch-success/30 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-pch-success animate-pulse"></span>
+                                <span>Sinkron Otomatis Realtime</span>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => fetchLatestFromSupabase(false)}
+                                className="px-2.5 py-1 rounded-lg bg-pch-secondary border border-pch-border text-[10px] font-semibold text-pch-muted hover:text-pch-goldLight hover:bg-pch-surface flex items-center gap-1"
+                                title="Gunakan hanya jika ingin memicu penarikan instan"
+                              >
+                                <Icons.Zap className="w-3 h-3 text-pch-gold" />
+                                <span>Segarkan Manual (Opsional)</span>
+                              </button>
+                            </div>
                           </div>
                           <div className="overflow-x-auto">
                             <table className="w-full text-xs text-left">
