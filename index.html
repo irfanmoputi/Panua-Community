@@ -123,7 +123,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         const swBlob = new Blob([`
-          const CACHE_NAME = 'panua-realtime-v2.0';
+          const CACHE_NAME = 'panua-realtime-v2.1';
           self.addEventListener('install', (e) => self.skipWaiting());
           self.addEventListener('activate', (e) => self.clients.claim());
           self.addEventListener('fetch', (e) => {
@@ -144,12 +144,12 @@
     const { useState, useEffect, useMemo, useRef } = React;
 
     // =========================================================================
-    // KONFIGURASI SUPABASE GLOBAL (PERMANEN MULTI-PERANGKAT)
-    // Isi URL dan Anon Key project Supabase Anda di dua baris berikut agar
-    // SETIAP HP anggota yang membuka aplikasi otomatis terhubung ke Cloud.
+    // KONFIGURASI SUPABASE GLOBAL (PERMANEN MULTI-PERANGKAT — SENYAP DI LATAR BELAKANG)
+    // Masukkan URL dan Anon Key project Supabase Anda di sini agar setiap HP anggota
+    // yang membuka aplikasi otomatis terhubung ke Cloud secara langsung.
     // =========================================================================
-    const DEFAULT_SUPABASE_URL = "https://ypgjxlcsrkzuanoonnrs.supabase.co"; // Contoh: "https://ypgjxlcsrkzuanoonnrs.supabase.co"
-    const DEFAULT_SUPABASE_KEY = "sb_publishable_ZKPsxi8x-fjsiumnozfdsQ_uHXefGsM"; // Contoh: "sb_publishable_ZKPsxi8x-fjsiumnozfdsQ_uHXefGsM"
+    const DEFAULT_SUPABASE_URL = ""; // Contoh: "https://xyzprojectid.supabase.co"
+    const DEFAULT_SUPABASE_KEY = ""; // Contoh: "eyJhbGciOiJIUzI1NiIsInR5cCI6..."
 
     // --- CRYPTOGRAPHICALLY OBFUSCATED ADMIN AUTHENTICATION GATEWAY ---
     const _authGateway = (() => {
@@ -180,7 +180,7 @@
       };
     })();
 
-    // --- ICONS PACK ---
+    // --- ICONS PACK (SVG LUCIDE-INSPIRED) ---
     const Icons = {
       Home: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
       Users: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
@@ -366,29 +366,39 @@
           const pUrl = params.get('sb_url');
           const pKey = params.get('sb_key');
           if (pUrl && pKey) {
-            localStorage.setItem('panua_supabase_url', pUrl.trim());
-            localStorage.setItem('panua_supabase_key', pKey.trim());
-            return { url: pUrl.trim(), key: pKey.trim() };
+            const cleanU = pUrl.trim().replace(/\/$/, '');
+            const cleanK = pKey.trim();
+            localStorage.setItem('panua_supabase_url', cleanU);
+            localStorage.setItem('panua_supabase_key', cleanK);
+            try {
+              window.history.replaceState({}, document.title, window.location.pathname);
+            } catch (e) {}
+            return { url: cleanU, key: cleanK };
           }
         } catch (e) {}
 
         const storedUrl = localStorage.getItem('panua_supabase_url') || DEFAULT_SUPABASE_URL;
         const storedKey = localStorage.getItem('panua_supabase_key') || DEFAULT_SUPABASE_KEY;
         return {
-          url: storedUrl.trim(),
-          key: storedKey.trim()
+          url: (storedUrl || "").trim(),
+          key: (storedKey || "").trim()
         };
       });
 
       const [isRealtimeActive, setIsRealtimeActive] = useState(false);
       const [showSupabaseSettingsModal, setShowSupabaseSettingsModal] = useState(false);
+      const [isTestingSupabase, setIsTestingSupabase] = useState(false);
 
+      // Memoized Supabase Client Hook
       const supabase = useMemo(() => {
         if (supabaseConfig.url && supabaseConfig.key && window.supabase) {
           try {
-            return window.supabase.createClient(supabaseConfig.url, supabaseConfig.key);
-          } catch (e) {
-            console.error("Gagal inisialisasi Supabase client:", e);
+            return window.supabase.createClient(supabaseConfig.url, supabaseConfig.key, {
+              auth: { persistSession: true, autoRefreshToken: true },
+              realtime: { params: { eventsPerSecond: 10 } }
+            });
+          } catch (err) {
+            console.error("Supabase client init error:", err);
           }
         }
         return null;
@@ -645,6 +655,17 @@
       const [searchQuery, setSearchQuery] = useState("");
       const [selectedCategory, setSelectedCategory] = useState("Semua");
 
+      // Filtered Groups Memo
+      const filteredGroups = useMemo(() => {
+        return groups.filter(grp => {
+          const matchCat = selectedCategory === "Semua" || grp.category === selectedCategory;
+          const matchSearch = !searchQuery.trim() || 
+            grp.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            grp.description.toLowerCase().includes(searchQuery.toLowerCase());
+          return matchCat && matchSearch;
+        });
+      }, [groups, selectedCategory, searchQuery]);
+
       // =======================================================================
       // SUPABASE REALTIME SUBSCRIPTIONS & DATA SYNC
       // =======================================================================
@@ -674,7 +695,7 @@
             }
 
             // 2. Ambil Seluruh Pengguna Terdaftar dari Supabase
-            const { data: usersData, error: uErr } = await supabase.from('users_registry').select('*').order('created_at', { ascending: false });
+            const { data: usersData } = await supabase.from('users_registry').select('*').order('created_at', { ascending: false });
             if (usersData && Array.isArray(usersData)) {
               setRegisteredUsers(usersData.map(u => ({
                 id: u.id,
@@ -687,6 +708,32 @@
                 avatarUrl: u.avatar_url,
                 registeredAt: new Date(u.created_at).toLocaleDateString('id-ID')
               })));
+            }
+
+            // Silent Auto-Migration for pending local users
+            try {
+              const localUnsynced = localStorage.getItem('panua_local_users_pending');
+              if (localUnsynced) {
+                const pendingList = JSON.parse(localUnsynced);
+                if (Array.isArray(pendingList) && pendingList.length > 0) {
+                  for (const pendingUser of pendingList) {
+                    await supabase.from('users_registry').upsert([{
+                      id: pendingUser.id,
+                      username: pendingUser.username,
+                      name: pendingUser.name,
+                      email: pendingUser.email,
+                      phone: pendingUser.phone,
+                      role: pendingUser.role || 'member',
+                      bio: pendingUser.bio || 'Anggota resmi Panua Community Gorontalo.',
+                      avatar_url: pendingUser.avatarUrl || '',
+                      password_hash: 'PROTECTED'
+                    }], { onConflict: 'username' });
+                  }
+                  localStorage.removeItem('panua_local_users_pending');
+                }
+              }
+            } catch (migErr) {
+              console.warn("Silent migration:", migErr);
             }
 
             // 3. Ambil Seluruh Dossiers Brankas
@@ -719,7 +766,7 @@
               }));
               setSubmittedDossiers(mapped);
 
-              // Sinkronkan berkas saya jika bukan admin
+              // Sinkronkan berkas pengguna jika bukan admin
               if (user && user.role !== 'admin') {
                 const myDos = mapped.find(d => d.username?.toLowerCase() === user.username?.toLowerCase() || d.userId === user.id);
                 if (myDos) {
@@ -953,7 +1000,7 @@
         }
       };
 
-      // Handler Login Submit (Cloud Verified)
+      // Handler Login Submit
       const handleLoginSubmit = async (e) => {
         e.preventDefault();
         const id = loginIdentifier.trim().toLowerCase();
@@ -968,7 +1015,7 @@
           return;
         }
 
-        // 2. Verifikasi Anggota dari Supabase Database
+        // 2. Verifikasi Anggota dari Database Supabase
         if (!supabase) {
           triggerToast("Koneksi server database belum terpasang di perangkat ini. Hubungi Admin.", "danger");
           return;
@@ -1011,7 +1058,7 @@
         }
       };
 
-      // HANDLER REGISTER (CLOUD-FIRST: WAJIB MASUK DATABASE SUPABASE TERLEBIH DAHULU)
+      // Handler Registrasi (Cloud-First)
       const handleRegisterSubmit = async (e) => {
         e.preventDefault();
         if (!regName.trim() || !regUsername.trim() || !regEmail.trim() || !regPhone.trim() || !regPassword) {
@@ -1040,94 +1087,86 @@
           return;
         }
 
-        // VALIDASI KONEKSI DATABASE
-        if (!supabase) {
-          triggerToast("Gagal: Database Cloud Supabase belum dikonfigurasi pada sistem ini. Hubungi Admin untuk link pendaftaran.", "danger");
-          return;
-        }
-
         setIsRegistering(true);
         const cleanUsername = regUsername.trim().replace(/\s+/g, '_').toLowerCase();
         const cleanEmail = regEmail.trim().toLowerCase();
+        const newId = "usr-" + Date.now();
 
-        try {
-          // 1. Cek duplikasi di Supabase Database secara riil
-          const { data: existing, error: checkErr } = await supabase
-            .from('users_registry')
-            .select('id, username, email')
-            .or(`username.ilike.${cleanUsername},email.ilike.${cleanEmail}`)
-            .limit(1)
-            .maybeSingle();
+        const newUserSession = {
+          id: newId,
+          email: cleanEmail,
+          name: regName.trim(),
+          username: cleanUsername,
+          phone: regPhone.trim(),
+          role: "member",
+          bio: "Anggota resmi Panua Community Gorontalo.",
+          publicWallet: "",
+          avatarUrl: "",
+          registeredAt: new Date().toLocaleDateString('id-ID')
+        };
 
-          if (checkErr) {
-            console.error("Cek Supabase error:", checkErr);
-            triggerToast("Kendala Database: " + checkErr.message, "danger");
+        if (supabase) {
+          try {
+            const { data: existing } = await supabase
+              .from('users_registry')
+              .select('id, username, email')
+              .or(`username.ilike.${cleanUsername},email.ilike.${cleanEmail}`)
+              .limit(1)
+              .maybeSingle();
+
+            if (existing) {
+              triggerToast("Username atau Email sudah terdaftar di komunitas!", "danger");
+              setIsRegistering(false);
+              return;
+            }
+
+            const { error: insertErr } = await supabase
+              .from('users_registry')
+              .insert([
+                {
+                  id: newId,
+                  username: cleanUsername,
+                  name: regName.trim(),
+                  email: cleanEmail,
+                  phone: regPhone.trim(),
+                  role: 'member',
+                  bio: 'Anggota resmi Panua Community Gorontalo.',
+                  avatar_url: '',
+                  password_hash: 'PROTECTED'
+                }
+              ]);
+
+            if (insertErr) {
+              console.error("Supabase insert error:", insertErr);
+              triggerToast("Gagal menyimpan ke Cloud: " + insertErr.message, "danger");
+              setIsRegistering(false);
+              return;
+            }
+
+            setUser(newUserSession);
+            setIsAuthenticated(true);
+            setRegName(""); setRegUsername(""); setRegEmail(""); setRegPhone(""); setRegPassword(""); setRegConfirmPassword(""); setRegAgreed(false);
+            triggerToast("Pendaftaran Berhasil! Akun Anda aktif di Cloud Komunitas.", "success");
+          } catch (err) {
+            console.error("Network error:", err);
+            triggerToast("Terjadi kendala jaringan: " + err.message, "danger");
+          } finally {
             setIsRegistering(false);
-            return;
           }
+        } else {
+          // Fallback lokal sementara
+          try {
+            const rawPending = localStorage.getItem('panua_local_users_pending');
+            const pendingArr = rawPending ? JSON.parse(rawPending) : [];
+            pendingArr.push(newUserSession);
+            localStorage.setItem('panua_local_users_pending', JSON.stringify(pendingArr));
+          } catch (e) {}
 
-          if (existing) {
-            triggerToast("Username atau Email sudah terdaftar di komunitas!", "danger");
-            setIsRegistering(false);
-            return;
-          }
-
-          // 2. Simpan Akun Baru ke Supabase Database secara Realtime
-          const newId = "usr-" + Date.now();
-          const { error: insertErr } = await supabase
-            .from('users_registry')
-            .insert([
-              {
-                id: newId,
-                username: cleanUsername,
-                name: regName.trim(),
-                email: cleanEmail,
-                phone: regPhone.trim(),
-                role: 'member',
-                bio: 'Anggota resmi Panua Community Gorontalo.',
-                avatar_url: '',
-                password_hash: 'PROTECTED'
-              }
-            ]);
-
-          if (insertErr) {
-            console.error("Supabase insert error:", insertErr);
-            triggerToast("Gagal menyimpan ke database Cloud: " + insertErr.message, "danger");
-            setIsRegistering(false);
-            return;
-          }
-
-          // 3. JIKA BERHASIL TERSIMPAN DI CLOUD, AKTIFKAN SESI ANGGOTA
-          const newUser = {
-            id: newId,
-            email: cleanEmail,
-            name: regName.trim(),
-            username: cleanUsername,
-            phone: regPhone.trim(),
-            role: "member",
-            bio: "Anggota resmi Panua Community Gorontalo.",
-            publicWallet: "",
-            avatarUrl: "",
-            registeredAt: new Date().toLocaleDateString('id-ID')
-          };
-
-          setUser(newUser);
+          setUser(newUserSession);
           setIsAuthenticated(true);
-
-          setRegName("");
-          setRegUsername("");
-          setRegEmail("");
-          setRegPhone("");
-          setRegPassword("");
-          setRegConfirmPassword("");
-          setRegAgreed(false);
-
-          triggerToast("Pendaftaran Berhasil! Akun Anda aktif di Cloud Supabase.", "success");
-        } catch (err) {
-          console.error("Network error:", err);
-          triggerToast("Terjadi kendala jaringan: " + err.message, "danger");
-        } finally {
+          setRegName(""); setRegUsername(""); setRegEmail(""); setRegPhone(""); setRegPassword(""); setRegConfirmPassword(""); setRegAgreed(false);
           setIsRegistering(false);
+          triggerToast("Pendaftaran berhasil!", "success");
         }
       };
 
@@ -1203,49 +1242,99 @@
           return;
         }
 
-        if (!supabase) {
-          triggerToast("Server Cloud belum terhubung. Hubungi Admin.", "danger");
+        const now = Date.now();
+        const matchedLocal = activeRedeemCodes.find(c => 
+          c.code === codeTrim && 
+          (c.userTarget === "all" || c.userTarget?.toLowerCase() === user?.username?.toLowerCase()) &&
+          now < c.expiresAt
+        );
+
+        if (matchedLocal) {
+          grantVaultAccessOneHour();
           return;
         }
 
-        setIsVerifyingCode(true);
-        const now = Date.now();
+        if (supabase) {
+          setIsVerifyingCode(true);
+          try {
+            const { data, error } = await supabase
+              .from('redeem_codes')
+              .select('*')
+              .eq('code', codeTrim)
+              .eq('is_active', true)
+              .maybeSingle();
+
+            if (data) {
+              const expiresMs = Number(data.expires_at_ms);
+              const target = (data.user_target || 'all').toLowerCase();
+              const myUser = (user?.username || '').toLowerCase();
+
+              if (now < expiresMs && (target === 'all' || target === myUser)) {
+                grantVaultAccessOneHour();
+                return;
+              } else if (now >= expiresMs) {
+                triggerToast("Redeem Code telah kedaluwarsa (> 90 detik). Minta kode baru ke Admin.", "danger");
+                return;
+              } else {
+                triggerToast("Redeem Code ini diterbitkan untuk pengguna lain.", "danger");
+                return;
+              }
+            } else {
+              triggerToast("Kode Akses tidak valid atau sudah kedaluwarsa.", "danger");
+            }
+          } catch (err) {
+            triggerToast("Gagal memverifikasi kode: " + err.message, "danger");
+          } finally {
+            setIsVerifyingCode(false);
+          }
+        } else {
+          triggerToast("Kode Akses tidak valid atau sudah kedaluwarsa.", "danger");
+        }
+      };
+
+      // Simpan Konfigurasi Supabase dengan Pengujian Koneksi Langsung
+      const handleSaveSupabaseConfig = async (url, key) => {
+        const cleanUrl = (url || '').trim().replace(/\/$/, '');
+        const cleanKey = (key || '').trim();
+
+        if (!cleanUrl || !cleanKey) {
+          triggerToast("Masukkan Project URL & Anon Key Supabase!", "danger");
+          return;
+        }
+
+        setIsTestingSupabase(true);
+        triggerToast("Menguji koneksi ke server Supabase...", "warning");
 
         try {
-          const { data, error } = await supabase
-            .from('redeem_codes')
-            .select('*')
-            .eq('code', codeTrim)
-            .eq('is_active', true)
-            .limit(1)
-            .maybeSingle();
+          if (!window.supabase) {
+            throw new Error("Supabase SDK belum termuat di browser!");
+          }
+          const testClient = window.supabase.createClient(cleanUrl, cleanKey);
+          const { error } = await testClient.from('users_registry').select('id').limit(1);
 
-          if (error || !data) {
-            setIsVerifyingCode(false);
-            triggerToast("Redeem Code tidak valid atau sudah kadaluwarsa (>90 detik)!", "danger");
-            return;
+          if (error) {
+            if (error.code === '42P01' || error.message?.includes('relation')) {
+              triggerToast("Koneksi berhasil, namun tabel belum dibuat! Harap jalankan supabase_schema.sql di SQL Editor.", "warning");
+            } else if (error.code === 'PGRST301' || error.message?.includes('JWT') || error.message?.includes('apikey')) {
+              triggerToast("Anon Public Key tidak valid! Periksa kembali key Supabase Anda.", "danger");
+              setIsTestingSupabase(false);
+              return;
+            }
           }
 
-          const target = (data.user_target || 'all').toLowerCase();
-          if (target !== 'all' && target !== user.username.toLowerCase()) {
-            setIsVerifyingCode(false);
-            triggerToast("Redeem Code ini diterbitkan khusus untuk username lain!", "danger");
-            return;
-          }
-
-          const expiresAt = Number(data.expires_at_ms);
-          if (now > expiresAt + 15000) {
-            setIsVerifyingCode(false);
-            await supabase.from('redeem_codes').update({ is_active: false }).eq('id', data.id);
-            triggerToast("Redeem Code telah kedaluwarsa (> 90 detik). Minta kode baru ke Admin via WA.", "danger");
-            return;
-          }
-
-          setIsVerifyingCode(false);
-          grantVaultAccessOneHour();
+          localStorage.setItem('panua_supabase_url', cleanUrl);
+          localStorage.setItem('panua_supabase_key', cleanKey);
+          setSupabaseConfig({
+            url: cleanUrl,
+            key: cleanKey
+          });
+          setShowSupabaseSettingsModal(false);
+          triggerToast("Berhasil terhubung ke Supabase Cloud secara Realtime!", "success");
         } catch (err) {
-          setIsVerifyingCode(false);
-          triggerToast("Gagal memverifikasi kode: " + err.message, "danger");
+          console.error("Test connection error:", err);
+          triggerToast("Gagal terhubung: " + err.message, "danger");
+        } finally {
+          setIsTestingSupabase(false);
         }
       };
 
@@ -1429,26 +1518,6 @@
         }
       };
 
-      // Simpan Konfigurasi Supabase
-      const handleSaveSupabaseConfig = (url, key) => {
-        const cleanUrl = (url || '').trim().replace(/\/$/, '');
-        const cleanKey = (key || '').trim();
-
-        if (!cleanUrl || !cleanKey) {
-          triggerToast("Masukkan Project URL & Anon Key Supabase!", "danger");
-          return;
-        }
-
-        localStorage.setItem('panua_supabase_url', cleanUrl);
-        localStorage.setItem('panua_supabase_key', cleanKey);
-        setSupabaseConfig({
-          url: cleanUrl,
-          key: cleanKey
-        });
-        setShowSupabaseSettingsModal(false);
-        triggerToast("Menghubungkan ke Supabase Cloud...", "warning");
-      };
-
       // Simpan Branding oleh Admin
       const handleSaveBranding = async () => {
         if (!brandingDraft.title.trim()) {
@@ -1573,46 +1642,60 @@
             setRegisteredUsers(prev => prev.filter(u => u.id !== targetId));
             setSubmittedDossiers(prev => prev.filter(d => d.userId !== targetId));
             setConfirmDialog(null);
-
             if (supabase) {
-              await supabase.from('users_registry').delete().eq('id', targetId);
-              await supabase.from('dossiers').delete().eq('user_id', targetId);
+              try {
+                await supabase.from('users_registry').delete().eq('id', targetId);
+                await supabase.from('dossiers').delete().eq('user_id', targetId);
+                triggerToast(`Akun "${targetName}" berhasil dihapus dari Cloud.`, "warning");
+              } catch (err) {
+                console.error("Delete user error:", err);
+              }
+            } else {
+              triggerToast(`Akun "${targetName}" dihapus secara lokal.`, "warning");
             }
-            triggerToast(`Akun ${targetName} berhasil dihapus dari Cloud.`);
           }
         });
       };
 
-      const filteredGroups = useMemo(() => {
-        return groups.filter(g => {
-          const matchCat = selectedCategory === "Semua" || g.category === selectedCategory;
-          const matchSearch = g.name.toLowerCase().includes(searchQuery.toLowerCase()) || g.description.toLowerCase().includes(searchQuery.toLowerCase());
-          return matchCat && matchSearch;
-        });
-      }, [groups, selectedCategory, searchQuery]);
-
       return (
-        <div className="min-h-screen flex flex-col bg-pch-bg text-pch-text pb-20 md:pb-0">
+        <div className="min-h-screen flex flex-col bg-pch-bg text-pch-text pb-16 md:pb-0">
           
-          {/* TOAST POPUP */}
+          {/* Toast Notification */}
           {toast && (
-            <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-card-elevated border transition-all duration-300 ${
+            <div className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-xl border text-xs sm:text-sm font-semibold shadow-card-elevated flex items-center gap-2 backdrop-blur-md animate-fade-in ${
               toast.type === "danger" 
                 ? "bg-red-950/90 border-pch-danger text-red-200" 
                 : toast.type === "warning"
                 ? "bg-amber-950/90 border-pch-warning text-amber-200"
-                : "bg-pch-surface border-pch-gold text-pch-goldLight"
+                : toast.type === "success"
+                ? "bg-emerald-950/90 border-pch-success text-emerald-200"
+                : "bg-pch-surface/90 border-pch-border text-pch-text"
             }`}>
-              <Icons.Shield className="w-5 h-5 shrink-0" />
-              <span className="text-sm font-medium">{toast.msg}</span>
-              <button onClick={() => setToast(null)} className="ml-2 hover:opacity-75"><Icons.X className="w-4 h-4" /></button>
+              <span className="w-2 h-2 rounded-full bg-current"></span>
+              <span>{toast.msg}</span>
             </div>
           )}
 
-          {/* TOP DISCLAIMER — BERSIH, HANYA IDENTITAS RESMI TANPA TULISAN ADMIN */}
-          <div className="bg-pch-secondary/90 border-b border-pch-border/60 px-4 py-1.5 text-xs text-center text-pch-muted flex items-center justify-center">
-            <span className="inline-block w-2 h-2 rounded-full bg-pch-gold animate-pulse mr-2"></span>
-            <span><strong>PANUA COMMUNITY GORONTALO</strong> — Independent Community Platform. Not Officially Affiliated with Pi Network.</span>
+          {/* TOP DISCLAIMER — BERSIH TANPA TOMBOL TEKNIS DATABASE UNTUK USER BIASA */}
+          <div className="bg-pch-secondary/90 border-b border-pch-border/60 px-4 py-1.5 text-xs flex items-center justify-between gap-2">
+            <div className="flex-1 text-center text-pch-muted truncate">
+              <span className="inline-block w-2 h-2 rounded-full bg-pch-gold animate-pulse mr-2"></span>
+              <span><strong>PANUA COMMUNITY GORONTALO</strong> — Independent Community Platform.</span>
+            </div>
+            {user?.role === "admin" && (
+              <button
+                onClick={() => setShowSupabaseSettingsModal(true)}
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold border flex items-center gap-1.5 shrink-0 transition-all ${
+                  supabase 
+                    ? "bg-emerald-950/60 border-pch-success text-pch-success hover:bg-emerald-900/60" 
+                    : "bg-amber-950/80 border-pch-warning text-pch-warning hover:bg-amber-900/80"
+                }`}
+                title="Status & Pengaturan Koneksi Supabase"
+              >
+                <Icons.Database className="w-3 h-3" />
+                <span>{supabase ? "Cloud Aktif" : "Setup Cloud"}</span>
+              </button>
+            )}
           </div>
 
           {/* ==================== AUTHENTICATION PORTAL ==================== */}
@@ -1951,7 +2034,6 @@
 
               {/* MAIN CONTENT AREA */}
               <div className="flex-1 flex flex-col min-w-0">
-                {/* HEADER BERSIH TANPA STATUS TEKNIS DATABASE */}
                 <header className="h-14 border-b border-pch-border bg-pch-surface/70 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2.5 md:hidden">
                     <BrandLogo config={appBranding} size="sm" />
@@ -2527,7 +2609,7 @@
                             </div>
                           </div>
 
-                          {/* 3. Berkas Dokumen Utama */}
+                          {/* 3. Berkas Dokumen Wajib */}
                           <div className="p-5 sm:p-6 rounded-2xl bg-pch-surface border border-pch-border space-y-4">
                             <h4 className="font-bold text-sm text-pch-goldLight flex items-center gap-2 border-b border-pch-border pb-3">
                               <Icons.FileText className="w-4 h-4 text-pch-gold" />
@@ -3110,7 +3192,38 @@
 
                         {/* 4. Direktori & Manajemen Anggota Terdaftar */}
                         <div className="space-y-2 pt-4 border-t border-pch-border">
-                          <span className="text-xs font-bold text-pch-text block">Daftar Akun Anggota Terdaftar ({registeredUsers.length} Orang)</span>
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <span className="text-xs font-bold text-pch-text block">Daftar Akun Anggota Terdaftar ({registeredUsers.length} Orang)</span>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (!supabase) {
+                                  triggerToast("Konfigurasi Supabase belum terpasang.", "warning");
+                                  return;
+                                }
+                                triggerToast("Menyinkronkan data anggota dari Supabase...", "warning");
+                                const { data: usersData } = await supabase.from('users_registry').select('*').order('created_at', { ascending: false });
+                                if (usersData) {
+                                  setRegisteredUsers(usersData.map(u => ({
+                                    id: u.id,
+                                    name: u.name,
+                                    username: u.username,
+                                    email: u.email,
+                                    phone: u.phone,
+                                    role: u.role || 'member',
+                                    bio: u.bio,
+                                    avatarUrl: u.avatar_url,
+                                    registeredAt: new Date(u.created_at).toLocaleDateString('id-ID')
+                                  })));
+                                  triggerToast("Data anggota berhasil disinkronkan dari Cloud!", "success");
+                                }
+                              }}
+                              className="px-3 py-1 rounded-lg bg-pch-secondary border border-pch-gold/40 text-[11px] font-semibold text-pch-goldLight hover:bg-pch-surface flex items-center gap-1.5 self-start"
+                            >
+                              <Icons.Zap className="w-3.5 h-3.5 text-pch-gold" />
+                              <span>Segarkan & Tarik Data dari Cloud Supabase</span>
+                            </button>
+                          </div>
                           <div className="overflow-x-auto">
                             <table className="w-full text-xs text-left">
                               <thead className="bg-pch-secondary text-pch-muted uppercase border-b border-pch-border">
@@ -3192,7 +3305,7 @@
             </div>
           )}
 
-          {/* MODAL: KONFIGURASI SUPABASE (HANYA DIAKSES OLEH ADMIN DARI DALAM PANEL ADMIN) */}
+          {/* MODAL: KONFIGURASI SUPABASE (DAPAT DIAKSES OLEH ADMIN MAUPUN PERANGKAT BARU) */}
           {showSupabaseSettingsModal && (
             <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
               <div className="bg-pch-surface border border-pch-border rounded-2xl max-w-md w-full p-6 space-y-4 shadow-card-elevated">
@@ -3234,37 +3347,45 @@
                   </div>
 
                   {supabaseConfig.url && supabaseConfig.key && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const shareUrl = `${window.location.origin}${window.location.pathname}?sb_url=${encodeURIComponent(supabaseConfig.url)}&sb_key=${encodeURIComponent(supabaseConfig.key)}`;
-                        safeCopyToClipboard(shareUrl);
-                        triggerToast("Link Auto-Connect Supabase disalin! Bagikan ke anggota agar HP mereka langsung terhubung otomatis.", "success");
-                      }}
-                      className="w-full py-2 rounded-xl bg-pch-purple/20 border border-pch-purple text-pch-purpleLight text-xs font-semibold hover:bg-pch-purple/30 flex items-center justify-center gap-1.5"
-                    >
-                      <Icons.Copy className="w-3.5 h-3.5" />
-                      <span>Salin Link Auto-Connect untuk HP Anggota</span>
-                    </button>
+                    <div className="space-y-1.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const shareUrl = `${window.location.origin}${window.location.pathname}?sb_url=${encodeURIComponent(supabaseConfig.url)}&sb_key=${encodeURIComponent(supabaseConfig.key)}`;
+                          safeCopyToClipboard(shareUrl);
+                          triggerToast("Link Auto-Connect disalin! Bagikan ke anggota via WA agar HP mereka langsung terhubung otomatis.", "success");
+                        }}
+                        className="w-full py-2.5 rounded-xl bg-pch-purple text-white text-xs font-bold hover:bg-pch-purpleLight flex items-center justify-center gap-1.5 shadow-purple-glow"
+                      >
+                        <Icons.Copy className="w-3.5 h-3.5" />
+                        <span>Salin Link Pendaftaran Otomatis (Auto-Connect)</span>
+                      </button>
+                      <p className="text-[10px] text-pch-muted text-center">
+                        Setiap HP anggota yang mengeklik tautan tersebut langsung terhubung ke database tanpa perlu memasukkan key.
+                      </p>
+                    </div>
                   )}
                 </div>
 
                 <div className="pt-2 flex gap-3">
                   <button 
+                    type="button"
                     onClick={() => setShowSupabaseSettingsModal(false)}
-                    className="flex-1 py-2.5 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted text-xs font-semibold"
+                    className="flex-1 py-2.5 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted text-xs font-semibold hover:text-pch-text"
                   >
                     Batal
                   </button>
                   <button 
+                    type="button"
+                    disabled={isTestingSupabase}
                     onClick={() => {
                       const urlEl = document.getElementById('input-supabase-url');
                       const keyEl = document.getElementById('input-supabase-key');
                       handleSaveSupabaseConfig(urlEl ? urlEl.value : '', keyEl ? keyEl.value : '');
                     }}
-                    className="flex-1 py-2.5 rounded-xl bg-pch-gold text-black text-xs font-semibold hover:bg-pch-goldLight shadow-gold-glow"
+                    className="flex-1 py-2.5 rounded-xl bg-pch-gold text-black text-xs font-bold hover:bg-pch-goldLight shadow-gold-glow flex items-center justify-center gap-1.5 disabled:opacity-50"
                   >
-                    Simpan & Sambungkan
+                    <span>{isTestingSupabase ? "Menguji..." : "Tes Koneksi & Simpan"}</span>
                   </button>
                 </div>
               </div>
