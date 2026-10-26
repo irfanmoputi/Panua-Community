@@ -297,7 +297,9 @@
       Zap: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
       Volume2: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>,
       VolumeX: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>,
-      Bell: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Bell: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
+      Wallet: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>,
+      QrCode: (p) => <svg className={p.className || "w-5 h-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
     };
 
     function safeCopyToClipboard(text) {
@@ -599,10 +601,20 @@
         tagline: "Pi Network Gorontalo - Indonesia",
         logoType: "panua",
         customLogoUrl: "",
-        meetingProvider: "meet.jit.si",
-        adminWhatsapp: "6281299887766"
+        meetingProvider: "mirotalk",
+        adminWhatsapp: "6281299887766",
+        danaNumber: "081299887766",
+        danaName: "PANUA COMMUNITY GORONTALO",
+        qrisImageUrl: "",
+        danaDescription: "Wadah dana talangan dan solidaritas gotong royong resmi Panua Community Gorontalo untuk mendukung anggota dan kelancaran kegiatan komunitas."
       });
       const [brandingDraft, setBrandingDraft] = useState({ ...appBranding });
+
+      // State Khusus Form Konfirmasi Dana Talangan Anggota
+      const [danaConfirmNominal, setDanaConfirmNominal] = useState("");
+      const [danaConfirmSender, setDanaConfirmSender] = useState("");
+      const [danaConfirmMethod, setDanaConfirmMethod] = useState("QRIS Barcode");
+      const [danaConfirmNote, setDanaConfirmNote] = useState("");
 
       // Toast feedback
       const [toast, setToast] = useState(null);
@@ -717,6 +729,18 @@
         isSavedToAdmin: false,
         lastSynced: "Belum tersinkronisasi"
       });
+
+      // Ref Pelindung Input My Secure Vault (Mencegah Karakter Terhapus Sendiri oleh Auto-Sync)
+      const isDossierDirtyRef = useRef(false);
+      const dossierLoadedOnceRef = useRef(false);
+
+      const updateDossierField = (field, value) => {
+        isDossierDirtyRef.current = true;
+        setMemberDossier(prev => ({
+          ...prev,
+          [field]: value
+        }));
+      };
 
       const [newExtraDocTitle, setNewExtraDocTitle] = useState("");
       const [newExtraDocFile, setNewExtraDocFile] = useState(null);
@@ -964,14 +988,15 @@
             }));
             setSubmittedDossiers(mapped);
 
-            // Sinkronkan berkas pengguna jika pengguna biasa sedang login
-            if (user && user.role !== 'admin') {
+            // FIX: Hanya populate dossier awal dari Cloud jika user belum mengeditnya (mencegah karakter terhapus otomatis saat mengetik)
+            if (user && user.role !== 'admin' && !isDossierDirtyRef.current && !dossierLoadedOnceRef.current) {
               const myDos = mapped.find(d => d.username?.toLowerCase() === user.username?.toLowerCase() || d.userId === user.id);
               if (myDos) {
+                dossierLoadedOnceRef.current = true;
                 setMemberDossier({
-                  namaLengkap: myDos.namaLengkap || user.name,
-                  email: myDos.email || user.email,
-                  noHp: myDos.noHp || user.phone,
+                  namaLengkap: myDos.namaLengkap || user.name || "",
+                  email: myDos.email || user.email || "",
+                  noHp: myDos.noHp || user.phone || "",
                   usernamePi: myDos.usernamePi || "",
                   ttl: myDos.ttl || "",
                   nik: myDos.nik || "",
@@ -989,11 +1014,19 @@
                   isSavedToAdmin: true,
                   lastSynced: "Tersimpan di Cloud (" + myDos.lastUpdate + ")"
                 });
+              } else {
+                dossierLoadedOnceRef.current = true;
+                setMemberDossier(prev => ({
+                  ...prev,
+                  namaLengkap: prev.namaLengkap || user.name || "",
+                  email: prev.email || user.email || "",
+                  noHp: prev.noHp || user.phone || ""
+                }));
               }
             }
           }
 
-          // 3. Sinkronisasi Branding
+          // 3. Sinkronisasi Branding & Dana Talangan
           if (brandRes.status === 'fulfilled' && brandRes.value.data) {
             const b = brandRes.value.data;
             const fetchedBranding = {
@@ -1001,11 +1034,18 @@
               tagline: b.tagline || "Pi Network Gorontalo - Indonesia",
               logoType: b.logo_type || "panua",
               customLogoUrl: b.custom_logo_url || "",
-              meetingProvider: b.meeting_provider || "meet.jit.si",
-              adminWhatsapp: b.admin_whatsapp || "6281299887766"
+              meetingProvider: b.meeting_provider || "mirotalk",
+              adminWhatsapp: b.admin_whatsapp || "6281299887766",
+              danaNumber: b.dana_number || "081299887766",
+              danaName: b.dana_name || "PANUA COMMUNITY GORONTALO",
+              qrisImageUrl: b.qris_image_url || "",
+              danaDescription: b.dana_description || "Wadah dana talangan dan solidaritas gotong royong resmi Panua Community Gorontalo untuk mendukung anggota dan kelancaran kegiatan komunitas."
             };
             setAppBranding(fetchedBranding);
-            setBrandingDraft(fetchedBranding);
+            setBrandingDraft(prev => ({
+              ...fetchedBranding,
+              ...prev
+            }));
           }
 
           // 4. Sinkronisasi Redeem Codes
@@ -1383,6 +1423,8 @@
 
       // Handler Logout Sesi
       const handleLogoutSession = () => {
+        isDossierDirtyRef.current = false;
+        dossierLoadedOnceRef.current = false;
         setUser(null);
         setIsAuthenticated(false);
         setVaultUnlockedUntil(0);
@@ -1635,6 +1677,7 @@
             console.error("Dossier upsert error:", upsertErr);
             triggerToast("Gagal simpan ke Supabase: " + upsertErr.message, "danger");
           } else {
+            isDossierDirtyRef.current = false;
             triggerToast("Sukses! 15 Berkas & Identitas tersimpan di Cloud Supabase Realtime!", "success");
           }
         } catch (err) {
@@ -1644,30 +1687,70 @@
           setIsSavingDossier(false);
         }
       };
-
-      const handleAddExtraDocument = async (e) => {
-        e.preventDefault();
-        if (!newExtraDocTitle.trim() || !newExtraDocFile) {
-          triggerToast("Masukkan judul dokumen dan pilih berkas!", "warning");
+      // Simpan Branding & Dana Talangan oleh Admin
+      const handleSaveBranding = async () => {
+        if (!brandingDraft.title.trim()) {
+          triggerToast("Nama judul aplikasi tidak boleh kosong!", "danger");
           return;
         }
 
-        const compressed = await compressImageFile(newExtraDocFile);
-        let cloudUrl = "";
+        setAppBranding({ ...brandingDraft });
+
         if (supabase) {
-          cloudUrl = await uploadFileToSupabaseStorage(compressed, `dossiers/${user.username}/extra`);
+          try {
+            await supabase.from('app_branding').upsert([
+              {
+                id: 'primary',
+                title: brandingDraft.title,
+                tagline: brandingDraft.tagline,
+                logo_type: brandingDraft.logoType,
+                custom_logo_url: brandingDraft.customLogoUrl,
+                admin_whatsapp: brandingDraft.adminWhatsapp,
+                meeting_provider: brandingDraft.meetingProvider,
+                dana_number: brandingDraft.danaNumber,
+                dana_name: brandingDraft.danaName,
+                qris_image_url: brandingDraft.qrisImageUrl,
+                dana_description: brandingDraft.danaDescription,
+                updated_at: new Date().toISOString()
+              }
+            ], { onConflict: 'id' });
+            triggerToast("Identitas & Pengaturan Dana Talangan tersimpan di Cloud!", "success");
+          } catch (err) {
+            console.error("Supabase branding error:", err);
+            triggerToast("Gagal menyimpan ke database: " + err.message, "danger");
+          }
         }
+      };
 
+      // Helper Konfirmasi Dana Talangan ke WhatsApp Admin
+      const handleSendDanaConfirmationWA = () => {
+        const adminNumber = (appBranding.adminWhatsapp || "6281299887766").replace(/\D/g, '');
+        const sender = danaConfirmSender.trim() || user?.name || "Pionir Panua";
+        const nominal = danaConfirmNominal.trim() || "Sukarela";
+        const note = danaConfirmNote.trim() || "Dukungan & Solidaritas Panua Gorontalo";
+        const text = `📢 *KONFIRMASI DANA TALANGAN & SOLIDARITAS — ${appBranding.title}*\n\nHalo Admin,\nSaya telah melakukan transfer dukungan dana talangan komunitas:\n\n👤 *Nama Pengirim:* ${sender} (@${user?.username || 'user'})\n💰 *Nominal:* Rp ${nominal}\n💳 *Metode:* ${danaConfirmMethod}\n📝 *Catatan / Doa:* ${note}\n\n(Bukti tangkapan layar transfer saya lampirkan di chat ini). Terima kasih atas amanahnya, salam sukses Pionir Panua!`;
+        window.open(`https://wa.me/${adminNumber}?text=${encodeURIComponent(text)}`, '_blank');
+        triggerToast("Membuka WhatsApp untuk mengirim bukti transfer ke Admin...");
+      };
+
+      const handleAddExtraDocument = async (e) => {
+        e.preventDefault();
+        if (!newExtraDocTitle.trim()) {
+          triggerToast("Masukkan judul dokumen tambahan!", "warning");
+          return;
+        }
+        let docObj = null;
+        if (newExtraDocFile) {
+          docObj = await compressImageFile(newExtraDocFile);
+        }
         const newDoc = {
-          id: "doc-" + Date.now(),
+          id: "extra-" + Date.now(),
           title: newExtraDocTitle.trim(),
-          fileName: compressed.name,
-          type: compressed.type,
-          size: compressed.size,
-          uploadedAt: new Date().toLocaleDateString('id-ID'),
-          driveUrl: cloudUrl || compressed.base64
+          fileName: newExtraDocFile ? newExtraDocFile.name : "dokumen_tambahan.dat",
+          size: docObj ? docObj.size : "0 KB",
+          base64: docObj ? docObj.base64 : ""
         };
-
+        isDossierDirtyRef.current = true;
         setMemberDossier(prev => ({
           ...prev,
           extraDocs: [...(prev.extraDocs || []), newDoc]
@@ -1712,36 +1795,6 @@
             ]);
           } catch (err) {
             console.error("Supabase insert code error:", err);
-          }
-        }
-      };
-
-      // Simpan Branding oleh Admin
-      const handleSaveBranding = async () => {
-        if (!brandingDraft.title.trim()) {
-          triggerToast("Nama judul aplikasi tidak boleh kosong!", "danger");
-          return;
-        }
-
-        setAppBranding({ ...brandingDraft });
-
-        if (supabase) {
-          try {
-            await supabase.from('app_branding').upsert([
-              {
-                id: 'primary',
-                title: brandingDraft.title,
-                tagline: brandingDraft.tagline,
-                logo_type: brandingDraft.logoType,
-                custom_logo_url: brandingDraft.customLogoUrl,
-                admin_whatsapp: brandingDraft.adminWhatsapp,
-                meeting_provider: brandingDraft.meetingProvider,
-                updated_at: new Date().toISOString()
-              }
-            ], { onConflict: 'id' });
-            triggerToast("Identitas Panua Community tersimpan di Cloud!", "success");
-          } catch (err) {
-            console.error("Supabase branding error:", err);
           }
         }
       };
@@ -2292,6 +2345,7 @@
                 <nav className="flex-1 space-y-1.5">
                   {[
                     { id: "dashboard", label: "Beranda", icon: Icons.Home },
+                    { id: "dana_talangan", label: "Dana Talangan", icon: Icons.Wallet },
                     { id: "community", label: "Grup Panua", icon: Icons.Users },
                     { id: "chat", label: "Chat Forum", icon: Icons.MessageSquare },
                     { id: "meetings", label: "Rapat Online", icon: Icons.Video },
@@ -2420,10 +2474,19 @@
                       </div>
 
                       {/* Quick Navigation Cards */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <button 
+                          onClick={() => setActiveTab("dana_talangan")}
+                          className="p-4 rounded-xl bg-pch-secondary border border-pch-border hover:border-pch-gold text-left transition-all group shadow-sm"
+                        >
+                          <Icons.Wallet className="w-6 h-6 text-pch-gold group-hover:scale-110 transition-transform mb-2" />
+                          <h4 className="font-bold text-sm text-pch-text">Dana Talangan</h4>
+                          <p className="text-xs text-pch-muted mt-1">Gotong royong solidaritas QRIS & dompet DANA resmi komunitas.</p>
+                        </button>
+
                         <button 
                           onClick={() => setActiveTab("chat")}
-                          className="p-4 rounded-xl bg-pch-secondary border border-pch-border hover:border-pch-purple text-left transition-all group"
+                          className="p-4 rounded-xl bg-pch-secondary border border-pch-border hover:border-pch-purple text-left transition-all group shadow-sm"
                         >
                           <Icons.MessageSquare className="w-6 h-6 text-pch-purple group-hover:scale-110 transition-transform mb-2" />
                           <h4 className="font-bold text-sm text-pch-text">Forum Obrolan Realtime</h4>
@@ -2432,7 +2495,7 @@
 
                         <button 
                           onClick={() => setActiveTab("meetings")}
-                          className="p-4 rounded-xl bg-pch-secondary border border-pch-border hover:border-pch-gold text-left transition-all group"
+                          className="p-4 rounded-xl bg-pch-secondary border border-pch-border hover:border-pch-gold text-left transition-all group shadow-sm"
                         >
                           <Icons.Video className="w-6 h-6 text-pch-gold group-hover:scale-110 transition-transform mb-2" />
                           <h4 className="font-bold text-sm text-pch-text">Rapat Online Dedicated</h4>
@@ -2441,12 +2504,234 @@
 
                         <button 
                           onClick={() => setActiveTab("community")}
-                          className="p-4 rounded-xl bg-pch-secondary border border-pch-border hover:border-pch-purple text-left transition-all group"
+                          className="p-4 rounded-xl bg-pch-secondary border border-pch-border hover:border-pch-purple text-left transition-all group shadow-sm"
                         >
                           <Icons.Users className="w-6 h-6 text-pch-purpleLight group-hover:scale-110 transition-transform mb-2" />
                           <h4 className="font-bold text-sm text-pch-text">Grup & Wilayah Panua</h4>
                           <p className="text-xs text-pch-muted mt-1">Jelajahi sub-komunitas edukasi, UMKM, dan node Gorontalo.</p>
                         </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB: DANA TALANGAN & GOTONG ROYONG KOMUNITAS */}
+                  {activeTab === "dana_talangan" && (
+                    <div className="space-y-6">
+                      <div className="p-6 rounded-2xl bg-gradient-to-r from-pch-surface via-pch-secondary to-pch-surface border border-pch-gold/40 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-card-elevated">
+                        <div className="flex items-center gap-4">
+                          <div className="w-14 h-14 rounded-2xl bg-pch-gold/15 border-2 border-pch-gold/50 flex items-center justify-center text-pch-gold shadow-gold-glow shrink-0">
+                            <Icons.Wallet className="w-8 h-8" />
+                          </div>
+                          <div>
+                            <span className="text-[11px] font-bold text-pch-gold uppercase tracking-wider block">Solidaritas Gotong Royong</span>
+                            <h2 className="text-xl sm:text-2xl font-bold text-pch-text">Dana Talangan Panua Community</h2>
+                            <p className="text-xs text-pch-muted mt-1 max-w-2xl leading-relaxed">
+                              {appBranding.danaDescription || "Inisiatif pengumpulan dana talangan gotong royong anggota Panua Community Gorontalo secara transparan untuk mendukung sesama pionir dan utilitas nyata."}
+                            </p>
+                          </div>
+                        </div>
+
+                        {user?.role === "admin" && (
+                          <button
+                            onClick={() => setActiveTab("admin")}
+                            className="px-3.5 py-2 rounded-xl bg-pch-purple text-white text-xs font-semibold hover:bg-pch-purpleLight flex items-center gap-1.5 shadow-purple-glow shrink-0 self-start md:self-center"
+                          >
+                            <Icons.Edit className="w-3.5 h-3.5" />
+                            <span>Atur Nomor DANA & QRIS</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* KARTU 1: TRANSFER VIA DOMPET DANA */}
+                        <div className="p-6 rounded-2xl bg-pch-surface border border-pch-border space-y-5 flex flex-col justify-between shadow-card-elevated">
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-pch-goldLight uppercase tracking-wider flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                                <span>Metode 1: Dompet Digital DANA</span>
+                              </span>
+                              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-800 font-mono font-bold">
+                                Bebas Admin
+                              </span>
+                            </div>
+
+                            <div className="p-5 rounded-xl bg-gradient-to-br from-cyan-950/40 via-pch-secondary to-pch-secondary border border-cyan-500/30 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-pch-muted">Nomor Akun DANA Resmi:</span>
+                                <span className="text-[10px] text-cyan-400 font-bold uppercase">Akun Terverifikasi</span>
+                              </div>
+                              <div className="text-2xl sm:text-3xl font-mono font-black text-pch-text tracking-wider">
+                                {appBranding.danaNumber || "081299887766"}
+                              </div>
+                              <div className="text-xs text-pch-muted font-medium pt-1 border-t border-white/10 flex items-center justify-between">
+                                <span>Atas Nama:</span>
+                                <span className="text-pch-goldLight font-bold">{appBranding.danaName || "PANUA COMMUNITY GORONTALO"}</span>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2 text-xs text-pch-muted leading-relaxed">
+                              <p>💡 <strong>Panduan Transfer via DANA:</strong></p>
+                              <ol className="list-decimal list-inside space-y-1 pl-1">
+                                <li>Buka aplikasi DANA di ponsel Anda.</li>
+                                <li>Pilih menu <strong>Kirim (Send)</strong> &rarr; <strong>Kirim ke Teman</strong>.</li>
+                                <li>Masukkan nomor akun DANA di atas lalu masukkan nominal bantuan.</li>
+                                <li>Setelah transfer selesai, lakukan konfirmasi melalui formulir di bawah.</li>
+                              </ol>
+                            </div>
+                          </div>
+
+                          <div className="pt-2 flex gap-3">
+                            <button
+                              onClick={() => {
+                                safeCopyToClipboard((appBranding.danaNumber || "081299887766").replace(/\D/g, ''));
+                                triggerToast("Nomor DANA berhasil disalin ke clipboard!", "success");
+                              }}
+                              className="flex-1 py-2.5 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight shadow-gold-glow flex items-center justify-center gap-2"
+                            >
+                              <Icons.Copy className="w-4 h-4" />
+                              <span>Salin Nomor DANA</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* KARTU 2: TRANSFER VIA SCAN QRIS (SEMUA BANK & E-WALLET) */}
+                        <div className="p-6 rounded-2xl bg-pch-surface border border-pch-border space-y-5 flex flex-col justify-between shadow-card-elevated">
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-pch-goldLight uppercase tracking-wider flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full bg-pch-gold"></span>
+                                <span>Metode 2: Barcode QRIS Resmi</span>
+                              </span>
+                              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-950/80 text-pch-goldLight border border-pch-gold/40 font-mono font-bold">
+                                Semua Bank & E-Wallet
+                              </span>
+                            </div>
+
+                            <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-pch-secondary border border-pch-border text-center space-y-3">
+                              {appBranding.qrisImageUrl ? (
+                                <div className="space-y-2">
+                                  <div className="w-64 max-w-full aspect-square mx-auto rounded-xl overflow-hidden border-2 border-pch-gold p-2 bg-white shadow-gold-glow">
+                                    <img 
+                                      src={appBranding.qrisImageUrl} 
+                                      alt="QRIS Panua Community" 
+                                      className="w-full h-full object-contain"
+                                    />
+                                  </div>
+                                  <p className="text-[11px] text-pch-goldLight font-bold">
+                                    Scan via BCA, Mandiri, BRI, BNI, DANA, OVO, GoPay, ShopeePay
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="py-8 px-4 space-y-3 text-center">
+                                  <div className="w-20 h-20 rounded-2xl bg-pch-surface border border-pch-gold/30 flex items-center justify-center mx-auto text-pch-gold/60">
+                                    <Icons.QrCode className="w-10 h-10" />
+                                  </div>
+                                  <div>
+                                    <h4 className="font-bold text-sm text-pch-text">Barcode QRIS Siap Dipindai</h4>
+                                    <p className="text-xs text-pch-muted max-w-xs mx-auto mt-1">
+                                      Admin belum mengunggah gambar barcode QRIS khusus. Anda dapat langsung menggunakan <strong>Nomor DANA Resmi</strong> di samping.
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            <p className="text-xs text-pch-muted text-center">
+                              Pindai langsung menggunakan kamera e-wallet atau aplikasi mobile banking kesayangan Anda.
+                            </p>
+                          </div>
+
+                          {appBranding.qrisImageUrl && (
+                            <div className="pt-2">
+                              <a
+                                href={appBranding.qrisImageUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="w-full py-2.5 rounded-xl bg-pch-secondary border border-pch-gold/40 text-pch-goldLight font-bold text-xs hover:bg-pch-surface flex items-center justify-center gap-2"
+                              >
+                                <Icons.ExternalLink className="w-4 h-4" />
+                                <span>Buka / Unduh Barcode QRIS Layar Penuh</span>
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* FORM KONFIRMASI TRANSFER KE ADMIN VIA WHATSAPP */}
+                      <div className="p-6 rounded-2xl bg-pch-surface border border-pch-gold/50 shadow-card-elevated space-y-5">
+                        <div className="border-b border-pch-border pb-3">
+                          <h3 className="font-bold text-base text-pch-text flex items-center gap-2">
+                            <Icons.Check className="w-5 h-5 text-pch-success" />
+                            <span>Konfirmasi Bukti Transfer Dana Talangan</span>
+                          </h3>
+                          <p className="text-xs text-pch-muted mt-0.5">
+                            Kirimkan rincian transfer Anda agar Administrator dapat melakukan pencatatan buku kas komunitas secara transparan.
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                          <div>
+                            <label className="text-xs font-semibold text-pch-muted block mb-1">Nama Donatur / Pengirim</label>
+                            <input 
+                              type="text" 
+                              placeholder={user?.name || "Nama Lengkap Anda"}
+                              value={danaConfirmSender}
+                              onChange={(e) => setDanaConfirmSender(e.target.value)}
+                              className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2.5 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-semibold text-pch-muted block mb-1">Nominal Donasi (Rp)</label>
+                            <input 
+                              type="number" 
+                              placeholder="Contoh: 50000"
+                              value={danaConfirmNominal}
+                              onChange={(e) => setDanaConfirmNominal(e.target.value)}
+                              className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2.5 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-semibold text-pch-muted block mb-1">Metode Transfer</label>
+                            <select 
+                              value={danaConfirmMethod}
+                              onChange={(e) => setDanaConfirmMethod(e.target.value)}
+                              className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2.5 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                            >
+                              <option value="QRIS Barcode">Barcode QRIS (Semua Bank/E-Wallet)</option>
+                              <option value="Dompet DANA">Dompet Digital DANA</option>
+                              <option value="Transfer Bank Lain">Transfer Bank / Lainnya</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-semibold text-pch-muted block mb-1">Catatan / Doa Singkat</label>
+                            <input 
+                              type="text" 
+                              placeholder="Untuk kelancaran komunitas Panua"
+                              value={danaConfirmNote}
+                              onChange={(e) => setDanaConfirmNote(e.target.value)}
+                              className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2.5 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+                          <span className="text-[11px] text-pch-muted leading-relaxed">
+                            Akan otomatis membuka WhatsApp resmi Admin dengan pesan konfirmasi yang telah terformat rapi.
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={handleSendDanaConfirmationWA}
+                            className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
+                          >
+                            <Icons.Phone className="w-4 h-4" />
+                            <span>Kirim Konfirmasi Bukti Transfer via WhatsApp</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -2973,8 +3258,8 @@
                                 <label className="text-xs font-semibold text-pch-muted block mb-1">Nama Lengkap</label>
                                 <input 
                                   type="text" 
-                                  value={memberDossier.namaLengkap}
-                                  onChange={(e) => setMemberDossier({ ...memberDossier, namaLengkap: e.target.value })}
+                                  value={memberDossier.namaLengkap || ""}
+                                  onChange={(e) => updateDossierField("namaLengkap", e.target.value)}
                                   className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
                                 />
                               </div>
@@ -2983,8 +3268,8 @@
                                 <label className="text-xs font-semibold text-pch-muted block mb-1">Email</label>
                                 <input 
                                   type="email" 
-                                  value={memberDossier.email}
-                                  onChange={(e) => setMemberDossier({ ...memberDossier, email: e.target.value })}
+                                  value={memberDossier.email || ""}
+                                  onChange={(e) => updateDossierField("email", e.target.value)}
                                   className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
                                 />
                               </div>
@@ -2993,8 +3278,8 @@
                                 <label className="text-xs font-semibold text-pch-muted block mb-1">No HP / WhatsApp</label>
                                 <input 
                                   type="tel" 
-                                  value={memberDossier.noHp}
-                                  onChange={(e) => setMemberDossier({ ...memberDossier, noHp: e.target.value })}
+                                  value={memberDossier.noHp || ""}
+                                  onChange={(e) => updateDossierField("noHp", e.target.value)}
                                   className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
                                 />
                               </div>
@@ -3003,8 +3288,8 @@
                                 <label className="text-xs font-semibold text-pch-muted block mb-1">Username Pi Network</label>
                                 <input 
                                   type="text" 
-                                  value={memberDossier.usernamePi}
-                                  onChange={(e) => setMemberDossier({ ...memberDossier, usernamePi: e.target.value })}
+                                  value={memberDossier.usernamePi || ""}
+                                  onChange={(e) => updateDossierField("usernamePi", e.target.value)}
                                   placeholder="@username_pi"
                                   className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
                                 />
@@ -3014,8 +3299,8 @@
                                 <label className="text-xs font-semibold text-pch-muted block mb-1">Tempat & Tanggal Lahir (TTL)</label>
                                 <input 
                                   type="text" 
-                                  value={memberDossier.ttl}
-                                  onChange={(e) => setMemberDossier({ ...memberDossier, ttl: e.target.value })}
+                                  value={memberDossier.ttl || ""}
+                                  onChange={(e) => updateDossierField("ttl", e.target.value)}
                                   placeholder="Gorontalo, 17 Agustus 1990"
                                   className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
                                 />
@@ -3025,8 +3310,8 @@
                                 <label className="text-xs font-semibold text-pch-muted block mb-1">NIK (16 Digit)</label>
                                 <input 
                                   type="text" 
-                                  value={memberDossier.nik}
-                                  onChange={(e) => setMemberDossier({ ...memberDossier, nik: e.target.value })}
+                                  value={memberDossier.nik || ""}
+                                  onChange={(e) => updateDossierField("nik", e.target.value)}
                                   placeholder="7501..."
                                   className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
                                 />
@@ -3036,8 +3321,8 @@
                                 <label className="text-xs font-semibold text-pch-muted block mb-1">Alamat Lengkap Domisili</label>
                                 <textarea 
                                   rows="2"
-                                  value={memberDossier.alamatLengkap}
-                                  onChange={(e) => setMemberDossier({ ...memberDossier, alamatLengkap: e.target.value })}
+                                  value={memberDossier.alamatLengkap || ""}
+                                  onChange={(e) => updateDossierField("alamatLengkap", e.target.value)}
                                   className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
                                 ></textarea>
                               </div>
@@ -3056,8 +3341,8 @@
                                 <label className="text-xs font-semibold text-pch-muted block mb-1">Nama Pemilik Rekening</label>
                                 <input 
                                   type="text" 
-                                  value={memberDossier.namaRekening}
-                                  onChange={(e) => setMemberDossier({ ...memberDossier, namaRekening: e.target.value })}
+                                  value={memberDossier.namaRekening || ""}
+                                  onChange={(e) => updateDossierField("namaRekening", e.target.value)}
                                   className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
                                 />
                               </div>
@@ -3066,8 +3351,8 @@
                                 <label className="text-xs font-semibold text-pch-muted block mb-1">Bank & Nomor Rekening</label>
                                 <input 
                                   type="text" 
-                                  value={memberDossier.noRekening}
-                                  onChange={(e) => setMemberDossier({ ...memberDossier, noRekening: e.target.value })}
+                                  value={memberDossier.noRekening || ""}
+                                  onChange={(e) => updateDossierField("noRekening", e.target.value)}
                                   placeholder="Contoh: Bank SulutGo / BCA - 1234567890"
                                   className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
                                 />
@@ -3077,8 +3362,8 @@
                                 <label className="text-xs font-semibold text-pch-muted block mb-1">Alamat Wallet Publik Pi Network</label>
                                 <input 
                                   type="text" 
-                                  value={memberDossier.walletPi}
-                                  onChange={(e) => setMemberDossier({ ...memberDossier, walletPi: e.target.value })}
+                                  value={memberDossier.walletPi || ""}
+                                  onChange={(e) => updateDossierField("walletPi", e.target.value)}
                                   placeholder="Public Address (G...)"
                                   className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
                                 />
@@ -3088,8 +3373,8 @@
                                 <label className="text-xs font-semibold text-pch-muted block mb-1">Alamat Wallet Publik OKX</label>
                                 <input 
                                   type="text" 
-                                  value={memberDossier.walletOkx}
-                                  onChange={(e) => setMemberDossier({ ...memberDossier, walletOkx: e.target.value })}
+                                  value={memberDossier.walletOkx || ""}
+                                  onChange={(e) => updateDossierField("walletOkx", e.target.value)}
                                   placeholder="Public Address OKX (0x...)"
                                   className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
                                 />
@@ -3497,6 +3782,132 @@
                         </div>
                       </div>
 
+                      {/* 1B. PENGATURAN DANA TALANGAN & BARCODE QRIS OLEH ADMIN */}
+                      <div className="p-6 rounded-2xl bg-pch-surface border border-pch-gold/50 shadow-card-elevated space-y-6">
+                        <div className="border-b border-pch-border pb-3 flex items-center justify-between">
+                          <h3 className="font-bold text-base text-pch-text flex items-center gap-2">
+                            <Icons.Wallet className="w-4 h-4 text-pch-gold" />
+                            <span>1B. Pengaturan Dana Talangan & Barcode QRIS Komunitas</span>
+                          </h3>
+                          <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-950/80 text-pch-goldLight border border-pch-gold/40 font-mono">
+                            Sinkron Realtime
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-4">
+                            <div>
+                              <label className="text-xs font-semibold text-pch-muted block mb-1">Nomor Akun DANA Resmi</label>
+                              <input 
+                                type="tel" 
+                                value={brandingDraft.danaNumber || ""}
+                                onChange={(e) => setBrandingDraft({ ...brandingDraft, danaNumber: e.target.value })}
+                                placeholder="081299887766"
+                                className="w-full bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-sm font-mono text-pch-text font-bold focus:outline-none focus:border-pch-purple"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-xs font-semibold text-pch-muted block mb-1">Atas Nama Rekening DANA</label>
+                              <input 
+                                type="text" 
+                                value={brandingDraft.danaName || ""}
+                                onChange={(e) => setBrandingDraft({ ...brandingDraft, danaName: e.target.value })}
+                                placeholder="PANUA COMMUNITY GORONTALO"
+                                className="w-full bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-sm text-pch-text font-bold focus:outline-none focus:border-pch-purple"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-xs font-semibold text-pch-muted block mb-1">Deskripsi / Tujuan Dana Talangan</label>
+                              <textarea 
+                                rows="3"
+                                value={brandingDraft.danaDescription || ""}
+                                onChange={(e) => setBrandingDraft({ ...brandingDraft, danaDescription: e.target.value })}
+                                placeholder="Jelaskan tujuan pengumpulan dana gotong royong bagi anggota..."
+                                className="w-full bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                              ></textarea>
+                            </div>
+
+                            <div className="p-3.5 rounded-xl bg-pch-secondary border border-pch-gold/30 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold text-pch-goldLight">
+                                  Unggah Gambar Barcode QRIS Resmi
+                                </label>
+                                {brandingDraft.qrisImageUrl && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setBrandingDraft({ ...brandingDraft, qrisImageUrl: "" })}
+                                    className="text-[10px] text-pch-danger hover:underline"
+                                  >
+                                    Hapus QRIS
+                                  </button>
+                                )}
+                              </div>
+
+                              <label className="w-full px-4 py-2.5 rounded-xl bg-pch-gold text-black text-xs font-bold hover:bg-pch-goldLight transition-all shadow-gold-glow cursor-pointer text-center flex items-center justify-center gap-2">
+                                <Icons.Upload className="w-4 h-4" />
+                                <span>Pilih Gambar QRIS (JPG/PNG)</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={async (e) => {
+                                    const file = e.target.files[0];
+                                    if (file) {
+                                      if (file.size > 5 * 1024 * 1024) {
+                                        triggerToast("Ukuran barcode QRIS maksimal 5MB!", "danger");
+                                        return;
+                                      }
+                                      const compressed = await compressImageFile(file, 800, 0.9);
+                                      let qrisUrl = compressed.base64;
+                                      if (supabase) {
+                                        const uploaded = await uploadFileToSupabaseStorage(compressed, 'qris');
+                                        if (uploaded) qrisUrl = uploaded;
+                                      }
+                                      setBrandingDraft(prev => ({ ...prev, qrisImageUrl: qrisUrl }));
+                                      triggerToast("Barcode QRIS berhasil dimuat! Pratinjau diperbarui.");
+                                    }
+                                  }}
+                                />
+                              </label>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col justify-between p-5 rounded-2xl bg-pch-secondary/50 border border-pch-border space-y-4">
+                            <div>
+                              <span className="text-xs font-semibold text-pch-muted uppercase tracking-wider block mb-3">
+                                Pratinjau Tampilan QRIS & Nomor DANA
+                              </span>
+
+                              <div className="p-4 rounded-xl bg-pch-bg border border-pch-gold/40 space-y-3 text-center">
+                                {brandingDraft.qrisImageUrl ? (
+                                  <div className="w-48 aspect-square mx-auto rounded-xl overflow-hidden border border-pch-gold p-1 bg-white">
+                                    <img src={brandingDraft.qrisImageUrl} alt="QRIS Preview" className="w-full h-full object-contain" />
+                                  </div>
+                                ) : (
+                                  <div className="w-32 h-32 rounded-xl bg-pch-secondary border border-dashed border-pch-border flex items-center justify-center mx-auto text-pch-muted text-xs">
+                                    Belum Ada QRIS
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="font-mono text-sm font-bold text-cyan-400">{brandingDraft.danaNumber || "Belum ada nomor"}</p>
+                                  <p className="text-xs text-pch-goldLight font-semibold">{brandingDraft.danaName || "Atas Nama Belum Diatur"}</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            <button 
+                              onClick={handleSaveBranding}
+                              className="w-full py-3 rounded-xl bg-pch-gold text-black font-bold text-sm hover:bg-pch-goldLight transition-all flex items-center justify-center gap-2 shadow-gold-glow"
+                            >
+                              <Icons.Check className="w-4 h-4" />
+                              <span>Simpan Pengaturan Dana Talangan</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
                       {/* 2. Generator Redeem Code 90 Detik */}
                       <div className="p-6 rounded-2xl bg-pch-surface border border-pch-purple/50 shadow-card-elevated space-y-6">
                         <h3 className="font-bold text-base text-pch-text border-b border-pch-border pb-3 flex items-center gap-2">
@@ -3761,9 +4172,10 @@
               </div>
 
               {/* MOBILE BOTTOM NAVIGATION */}
-              <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-pch-bg/95 backdrop-blur-lg border-t border-pch-border px-2 py-1.5 flex items-center justify-around">
+              <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-pch-bg/95 backdrop-blur-lg border-t border-pch-border px-1 py-1 flex items-center justify-around overflow-x-auto">
                 {[
                   { id: "dashboard", label: "Beranda", icon: Icons.Home },
+                  { id: "dana_talangan", label: "Dana", icon: Icons.Wallet },
                   { id: "community", label: "Grup", icon: Icons.Users },
                   { id: "chat", label: "Chat", icon: Icons.MessageSquare },
                   { id: "meetings", label: "Rapat", icon: Icons.Video },
@@ -3777,19 +4189,19 @@
                     <button
                       key={item.id}
                       onClick={() => { setActiveTab(item.id); setActiveJitsiRoom(null); }}
-                      className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all relative ${
+                      className={`flex flex-col items-center justify-center py-1 px-1.5 rounded-xl transition-all relative shrink-0 ${
                         isActive ? "text-pch-gold scale-105 font-bold" : "text-pch-muted hover:text-pch-text"
                       }`}
                     >
                       <div className="relative">
-                        <Icon className="w-5 h-5" />
+                        <Icon className="w-4 h-4" />
                         {item.id === "chat" && unreadChatCount > 0 && (
                           <span className="absolute -top-1 -right-2 px-1 rounded-full text-[8px] font-bold bg-pch-purple text-white shadow-purple-glow">
                             {unreadChatCount}
                           </span>
                         )}
                       </div>
-                      <span className="text-[10px] mt-0.5">{item.label}</span>
+                      <span className="text-[9px] mt-0.5">{item.label}</span>
                     </button>
                   );
                 })}
