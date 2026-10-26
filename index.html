@@ -650,15 +650,22 @@
       const [newSlidePreview, setNewSlidePreview] = useState("");
       const [isUploadingSlide, setIsUploadingSlide] = useState(false);
 
-      // Timer Auto-Slide Banner (Berganti Otomatis Setiap 4 Detik)
+      // Ref Persisten Banner Slides agar Timer Auto-Slide Tidak Ter-reset oleh Auto-Sync Supabase
+      const bannerSlidesRef = useRef(appBranding.bannerSlides || []);
       useEffect(() => {
-        const slides = appBranding.bannerSlides || [];
-        if (slides.length <= 1) return;
-        const slideTimer = setInterval(() => {
-          setCurrentSlideIndex(prev => (prev + 1) % slides.length);
-        }, 4000);
-        return () => clearInterval(slideTimer);
+        bannerSlidesRef.current = appBranding.bannerSlides || [];
       }, [appBranding.bannerSlides]);
+
+      // Timer Auto-Slide Banner Berjalan Berkelanjutan (Berganti Otomatis Setiap 3.5 Detik)
+      useEffect(() => {
+        const slideTimer = setInterval(() => {
+          const slides = bannerSlidesRef.current;
+          if (Array.isArray(slides) && slides.length > 1) {
+            setCurrentSlideIndex(prev => (prev + 1) % slides.length);
+          }
+        }, 3500);
+        return () => clearInterval(slideTimer);
+      }, []);
 
       // State Khusus Form Konfirmasi Dana Talangan Anggota
       const [danaConfirmNominal, setDanaConfirmNominal] = useState("");
@@ -2684,14 +2691,25 @@
                     </span>
                   </div>
 
-                  {/* REVISI POIN 4: HILANGKAN LINGKARAN FOTO PROFIL DISAMPING TOMBOL KELUAR AGAR TIDAK GANDA */}
-                  <div className="flex items-center gap-2">
+                  {/* TOMBOL KELUAR & TOMBOL PINTASAN BUKA MY SECURE VAULT DI SAMPING KANANNYA */}
+                  <div className="flex items-center gap-2 shrink-0">
                     <button 
                       onClick={handleLogoutSession}
                       className="p-2 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted hover:text-pch-danger hover:border-pch-danger/40 transition-colors"
                       title="Keluar Sesi"
                     >
                       <Icons.LogOut className="w-4 h-4" />
+                    </button>
+
+                    {/* TOMBOL PINTASAN BUKA MY SECURE VAULT TEPAT DI SEBELAH KANAN TOMBOL KELUAR */}
+                    <button 
+                      onClick={() => setActiveTab("vault")}
+                      className="px-3 py-1.5 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight transition-all shadow-gold-glow flex items-center gap-1.5 shrink-0 active:scale-95"
+                      title="Buka My Secure Vault"
+                    >
+                      <Icons.Lock className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Buka My Secure Vault</span>
+                      <span className="sm:hidden">Vault</span>
                     </button>
                   </div>
                 </header>
@@ -2703,8 +2721,8 @@
                   {activeTab === "dashboard" && (
                     <div className="space-y-6">
                       
-                      {/* REVISI POIN 2: BANNER GAMBAR AUTO-SLIDE (SLIDER OTOMATIS DIINPUT DARI PANEL ADMIN) */}
-                      <div className="relative w-full rounded-2xl overflow-hidden border border-pch-gold/40 shadow-card-elevated bg-pch-surface">
+                      {/* BANNER GAMBAR AUTO-SLIDE TERPISAH (FOTO BERSIH 100% TANPA TERTUTUPI TEKS) */}
+                      <div className="relative w-full rounded-2xl overflow-hidden border border-pch-gold/40 shadow-card-elevated bg-pch-surface flex flex-col">
                         {(() => {
                           const slides = appBranding.bannerSlides && appBranding.bannerSlides.length > 0
                             ? appBranding.bannerSlides
@@ -2719,67 +2737,84 @@
                           const activeSlide = slides[currentSlideIndex % slides.length];
 
                           return (
-                            <div className="relative min-h-[190px] sm:min-h-[240px] flex flex-col justify-end p-5 sm:p-7 overflow-hidden">
-                              {/* Background Image / Gradient Fallback */}
-                              {activeSlide.imageUrl ? (
-                                <img 
-                                  src={activeSlide.imageUrl} 
-                                  alt={activeSlide.title || "Banner"} 
-                                  className="absolute inset-0 w-full h-full object-cover transition-all duration-700"
-                                />
-                              ) : (
-                                <div className="absolute inset-0 bg-gradient-to-r from-pch-surface via-pch-secondary to-pch-purple/20 flex items-center justify-end pr-8 pointer-events-none">
-                                  <div className="w-48 h-48 opacity-15">
-                                    <PanuaCommunitySealSVG />
+                            <React.Fragment>
+                              {/* 1. AREA FOTO BANNER: UTUH, BERSIH, DAN JERNIH TANPA TEKS MENUTUPI WAJAH / FOTO */}
+                              <div className="relative w-full h-56 sm:h-72 md:h-80 overflow-hidden bg-black/80 flex items-center justify-center">
+                                {activeSlide.imageUrl ? (
+                                  <img 
+                                    key={activeSlide.id || currentSlideIndex}
+                                    src={activeSlide.imageUrl} 
+                                    alt={activeSlide.title || "Banner"} 
+                                    className="w-full h-full object-cover object-center transition-all duration-700 animate-fade-in"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full bg-gradient-to-r from-pch-surface via-pch-secondary to-pch-purple/20 flex items-center justify-center p-6 text-center">
+                                    <div className="w-36 h-36 opacity-20">
+                                      <PanuaCommunitySealSVG />
+                                    </div>
                                   </div>
-                                </div>
-                              )}
+                                )}
 
-                              {/* Overlay Gradient agar teks selalu kontras terbaca */}
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/20 pointer-events-none"></div>
-
-                              {/* Konten Teks & Tombol Cepat di Atas Slide */}
-                              <div className="relative z-10 space-y-2 max-w-xl">
-                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-pch-gold/20 border border-pch-gold/50 text-[10px] font-bold text-pch-goldLight uppercase tracking-wider backdrop-blur-md">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-pch-gold animate-pulse"></span>
-                                  <span>Panua Pi Network Gorontalo</span>
-                                </div>
-                                <h2 className="text-lg sm:text-2xl font-black text-white tracking-wide uppercase drop-shadow-md">
-                                  {activeSlide.title}
-                                </h2>
-                                <p className="text-xs text-pch-text/90 line-clamp-2 drop-shadow">
-                                  {activeSlide.subtitle}
-                                </p>
-
-                                <div className="pt-2">
-                                  <button 
-                                    onClick={() => setActiveTab("vault")}
-                                    className="px-4 py-2 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight transition-all shadow-gold-glow inline-flex items-center gap-2 active:scale-95"
-                                  >
-                                    <Icons.Lock className="w-3.5 h-3.5" />
-                                    <span>Buka My Secure Vault</span>
-                                  </button>
-                                </div>
+                                {/* Indikator Titik (Dots) Slide di Pojok Kanan Atas Foto */}
+                                {slides.length > 1 && (
+                                  <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15 shadow-md">
+                                    {slides.map((s, idx) => (
+                                      <button
+                                        key={s.id || idx}
+                                        onClick={() => setCurrentSlideIndex(idx)}
+                                        className={`transition-all rounded-full ${
+                                          idx === (currentSlideIndex % slides.length)
+                                            ? "w-5 h-1.5 bg-pch-gold shadow-gold-glow"
+                                            : "w-1.5 h-1.5 bg-white/40 hover:bg-white/80"
+                                        }`}
+                                        title={`Slide ${idx + 1}`}
+                                      />
+                                    ))}
+                                  </div>
+                                )}
                               </div>
 
-                              {/* Indikator Titik (Dots) Slide & Kontrol Panah */}
-                              {slides.length > 1 && (
-                                <div className="absolute bottom-3 right-4 z-20 flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10">
-                                  {slides.map((s, idx) => (
-                                    <button
-                                      key={s.id || idx}
-                                      onClick={() => setCurrentSlideIndex(idx)}
-                                      className={`transition-all rounded-full ${
-                                        idx === (currentSlideIndex % slides.length)
-                                          ? "w-5 h-1.5 bg-pch-gold shadow-gold-glow"
-                                          : "w-1.5 h-1.5 bg-white/40 hover:bg-white/80"
-                                      }`}
-                                      title={`Slide ${idx + 1}`}
-                                    />
-                                  ))}
+                              {/* 2. BAGIAN BAWAH FOTO: DEDIKASI KHUSUS JUDUL & SUBJUDUL (TEMPAT TOMBOL LAMA) */}
+                              <div className="p-4 sm:p-5 bg-gradient-to-r from-pch-surface via-pch-secondary to-pch-surface border-t border-pch-border/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div className="space-y-1.5 max-w-xl">
+                                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-pch-gold/15 border border-pch-gold/40 text-[10px] font-bold text-pch-goldLight uppercase tracking-wider">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-pch-gold animate-pulse"></span>
+                                    <span>Panua Pi Network Gorontalo</span>
+                                  </div>
+                                  <h2 className="text-base sm:text-xl font-black text-white tracking-wide uppercase drop-shadow-sm">
+                                    {activeSlide.title}
+                                  </h2>
+                                  <p className="text-xs text-pch-muted line-clamp-2">
+                                    {activeSlide.subtitle}
+                                  </p>
                                 </div>
-                              )}
-                            </div>
+
+                                {/* Tombol Kontrol Slide Manual (Prev / Next & Nomor Slide) */}
+                                {slides.length > 1 && (
+                                  <div className="flex items-center gap-2 self-end sm:self-center shrink-0 pt-1 sm:pt-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => setCurrentSlideIndex(prev => (prev - 1 + slides.length) % slides.length)}
+                                      className="p-1.5 rounded-lg bg-pch-surface border border-pch-border hover:border-pch-gold text-pch-muted hover:text-pch-gold transition-colors"
+                                      title="Slide Sebelumnya"
+                                    >
+                                      <Icons.ArrowLeft className="w-4 h-4" />
+                                    </button>
+                                    <span className="text-[11px] font-mono font-bold text-pch-goldLight px-1">
+                                      {(currentSlideIndex % slides.length) + 1} / {slides.length}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setCurrentSlideIndex(prev => (prev + 1) % slides.length)}
+                                      className="p-1.5 rounded-lg bg-pch-surface border border-pch-border hover:border-pch-gold text-pch-muted hover:text-pch-gold transition-colors rotate-180"
+                                      title="Slide Selanjutnya"
+                                    >
+                                      <Icons.ArrowLeft className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </React.Fragment>
                           );
                         })()}
                       </div>
