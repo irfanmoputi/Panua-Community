@@ -596,34 +596,46 @@
       const [forgotSent, setForgotSent] = useState(false);
 
       // 3. BRANDING
-      const [appBranding, setAppBranding] = useState({
-        title: "PANUA COMMUNITY",
-        tagline: "Pi Network Gorontalo - Indonesia",
-        logoType: "panua",
-        customLogoUrl: "",
-        meetingProvider: "mirotalk",
-        adminWhatsapp: "6281299887766",
-        danaNumber: "081299887766",
-        danaName: "PANUA COMMUNITY GORONTALO",
-        qrisImageUrl: "",
-        danaDescription: "Wadah dana talangan dan solidaritas gotong royong resmi Panua Community Gorontalo untuk mendukung anggota dan kelancaran kegiatan komunitas.",
-        bannerSlides: [
-          {
-            id: 'slide-1',
-            imageUrl: '',
-            title: 'PANUA COMMUNITY GORONTALO',
-            subtitle: 'Wadah Gotong Royong & Edukasi Terpadu Pionir Pi Network Gorontalo'
-          },
-          {
-            id: 'slide-2',
-            imageUrl: '',
-            title: 'SOLIDARITAS DANA TALANGAN',
-            subtitle: 'Dukungan Nyata Gotong Royong Sesama Anggota & Kemajuan Ekosistem'
+      const [appBranding, setAppBranding] = useState(() => {
+        const defaultBranding = {
+          title: "PANUA COMMUNITY",
+          tagline: "Pi Network Gorontalo - Indonesia",
+          logoType: "panua",
+          customLogoUrl: "",
+          meetingProvider: "mirotalk",
+          adminWhatsapp: "6281299887766",
+          danaNumber: "081299887766",
+          danaName: "PANUA COMMUNITY GORONTALO",
+          qrisImageUrl: "",
+          danaDescription: "Wadah dana talangan dan solidaritas gotong royong resmi Panua Community Gorontalo untuk mendukung anggota dan kelancaran kegiatan komunitas.",
+          bannerSlides: [
+            {
+              id: 'slide-1',
+              imageUrl: '',
+              title: 'PANUA COMMUNITY GORONTALO',
+              subtitle: 'Wadah Gotong Royong & Edukasi Terpadu Pionir Pi Network Gorontalo'
+            },
+            {
+              id: 'slide-2',
+              imageUrl: '',
+              title: 'SOLIDARITAS DANA TALANGAN',
+              subtitle: 'Dukungan Nyata Gotong Royong Sesama Anggota & Kemajuan Ekosistem'
+            }
+          ],
+          announcementTitle: "Informasi Resmi Panua Community",
+          announcementContent: "Selamat datang di platform resmi Panua Community Gorontalo. Pastikan 15 berkas brankas Anda tersimpan aman di My Secure Vault, serta pantau jadwal rapat dan agenda komunitas.",
+          announcementDate: "Hari Ini"
+        };
+        try {
+          const cachedSlides = localStorage.getItem('panua_banner_slides_cache');
+          if (cachedSlides) {
+            const parsed = JSON.parse(cachedSlides);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              defaultBranding.bannerSlides = parsed;
+            }
           }
-        ],
-        announcementTitle: "Informasi Resmi Panua Community",
-        announcementContent: "Selamat datang di platform resmi Panua Community Gorontalo. Pastikan 15 berkas brankas Anda tersimpan aman di My Secure Vault, serta pantau jadwal rapat dan agenda komunitas.",
-        announcementDate: "Hari Ini"
+        } catch (e) {}
+        return defaultBranding;
       });
       const [brandingDraft, setBrandingDraft] = useState({ ...appBranding });
 
@@ -634,6 +646,8 @@
       const [newSlideTitle, setNewSlideTitle] = useState("");
       const [newSlideSubtitle, setNewSlideSubtitle] = useState("");
       const [newSlideImageFile, setNewSlideImageFile] = useState(null);
+      const [newSlideImageUrl, setNewSlideImageUrl] = useState("");
+      const [newSlidePreview, setNewSlidePreview] = useState("");
       const [isUploadingSlide, setIsUploadingSlide] = useState(false);
 
       // Timer Auto-Slide Banner (Berganti Otomatis Setiap 4 Detik)
@@ -709,6 +723,7 @@
               base64: e.target.result,
               size: file ? (file.size / (1024 * 1024)).toFixed(2) + " MB" : "0 MB"
             });
+            reader.onerror = () => resolve({ name: "berkas.dat", type: "application/octet-stream", base64: "", size: "0 MB" });
             reader.readAsDataURL(file);
             return;
           }
@@ -717,28 +732,46 @@
           reader.onload = (e) => {
             const img = new Image();
             img.onload = () => {
-              const canvas = document.createElement('canvas');
-              let width = img.width;
-              let height = img.height;
-              if (width > maxWidth) {
-                height = Math.round((height * maxWidth) / width);
-                width = maxWidth;
+              try {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                if (width > maxWidth) {
+                  height = Math.round((height * maxWidth) / width);
+                  width = maxWidth;
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+                const approxKB = Math.round((compressedBase64.length * 3 / 4) / 1024);
+                resolve({
+                  name: file.name,
+                  type: 'image/jpeg',
+                  base64: compressedBase64,
+                  size: approxKB > 1024 ? (approxKB / 1024).toFixed(2) + " MB" : approxKB + " KB"
+                });
+              } catch (canvasErr) {
+                resolve({
+                  name: file.name,
+                  type: file.type || 'image/jpeg',
+                  base64: e.target.result,
+                  size: "100 KB"
+                });
               }
-              canvas.width = width;
-              canvas.height = height;
-              const ctx = canvas.getContext('2d');
-              ctx.drawImage(img, 0, 0, width, height);
-              const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
-              const approxKB = Math.round((compressedBase64.length * 3 / 4) / 1024);
+            };
+            img.onerror = () => {
               resolve({
                 name: file.name,
-                type: 'image/jpeg',
-                base64: compressedBase64,
-                size: approxKB > 1024 ? (approxKB / 1024).toFixed(2) + " MB" : approxKB + " KB"
+                type: file.type || 'image/jpeg',
+                base64: e.target.result,
+                size: "100 KB"
               });
             };
             img.src = e.target.result;
           };
+          reader.onerror = () => resolve({ name: file.name, type: "image/jpeg", base64: "", size: "0 KB" });
           reader.readAsDataURL(file);
         });
       };
@@ -1065,25 +1098,51 @@
           // 3. Sinkronisasi Branding & Dana Talangan
           if (brandRes.status === 'fulfilled' && brandRes.value.data) {
             const b = brandRes.value.data;
-            let parsedSlides = [
-              {
-                id: 'slide-1',
-                imageUrl: '',
-                title: 'PANUA COMMUNITY GORONTALO',
-                subtitle: 'Wadah Gotong Royong & Edukasi Terpadu Pionir Pi Network Gorontalo'
-              },
-              {
-                id: 'slide-2',
-                imageUrl: '',
-                title: 'SOLIDARITAS DANA TALANGAN',
-                subtitle: 'Dukungan Nyata Gotong Royong Sesama Anggota & Kemajuan Ekosistem'
-              }
-            ];
+            let parsedSlides = null;
             try {
               if (b.banner_slides) {
                 parsedSlides = typeof b.banner_slides === 'string' ? JSON.parse(b.banner_slides) : b.banner_slides;
+                if (typeof parsedSlides === 'string') {
+                  parsedSlides = JSON.parse(parsedSlides);
+                }
               }
-            } catch(e) {}
+            } catch(e) {
+              console.warn("Parse banner_slides notice:", e);
+            }
+
+            // Utamakan slides valid dari Supabase, jika kosong pertahankan cache lokal
+            let finalSlides = null;
+            if (Array.isArray(parsedSlides) && parsedSlides.length > 0) {
+              finalSlides = parsedSlides;
+              try { localStorage.setItem('panua_banner_slides_cache', JSON.stringify(finalSlides)); } catch(e) {}
+            } else {
+              try {
+                const localCached = localStorage.getItem('panua_banner_slides_cache');
+                if (localCached) {
+                  const parsedLocal = JSON.parse(localCached);
+                  if (Array.isArray(parsedLocal) && parsedLocal.length > 0) {
+                    finalSlides = parsedLocal;
+                  }
+                }
+              } catch(e) {}
+            }
+
+            if (!finalSlides || finalSlides.length === 0) {
+              finalSlides = [
+                {
+                  id: 'slide-1',
+                  imageUrl: '',
+                  title: b.title || 'PANUA COMMUNITY GORONTALO',
+                  subtitle: b.tagline || 'Wadah Gotong Royong & Edukasi Terpadu Pionir Pi Network Gorontalo'
+                },
+                {
+                  id: 'slide-2',
+                  imageUrl: '',
+                  title: 'SOLIDARITAS DANA TALANGAN',
+                  subtitle: 'Dukungan Nyata Gotong Royong Sesama Anggota & Kemajuan Ekosistem'
+                }
+              ];
+            }
 
             const fetchedBranding = {
               title: b.title || "PANUA COMMUNITY",
@@ -1096,14 +1155,7 @@
               danaName: b.dana_name || "PANUA COMMUNITY GORONTALO",
               qrisImageUrl: b.qris_image_url || "",
               danaDescription: b.dana_description || "Wadah dana talangan dan solidaritas gotong royong resmi Panua Community Gorontalo untuk mendukung anggota dan kelancaran kegiatan komunitas.",
-              bannerSlides: Array.isArray(parsedSlides) && parsedSlides.length > 0 ? parsedSlides : [
-                {
-                  id: 'slide-1',
-                  imageUrl: '',
-                  title: 'PANUA COMMUNITY GORONTALO',
-                  subtitle: 'Wadah Gotong Royong & Edukasi Terpadu Pionir Pi Network Gorontalo'
-                }
-              ],
+              bannerSlides: finalSlides,
               announcementTitle: b.announcement_title || "Informasi Resmi Panua Community",
               announcementContent: b.announcement_content || "Selamat datang di platform resmi Panua Community Gorontalo. Pastikan 15 berkas brankas Anda tersimpan aman di My Secure Vault, serta pantau jadwal rapat dan agenda komunitas.",
               announcementDate: b.announcement_date || "Hari Ini"
@@ -1111,7 +1163,8 @@
             setAppBranding(fetchedBranding);
             setBrandingDraft(prev => ({
               ...fetchedBranding,
-              ...prev
+              ...prev,
+              bannerSlides: finalSlides
             }));
           }
 
@@ -1796,33 +1849,49 @@
       // Helper Tambah Slide Banner Gambar oleh Admin
       const handleAddBannerSlide = async (e) => {
         e.preventDefault();
-        if (!newSlideTitle.trim()) {
-          triggerToast("Masukkan judul banner slide!", "warning");
+        const slideTitle = newSlideTitle.trim() || appBranding.title || "PANUA COMMUNITY GORONTALO";
+        const slideSubtitle = newSlideSubtitle.trim() || appBranding.tagline || "Pi Network Gorontalo - Indonesia";
+
+        if (!newSlideImageFile && !newSlideImageUrl.trim() && !newSlidePreview) {
+          triggerToast("Pilih file gambar banner atau masukkan URL gambar!", "warning");
           return;
         }
 
         setIsUploadingSlide(true);
-        triggerToast("Menyiapkan banner slide...", "warning");
+        triggerToast("Menyiapkan dan mengompresi gambar banner...", "warning");
 
         try {
-          let slideImgUrl = "";
+          let slideImgUrl = newSlideImageUrl.trim() || newSlidePreview || "";
+
           if (newSlideImageFile) {
             const compressed = await compressImageFile(newSlideImageFile, 1200, 0.85);
             slideImgUrl = compressed.base64;
+
             if (supabase) {
               const uploadedUrl = await uploadFileToSupabaseStorage(compressed, 'banners');
-              if (uploadedUrl) slideImgUrl = uploadedUrl;
+              if (uploadedUrl && uploadedUrl.startsWith('http')) {
+                slideImgUrl = uploadedUrl;
+              }
             }
+          }
+
+          if (!slideImgUrl) {
+            triggerToast("Gagal memproses gambar banner!", "danger");
+            setIsUploadingSlide(false);
+            return;
           }
 
           const newSlide = {
             id: 'slide-' + Date.now(),
             imageUrl: slideImgUrl,
-            title: newSlideTitle.trim(),
-            subtitle: newSlideSubtitle.trim() || appBranding.tagline
+            title: slideTitle,
+            subtitle: slideSubtitle
           };
 
-          const updatedSlides = [...(brandingDraft.bannerSlides || []), newSlide];
+          // Hapus slide kosong default jika menambahkan slide gambar asli
+          const currentSlides = (brandingDraft.bannerSlides || []).filter(s => s.imageUrl || (!s.id.startsWith('slide-1') && !s.id.startsWith('slide-2')));
+          const updatedSlides = [...currentSlides, newSlide];
+
           const updatedDraft = {
             ...brandingDraft,
             bannerSlides: updatedSlides
@@ -1830,20 +1899,57 @@
 
           setBrandingDraft(updatedDraft);
           setAppBranding(updatedDraft);
+          setCurrentSlideIndex(updatedSlides.length - 1);
+
+          // Simpan ke cache lokal agar tidak pernah tertimpa
+          try {
+            localStorage.setItem('panua_banner_slides_cache', JSON.stringify(updatedSlides));
+          } catch(e) {}
+
+          // Bersihkan form
           setNewSlideTitle("");
           setNewSlideSubtitle("");
           setNewSlideImageFile(null);
+          setNewSlideImageUrl("");
+          setNewSlidePreview("");
 
+          // Simpan ke Supabase Cloud
           if (supabase) {
-            await supabase.from('app_branding').upsert([{
+            const payload = {
               id: 'primary',
+              title: updatedDraft.title || 'PANUA COMMUNITY',
+              tagline: updatedDraft.tagline || 'Pi Network Gorontalo - Indonesia',
+              logo_type: updatedDraft.logoType || 'panua',
+              custom_logo_url: updatedDraft.customLogoUrl || '',
+              admin_whatsapp: updatedDraft.adminWhatsapp || '6281299887766',
+              meeting_provider: updatedDraft.meetingProvider || 'mirotalk',
+              dana_number: updatedDraft.danaNumber || '081299887766',
+              dana_name: updatedDraft.danaName || 'PANUA COMMUNITY GORONTALO',
+              qris_image_url: updatedDraft.qrisImageUrl || '',
+              dana_description: updatedDraft.danaDescription || '',
               banner_slides: JSON.stringify(updatedSlides),
+              announcement_title: updatedDraft.announcementTitle || 'Informasi Resmi Panua Community',
+              announcement_content: updatedDraft.announcementContent || '',
+              announcement_date: updatedDraft.announcementDate || 'Hari Ini',
               updated_at: new Date().toISOString()
-            }], { onConflict: 'id' });
-          }
+            };
 
-          triggerToast("Slide banner baru berhasil ditambahkan!", "success");
+            const { error: upsertErr } = await supabase.from('app_branding').upsert([payload], { onConflict: 'id' });
+            if (upsertErr) {
+              console.warn("Notice saving banner to Supabase:", upsertErr);
+              if (upsertErr.message?.includes('column "banner_slides" does not exist')) {
+                triggerToast("Slide tersimpan di aplikasi! Jalankan skrip SQL migrasi di Supabase agar tersinkron ke semua perangkat.", "warning");
+              } else {
+                triggerToast("Slide terpasang di dashboard! Peringatan cloud: " + upsertErr.message, "warning");
+              }
+            } else {
+              triggerToast("Slide banner baru berhasil disimpan ke Cloud Supabase & aktif di Dashboard!", "success");
+            }
+          } else {
+            triggerToast("Slide banner baru berhasil dipasang di Dashboard!", "success");
+          }
         } catch (err) {
+          console.error("Banner add error:", err);
           triggerToast("Gagal menambahkan banner slide: " + err.message, "danger");
         } finally {
           setIsUploadingSlide(false);
@@ -1853,19 +1959,35 @@
       // Helper Hapus Slide Banner oleh Admin
       const handleDeleteBannerSlide = async (slideId) => {
         const remaining = (brandingDraft.bannerSlides || []).filter(s => s.id !== slideId);
-        const updatedDraft = { ...brandingDraft, bannerSlides: remaining };
+        const finalRemaining = remaining.length > 0 ? remaining : [
+          {
+            id: 'slide-1',
+            imageUrl: '',
+            title: brandingDraft.title || 'PANUA COMMUNITY GORONTALO',
+            subtitle: brandingDraft.tagline || 'Wadah Gotong Royong & Edukasi Terpadu Pionir Pi Network Gorontalo'
+          }
+        ];
+
+        const updatedDraft = { ...brandingDraft, bannerSlides: finalRemaining };
         setBrandingDraft(updatedDraft);
         setAppBranding(updatedDraft);
+        setCurrentSlideIndex(0);
+
+        try {
+          localStorage.setItem('panua_banner_slides_cache', JSON.stringify(finalRemaining));
+        } catch(e) {}
 
         if (supabase) {
           try {
             await supabase.from('app_branding').upsert([{
               id: 'primary',
-              banner_slides: JSON.stringify(remaining),
+              banner_slides: JSON.stringify(finalRemaining),
               updated_at: new Date().toISOString()
             }], { onConflict: 'id' });
-            triggerToast("Slide banner dihapus.", "warning");
-          } catch(e) {}
+            triggerToast("Slide banner berhasil dihapus.", "warning");
+          } catch(e) {
+            triggerToast("Slide dihapus dari dashboard lokal.", "normal");
+          }
         }
       };
 
@@ -4213,57 +4335,73 @@
 
                         {/* Pengaturan Slide Banner */}
                         <div className="space-y-4">
-                          <h4 className="text-xs font-bold text-pch-goldLight uppercase tracking-wider">B. Daftar Banner Slide Aktif</h4>
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <h4 className="text-xs font-bold text-pch-goldLight uppercase tracking-wider">
+                              B. Daftar Banner Slide Aktif ({brandingDraft.bannerSlides?.length || 0} Slide)
+                            </h4>
+                            <span className="text-[10px] text-pch-muted">Slide berganti otomatis tiap 4 detik di Beranda Anggota</span>
+                          </div>
+
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             {(brandingDraft.bannerSlides || []).map((slide, idx) => (
-                              <div key={slide.id || idx} className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-2 relative group overflow-hidden">
-                                <div className="w-full h-24 rounded-lg bg-pch-surface overflow-hidden border border-pch-border relative">
+                              <div key={slide.id || idx} className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-2 relative group overflow-hidden shadow-sm">
+                                <div className="w-full h-28 rounded-lg bg-pch-surface overflow-hidden border border-pch-border relative">
                                   {slide.imageUrl ? (
-                                    <img src={slide.imageUrl} alt={slide.title} className="w-full h-full object-cover" />
+                                    <img 
+                                      src={slide.imageUrl} 
+                                      alt={slide.title} 
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/600x300/181922/D4AF37?text=Gambar+Slide"; }}
+                                    />
                                   ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-pch-muted text-[11px]">
-                                      Tanpa Gambar (Warna Default)
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-pch-muted text-[11px] p-2 text-center bg-gradient-to-br from-pch-surface to-pch-secondary">
+                                      <Icons.Zap className="w-5 h-5 text-pch-gold/50 mb-1" />
+                                      <span>Banner Gradien Bawaan (Tanpa Gambar)</span>
                                     </div>
                                   )}
-                                  <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded bg-black/70 text-[9px] font-mono text-pch-gold">
+                                  <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-sm text-[9px] font-mono text-pch-goldLight border border-pch-gold/40">
                                     Slide {idx + 1}
                                   </span>
                                 </div>
-                                <div>
+                                <div className="space-y-0.5">
                                   <h5 className="font-bold text-xs text-pch-text truncate">{slide.title}</h5>
                                   <p className="text-[10px] text-pch-muted truncate">{slide.subtitle}</p>
                                 </div>
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteBannerSlide(slide.id)}
-                                  className="w-full py-1 text-[11px] text-pch-danger hover:bg-red-950/40 rounded border border-transparent hover:border-red-800 transition-colors flex items-center justify-center gap-1"
+                                  className="w-full py-1.5 text-[11px] text-pch-danger hover:bg-red-950/40 rounded-lg border border-red-900/30 hover:border-red-600 transition-colors flex items-center justify-center gap-1 font-medium"
                                 >
-                                  <Icons.Trash className="w-3 h-3" />
-                                  <span>Hapus Slide</span>
+                                  <Icons.Trash className="w-3.5 h-3.5" />
+                                  <span>Hapus Slide Ini</span>
                                 </button>
                               </div>
                             ))}
                           </div>
 
-                          {/* Form Tambah Slide Baru */}
-                          <form onSubmit={handleAddBannerSlide} className="p-4 rounded-xl bg-pch-secondary border border-pch-gold/30 space-y-3">
-                            <h5 className="text-xs font-bold text-pch-text flex items-center gap-1.5">
-                              <Icons.Plus className="w-3.5 h-3.5 text-pch-gold" />
-                              <span>Tambah Slide Gambar Baru</span>
-                            </h5>
+                          {/* Form Tambah Slide Baru Dengan Live Preview */}
+                          <form onSubmit={handleAddBannerSlide} className="p-4 rounded-xl bg-pch-secondary border border-pch-gold/40 space-y-3.5 shadow-sm">
+                            <div className="flex items-center justify-between border-b border-pch-border/70 pb-2">
+                              <h5 className="text-xs font-bold text-pch-text flex items-center gap-1.5">
+                                <Icons.Plus className="w-3.5 h-3.5 text-pch-gold" />
+                                <span>Tambah Slide Gambar Banner Baru</span>
+                              </h5>
+                              <span className="text-[10px] text-pch-goldLight font-medium">Pratinjau Otomatis</span>
+                            </div>
+
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <div>
-                                <label className="text-[11px] font-semibold text-pch-muted block mb-1">Judul Slide</label>
+                                <label className="text-[11px] font-semibold text-pch-muted block mb-1">Judul Slide (Opsional)</label>
                                 <input 
                                   type="text" 
-                                  placeholder="Contoh: SEMINAR PI NETWORK"
+                                  placeholder="Contoh: SEMINAR PI NETWORK GORONTALO"
                                   value={newSlideTitle}
                                   onChange={(e) => setNewSlideTitle(e.target.value)}
                                   className="w-full bg-pch-surface border border-pch-border rounded-xl px-3 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
                                 />
                               </div>
                               <div>
-                                <label className="text-[11px] font-semibold text-pch-muted block mb-1">Sub Judul / Keterangan</label>
+                                <label className="text-[11px] font-semibold text-pch-muted block mb-1">Sub Judul / Keterangan Singkat</label>
                                 <input 
                                   type="text" 
                                   placeholder="Contoh: Edukasi & Utilitas Pionir Gorontalo"
@@ -4273,22 +4411,81 @@
                                 />
                               </div>
                             </div>
-                            <div>
-                              <label className="text-[11px] font-semibold text-pch-goldLight block mb-1">Pilih File Gambar Banner</label>
-                              <input 
-                                type="file" 
-                                accept="image/*"
-                                onChange={(e) => setNewSlideImageFile(e.target.files[0])}
-                                className="w-full text-xs text-pch-muted file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-pch-surface file:text-pch-text file:border file:border-pch-border cursor-pointer"
-                              />
+
+                            {/* Pilihan File Gambar & URL Gambar Langsung */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <label className="text-[11px] font-semibold text-pch-goldLight block mb-1">
+                                  1. Unggah Gambar dari Perangkat (Galeri/File)
+                                </label>
+                                <input 
+                                  type="file" 
+                                  accept="image/*"
+                                  onChange={(e) => {
+                                    const file = e.target.files[0];
+                                    if (file) {
+                                      setNewSlideImageFile(file);
+                                      const reader = new FileReader();
+                                      reader.onload = (rev) => setNewSlidePreview(rev.target.result);
+                                      reader.readAsDataURL(file);
+                                    }
+                                  }}
+                                  className="w-full text-xs text-pch-muted file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-pch-surface file:text-pch-text file:border file:border-pch-border cursor-pointer"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="text-[11px] font-semibold text-pch-muted block mb-1">
+                                  2. Atau Masukkan Tautan / URL Gambar Banner
+                                </label>
+                                <input 
+                                  type="url"
+                                  placeholder="https://example.com/banner.jpg"
+                                  value={newSlideImageUrl}
+                                  onChange={(e) => {
+                                    setNewSlideImageUrl(e.target.value);
+                                    if (e.target.value.trim()) setNewSlidePreview(e.target.value.trim());
+                                  }}
+                                  className="w-full bg-pch-surface border border-pch-border rounded-xl px-3 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                                />
+                              </div>
                             </div>
+
+                            {/* Kotak Pratinjau Gambar Langsung (Live Preview Box) */}
+                            {newSlidePreview && (
+                              <div className="p-3 rounded-xl bg-pch-surface border border-pch-gold/40 flex items-center justify-between gap-3 animate-fade-in">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="w-20 h-12 rounded-lg overflow-hidden border border-pch-gold/50 shrink-0 bg-black">
+                                    <img src={newSlidePreview} alt="Preview" className="w-full h-full object-cover" />
+                                  </div>
+                                  <div className="truncate text-xs">
+                                    <span className="font-bold text-pch-goldLight block">Gambar Terpilih Siap Dipasang</span>
+                                    <span className="text-[10px] text-pch-muted truncate block">
+                                      {newSlideImageFile ? newSlideImageFile.name : newSlideImageUrl}
+                                    </span>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setNewSlideImageFile(null);
+                                    setNewSlideImageUrl("");
+                                    setNewSlidePreview("");
+                                  }}
+                                  className="px-2.5 py-1 rounded-lg bg-pch-secondary border border-pch-border text-[10px] text-pch-muted hover:text-pch-danger"
+                                >
+                                  Batalkan
+                                </button>
+                              </div>
+                            )}
+
                             <button
                               type="submit"
                               disabled={isUploadingSlide}
-                              className="px-4 py-2 rounded-xl bg-pch-purple text-white font-bold text-xs hover:bg-pch-purpleLight shadow-purple-glow flex items-center gap-1.5 disabled:opacity-50"
+                              className="px-5 py-2.5 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight shadow-gold-glow flex items-center justify-center gap-2 disabled:opacity-50 transition-all cursor-pointer"
                             >
-                              <Icons.Upload className="w-3.5 h-3.5" />
-                              <span>{isUploadingSlide ? "Mengunggah Slide..." : "Tambahkan ke Banner Slide"}</span>
+                              <Icons.Upload className="w-4 h-4" />
+                              <span>{isUploadingSlide ? "Menyimpan & Menyinkronkan Slide..." : "Unggah & Pasang ke Banner Slide Dashboard"}</span>
                             </button>
                           </form>
                         </div>
