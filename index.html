@@ -2408,7 +2408,7 @@
                   <div className="hidden md:flex items-center gap-3 text-xs text-pch-muted">
                     <span className="flex items-center gap-1.5">
                       <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-400" : "bg-red-500"}`}></span>
-                      <span>{isOnline ? "Cloud Terhubung" : "Mode Offline"}</span>
+                      <span>{isOnline ? "Terhubung" : "Mode Offline"}</span>
                     </span>
                   </div>
 
@@ -2448,7 +2448,7 @@
                         </button>
                       </div>
 
-                      {/* Stat Cards Bersih */}
+                      {/* Stat Cards Bersih Tanpa Jargon Teknis Supabase */}
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="p-4 rounded-xl bg-pch-surface border border-pch-border">
                           <span className="text-xs text-pch-muted block">Anggota Komunitas</span>
@@ -2464,22 +2464,48 @@
                             {vaultUnlocked ? "Terbuka (Sesi 1 Jam)" : "Terkunci (Perlu Redeem Code)"}
                           </span>
                         </div>
-                        <div className="p-4 rounded-xl bg-pch-surface border border-pch-border">
-                          <span className="text-xs text-pch-muted block">Status Cloud Supabase</span>
-                          <span className="text-xs font-bold block mt-1.5 text-pch-success flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-pch-success animate-pulse"></span>
-                            <span>{isRealtimeActive ? "Realtime Streaming" : "Terkoneksi"}</span>
+                        <div className="p-4 rounded-xl bg-pch-surface border border-pch-gold/30">
+                          <span className="text-xs text-pch-muted block">Program Solidaritas</span>
+                          <span className="text-xs font-bold block mt-1.5 text-pch-goldLight flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-pch-gold animate-pulse"></span>
+                            <span>Dana Talangan Aktif</span>
                           </span>
                         </div>
+                      </div>
+
+                      {/* BANNER UTAMA DANA TALANGAN & GOTONG ROYONG DI DASHBOARD ANGGOTA */}
+                      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-950/40 via-pch-surface to-pch-secondary border border-pch-gold/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-card-elevated">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-12 h-12 rounded-xl bg-pch-gold/15 border border-pch-gold/50 flex items-center justify-center text-pch-gold shrink-0 shadow-gold-glow">
+                            <Icons.Wallet className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-bold text-sm text-pch-text">Dana Talangan & Solidaritas Panua</h4>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-pch-gold/20 text-pch-goldLight border border-pch-gold/40 font-semibold">Resmi</span>
+                            </div>
+                            <p className="text-xs text-pch-muted mt-0.5">Dukungan gotong royong anggota via Dompet DANA & Scan Barcode QRIS resmi komunitas.</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setActiveTab("dana_talangan")}
+                          className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight shadow-gold-glow flex items-center justify-center gap-2 shrink-0 transition-all active:scale-95"
+                        >
+                          <Icons.Wallet className="w-4 h-4" />
+                          <span>Buka Dana Talangan</span>
+                        </button>
                       </div>
 
                       {/* Quick Navigation Cards */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <button 
                           onClick={() => setActiveTab("dana_talangan")}
-                          className="p-4 rounded-xl bg-pch-secondary border border-pch-border hover:border-pch-gold text-left transition-all group shadow-sm"
+                          className="p-4 rounded-xl bg-pch-secondary border border-pch-gold/40 hover:border-pch-gold text-left transition-all group shadow-sm bg-gradient-to-br from-amber-950/20 to-pch-secondary"
                         >
-                          <Icons.Wallet className="w-6 h-6 text-pch-gold group-hover:scale-110 transition-transform mb-2" />
+                          <div className="flex items-center justify-between mb-2">
+                            <Icons.Wallet className="w-6 h-6 text-pch-gold group-hover:scale-110 transition-transform" />
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-pch-gold/20 text-pch-goldLight font-semibold">Aktif</span>
+                          </div>
                           <h4 className="font-bold text-sm text-pch-text">Dana Talangan</h4>
                           <p className="text-xs text-pch-muted mt-1">Gotong royong solidaritas QRIS & dompet DANA resmi komunitas.</p>
                         </button>
@@ -3528,13 +3554,24 @@
                   {/* TAB 6: PROFILE */}
                   {activeTab === "profile" && (
                     <div className="max-w-2xl mx-auto space-y-6">
-                      <div className="p-6 rounded-2xl bg-pch-surface border border-pch-border space-y-6">
-                        <div className="flex flex-col sm:flex-row items-center gap-5">
-                          <div className="relative group">
-                            <UserAvatar user={user} branding={appBranding} size="lg" />
-                            <label className="absolute inset-0 bg-black/60 rounded-full flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                              <Icons.Upload className="w-5 h-5 mb-1 text-pch-gold" />
-                              <span className="text-[10px] font-semibold">Ganti Foto</span>
+                      <div className="p-6 rounded-2xl bg-pch-surface border border-pch-border space-y-6 shadow-card-elevated">
+                        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+                          <div className="flex flex-col items-center gap-2.5 shrink-0">
+                            <div className="relative">
+                              <UserAvatar user={user} branding={appBranding} size="lg" />
+                              <label className="absolute bottom-0 right-0 p-1.5 rounded-full bg-pch-gold text-black shadow-md border-2 border-pch-surface cursor-pointer hover:bg-pch-goldLight transition-transform active:scale-95" title="Ganti Foto">
+                                <Icons.Upload className="w-3.5 h-3.5" />
+                                <input 
+                                  type="file" 
+                                  accept="image/*"
+                                  onChange={handleProfilePhotoUpload}
+                                  className="hidden"
+                                />
+                              </label>
+                            </div>
+                            <label className="px-3 py-1.5 rounded-xl bg-pch-secondary border border-pch-gold/40 text-pch-goldLight hover:bg-pch-surface text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 transition-all">
+                              <Icons.Upload className="w-3.5 h-3.5 text-pch-gold" />
+                              <span>Ganti Foto Profil</span>
                               <input 
                                 type="file" 
                                 accept="image/*"
@@ -3544,46 +3581,55 @@
                             </label>
                           </div>
 
-                          <div className="space-y-1 text-center sm:text-left">
-                            <h2 className="text-xl font-bold text-pch-text">{user.name}</h2>
-                            <p className="text-xs text-pch-gold font-mono">@{user.username} • {user.role.toUpperCase()}</p>
+                          <div className="space-y-1.5 text-center sm:text-left flex-1 min-w-0">
+                            <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+                              <h2 className="text-xl font-bold text-pch-text truncate">{user.name}</h2>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase bg-pch-purple/20 text-pch-purpleLight border border-pch-purple/40">
+                                {user.role || "MEMBER"}
+                              </span>
+                            </div>
+                            <p className="text-xs text-pch-gold font-mono">@{user.username}</p>
                             <p className="text-xs text-pch-muted">{user.email}</p>
-                            <p className="text-xs text-pch-purpleLight font-mono">{user.phone || "No HP belum diatur"}</p>
+                            <p className="text-xs text-pch-purpleLight font-mono flex items-center justify-center sm:justify-start gap-1">
+                              <Icons.Phone className="w-3.5 h-3.5 shrink-0" />
+                              <span>{user.phone || "No HP belum diatur"}</span>
+                            </p>
                           </div>
                         </div>
 
                         <div className="space-y-4 pt-4 border-t border-pch-border">
                           <div>
-                            <label className="text-xs font-semibold text-pch-muted">Nama Lengkap</label>
+                            <label className="text-xs font-semibold text-pch-muted block mb-1">Nama Lengkap</label>
                             <input 
                               type="text" 
                               value={user.name} 
                               onChange={(e) => setUser({ ...user, name: e.target.value })}
-                              className="w-full mt-1 bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-sm text-pch-text focus:outline-none focus:border-pch-purple"
+                              className="w-full bg-pch-secondary border border-pch-border rounded-xl px-4 py-2.5 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
                             />
                           </div>
 
                           <div>
-                            <label className="text-xs font-semibold text-pch-muted">No HP / WhatsApp</label>
+                            <label className="text-xs font-semibold text-pch-muted block mb-1">No HP / WhatsApp</label>
                             <input 
                               type="tel" 
                               value={user.phone || ""} 
                               onChange={(e) => setUser({ ...user, phone: e.target.value })}
-                              className="w-full mt-1 bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-sm text-pch-text focus:outline-none focus:border-pch-purple"
+                              className="w-full bg-pch-secondary border border-pch-border rounded-xl px-4 py-2.5 text-xs text-pch-text focus:outline-none focus:border-pch-purple font-mono"
                             />
                           </div>
 
                           <div>
-                            <label className="text-xs font-semibold text-pch-muted">Bio Anggota Panua</label>
+                            <label className="text-xs font-semibold text-pch-muted block mb-1">Bio Anggota Panua</label>
                             <textarea 
-                              rows="2"
-                              value={user.bio} 
+                              rows="3"
+                              value={user.bio || ""} 
                               onChange={(e) => setUser({ ...user, bio: e.target.value })}
-                              className="w-full mt-1 bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-sm text-pch-text focus:outline-none focus:border-pch-purple"
+                              placeholder="Tuliskan tentang diri Anda atau wilayah domisili..."
+                              className="w-full bg-pch-secondary border border-pch-border rounded-xl px-4 py-2.5 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
                             ></textarea>
                           </div>
 
-                          <div className="pt-2 flex gap-3">
+                          <div className="pt-2 flex flex-col sm:flex-row gap-3">
                             <button 
                               onClick={async () => {
                                 if (supabase) {
@@ -3595,16 +3641,17 @@
                                 }
                                 triggerToast("Pengaturan profil berhasil disimpan.", "success");
                               }}
-                              className="flex-1 py-2.5 rounded-xl bg-pch-gold text-black font-semibold text-sm hover:bg-pch-goldLight shadow-gold-glow"
+                              className="flex-1 py-2.5 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight shadow-gold-glow flex items-center justify-center gap-2"
                             >
-                              Simpan Profil
+                              <Icons.Check className="w-4 h-4" />
+                              <span>Simpan Profil</span>
                             </button>
                             <button 
                               onClick={handleLogoutSession}
-                              className="px-4 py-2.5 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted hover:text-pch-danger text-sm font-semibold flex items-center gap-1.5"
+                              className="px-5 py-2.5 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted hover:text-pch-danger text-xs font-semibold flex items-center justify-center gap-1.5"
                             >
                               <Icons.LogOut className="w-4 h-4" />
-                              <span>Keluar</span>
+                              <span>Keluar Sesi</span>
                             </button>
                           </div>
                         </div>
@@ -4172,7 +4219,7 @@
               </div>
 
               {/* MOBILE BOTTOM NAVIGATION */}
-              <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-pch-bg/95 backdrop-blur-lg border-t border-pch-border px-1 py-1 flex items-center justify-around overflow-x-auto">
+              <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-pch-bg/95 backdrop-blur-lg border-t border-pch-border px-1 py-1 flex items-center justify-between overflow-x-auto no-scrollbar">
                 {[
                   { id: "dashboard", label: "Beranda", icon: Icons.Home },
                   { id: "dana_talangan", label: "Dana", icon: Icons.Wallet },
@@ -4189,7 +4236,7 @@
                     <button
                       key={item.id}
                       onClick={() => { setActiveTab(item.id); setActiveJitsiRoom(null); }}
-                      className={`flex flex-col items-center justify-center py-1 px-1.5 rounded-xl transition-all relative shrink-0 ${
+                      className={`flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all relative shrink-0 min-w-[46px] ${
                         isActive ? "text-pch-gold scale-105 font-bold" : "text-pch-muted hover:text-pch-text"
                       }`}
                     >
@@ -4201,7 +4248,7 @@
                           </span>
                         )}
                       </div>
-                      <span className="text-[9px] mt-0.5">{item.label}</span>
+                      <span className="text-[9px] mt-0.5 truncate">{item.label}</span>
                     </button>
                   );
                 })}
