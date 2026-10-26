@@ -606,9 +606,45 @@
         danaNumber: "081299887766",
         danaName: "PANUA COMMUNITY GORONTALO",
         qrisImageUrl: "",
-        danaDescription: "Wadah dana talangan dan solidaritas gotong royong resmi Panua Community Gorontalo untuk mendukung anggota dan kelancaran kegiatan komunitas."
+        danaDescription: "Wadah dana talangan dan solidaritas gotong royong resmi Panua Community Gorontalo untuk mendukung anggota dan kelancaran kegiatan komunitas.",
+        bannerSlides: [
+          {
+            id: 'slide-1',
+            imageUrl: '',
+            title: 'PANUA COMMUNITY GORONTALO',
+            subtitle: 'Wadah Gotong Royong & Edukasi Terpadu Pionir Pi Network Gorontalo'
+          },
+          {
+            id: 'slide-2',
+            imageUrl: '',
+            title: 'SOLIDARITAS DANA TALANGAN',
+            subtitle: 'Dukungan Nyata Gotong Royong Sesama Anggota & Kemajuan Ekosistem'
+          }
+        ],
+        announcementTitle: "Informasi Resmi Panua Community",
+        announcementContent: "Selamat datang di platform resmi Panua Community Gorontalo. Pastikan 15 berkas brankas Anda tersimpan aman di My Secure Vault, serta pantau jadwal rapat dan agenda komunitas.",
+        announcementDate: "Hari Ini"
       });
       const [brandingDraft, setBrandingDraft] = useState({ ...appBranding });
+
+      // State Slider Auto-Slide Banner
+      const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+
+      // State Form Tambah Slide Gambar Baru oleh Admin
+      const [newSlideTitle, setNewSlideTitle] = useState("");
+      const [newSlideSubtitle, setNewSlideSubtitle] = useState("");
+      const [newSlideImageFile, setNewSlideImageFile] = useState(null);
+      const [isUploadingSlide, setIsUploadingSlide] = useState(false);
+
+      // Timer Auto-Slide Banner (Berganti Otomatis Setiap 4 Detik)
+      useEffect(() => {
+        const slides = appBranding.bannerSlides || [];
+        if (slides.length <= 1) return;
+        const slideTimer = setInterval(() => {
+          setCurrentSlideIndex(prev => (prev + 1) % slides.length);
+        }, 4000);
+        return () => clearInterval(slideTimer);
+      }, [appBranding.bannerSlides]);
 
       // State Khusus Form Konfirmasi Dana Talangan Anggota
       const [danaConfirmNominal, setDanaConfirmNominal] = useState("");
@@ -1029,6 +1065,26 @@
           // 3. Sinkronisasi Branding & Dana Talangan
           if (brandRes.status === 'fulfilled' && brandRes.value.data) {
             const b = brandRes.value.data;
+            let parsedSlides = [
+              {
+                id: 'slide-1',
+                imageUrl: '',
+                title: 'PANUA COMMUNITY GORONTALO',
+                subtitle: 'Wadah Gotong Royong & Edukasi Terpadu Pionir Pi Network Gorontalo'
+              },
+              {
+                id: 'slide-2',
+                imageUrl: '',
+                title: 'SOLIDARITAS DANA TALANGAN',
+                subtitle: 'Dukungan Nyata Gotong Royong Sesama Anggota & Kemajuan Ekosistem'
+              }
+            ];
+            try {
+              if (b.banner_slides) {
+                parsedSlides = typeof b.banner_slides === 'string' ? JSON.parse(b.banner_slides) : b.banner_slides;
+              }
+            } catch(e) {}
+
             const fetchedBranding = {
               title: b.title || "PANUA COMMUNITY",
               tagline: b.tagline || "Pi Network Gorontalo - Indonesia",
@@ -1039,7 +1095,18 @@
               danaNumber: b.dana_number || "081299887766",
               danaName: b.dana_name || "PANUA COMMUNITY GORONTALO",
               qrisImageUrl: b.qris_image_url || "",
-              danaDescription: b.dana_description || "Wadah dana talangan dan solidaritas gotong royong resmi Panua Community Gorontalo untuk mendukung anggota dan kelancaran kegiatan komunitas."
+              danaDescription: b.dana_description || "Wadah dana talangan dan solidaritas gotong royong resmi Panua Community Gorontalo untuk mendukung anggota dan kelancaran kegiatan komunitas.",
+              bannerSlides: Array.isArray(parsedSlides) && parsedSlides.length > 0 ? parsedSlides : [
+                {
+                  id: 'slide-1',
+                  imageUrl: '',
+                  title: 'PANUA COMMUNITY GORONTALO',
+                  subtitle: 'Wadah Gotong Royong & Edukasi Terpadu Pionir Pi Network Gorontalo'
+                }
+              ],
+              announcementTitle: b.announcement_title || "Informasi Resmi Panua Community",
+              announcementContent: b.announcement_content || "Selamat datang di platform resmi Panua Community Gorontalo. Pastikan 15 berkas brankas Anda tersimpan aman di My Secure Vault, serta pantau jadwal rapat dan agenda komunitas.",
+              announcementDate: b.announcement_date || "Hari Ini"
             };
             setAppBranding(fetchedBranding);
             setBrandingDraft(prev => ({
@@ -1711,14 +1778,94 @@
                 dana_name: brandingDraft.danaName,
                 qris_image_url: brandingDraft.qrisImageUrl,
                 dana_description: brandingDraft.danaDescription,
+                banner_slides: JSON.stringify(brandingDraft.bannerSlides || []),
+                announcement_title: brandingDraft.announcementTitle || "Informasi Resmi Panua Community",
+                announcement_content: brandingDraft.announcementContent || "",
+                announcement_date: brandingDraft.announcementDate || "Hari Ini",
                 updated_at: new Date().toISOString()
               }
             ], { onConflict: 'id' });
-            triggerToast("Identitas & Pengaturan Dana Talangan tersimpan di Cloud!", "success");
+            triggerToast("Identitas, Banner & Pengumuman tersimpan di Cloud!", "success");
           } catch (err) {
             console.error("Supabase branding error:", err);
             triggerToast("Gagal menyimpan ke database: " + err.message, "danger");
           }
+        }
+      };
+
+      // Helper Tambah Slide Banner Gambar oleh Admin
+      const handleAddBannerSlide = async (e) => {
+        e.preventDefault();
+        if (!newSlideTitle.trim()) {
+          triggerToast("Masukkan judul banner slide!", "warning");
+          return;
+        }
+
+        setIsUploadingSlide(true);
+        triggerToast("Menyiapkan banner slide...", "warning");
+
+        try {
+          let slideImgUrl = "";
+          if (newSlideImageFile) {
+            const compressed = await compressImageFile(newSlideImageFile, 1200, 0.85);
+            slideImgUrl = compressed.base64;
+            if (supabase) {
+              const uploadedUrl = await uploadFileToSupabaseStorage(compressed, 'banners');
+              if (uploadedUrl) slideImgUrl = uploadedUrl;
+            }
+          }
+
+          const newSlide = {
+            id: 'slide-' + Date.now(),
+            imageUrl: slideImgUrl,
+            title: newSlideTitle.trim(),
+            subtitle: newSlideSubtitle.trim() || appBranding.tagline
+          };
+
+          const updatedSlides = [...(brandingDraft.bannerSlides || []), newSlide];
+          const updatedDraft = {
+            ...brandingDraft,
+            bannerSlides: updatedSlides
+          };
+
+          setBrandingDraft(updatedDraft);
+          setAppBranding(updatedDraft);
+          setNewSlideTitle("");
+          setNewSlideSubtitle("");
+          setNewSlideImageFile(null);
+
+          if (supabase) {
+            await supabase.from('app_branding').upsert([{
+              id: 'primary',
+              banner_slides: JSON.stringify(updatedSlides),
+              updated_at: new Date().toISOString()
+            }], { onConflict: 'id' });
+          }
+
+          triggerToast("Slide banner baru berhasil ditambahkan!", "success");
+        } catch (err) {
+          triggerToast("Gagal menambahkan banner slide: " + err.message, "danger");
+        } finally {
+          setIsUploadingSlide(false);
+        }
+      };
+
+      // Helper Hapus Slide Banner oleh Admin
+      const handleDeleteBannerSlide = async (slideId) => {
+        const remaining = (brandingDraft.bannerSlides || []).filter(s => s.id !== slideId);
+        const updatedDraft = { ...brandingDraft, bannerSlides: remaining };
+        setBrandingDraft(updatedDraft);
+        setAppBranding(updatedDraft);
+
+        if (supabase) {
+          try {
+            await supabase.from('app_branding').upsert([{
+              id: 'primary',
+              banner_slides: JSON.stringify(remaining),
+              updated_at: new Date().toISOString()
+            }], { onConflict: 'id' });
+            triggerToast("Slide banner dihapus.", "warning");
+          } catch(e) {}
         }
       };
 
@@ -2400,9 +2547,12 @@
               {/* MAIN CONTENT AREA */}
               <div className="flex-1 flex flex-col min-w-0">
                 <header className="h-14 border-b border-pch-border bg-pch-surface/70 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-2.5 md:hidden">
-                    <BrandLogo config={appBranding} size="sm" />
-                    <span className="font-bold text-xs gold-gradient-text uppercase truncate max-w-[150px]">{appBranding.title}</span>
+                  {/* REVISI POIN 1: HEADER KIRI HANYA FOTO PROFIL & NAMA USER (TANPA KATA 'HALO') */}
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <UserAvatar user={user} branding={appBranding} size="sm" />
+                    <span className="font-bold text-xs sm:text-sm text-pch-text truncate max-w-[190px] sm:max-w-xs">
+                      {user?.name || "Pionir Panua"}
+                    </span>
                   </div>
 
                   <div className="hidden md:flex items-center gap-3 text-xs text-pch-muted">
@@ -2412,12 +2562,12 @@
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <UserAvatar user={user} branding={appBranding} size="sm" />
+                  {/* REVISI POIN 4: HILANGKAN LINGKARAN FOTO PROFIL DISAMPING TOMBOL KELUAR AGAR TIDAK GANDA */}
+                  <div className="flex items-center gap-2">
                     <button 
                       onClick={handleLogoutSession}
-                      className="p-1.5 rounded-lg bg-pch-secondary border border-pch-border text-pch-muted hover:text-pch-danger md:hidden"
-                      title="Keluar"
+                      className="p-2 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted hover:text-pch-danger hover:border-pch-danger/40 transition-colors"
+                      title="Keluar Sesi"
                     >
                       <Icons.LogOut className="w-4 h-4" />
                     </button>
@@ -2430,46 +2580,137 @@
                   {/* TAB 1: DASHBOARD */}
                   {activeTab === "dashboard" && (
                     <div className="space-y-6">
-                      <div className="p-6 rounded-2xl bg-gradient-to-r from-pch-surface via-pch-secondary to-pch-surface border border-pch-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                          <UserAvatar user={user} branding={appBranding} size="lg" />
-                          <div>
-                            <span className="text-[11px] font-bold text-pch-gold uppercase tracking-wider">Dashboard Resmi Komunitas</span>
-                            <h2 className="text-xl sm:text-2xl font-bold text-pch-text mt-1">Halo, {user.name}!</h2>
-                            <p className="text-xs text-pch-muted mt-0.5">Selamat datang di Panua Community — Pi Network Gorontalo - Indonesia.</p>
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => setActiveTab("vault")}
-                          className="px-4 py-2.5 rounded-xl bg-pch-gold text-black font-bold text-xs sm:text-sm hover:bg-pch-goldLight transition-all shadow-gold-glow flex items-center gap-2 self-start sm:self-auto"
-                        >
-                          <Icons.Lock className="w-4 h-4" />
-                          <span>Buka My Secure Vault</span>
-                        </button>
+                      
+                      {/* REVISI POIN 2: BANNER GAMBAR AUTO-SLIDE (SLIDER OTOMATIS DIINPUT DARI PANEL ADMIN) */}
+                      <div className="relative w-full rounded-2xl overflow-hidden border border-pch-gold/40 shadow-card-elevated bg-pch-surface">
+                        {(() => {
+                          const slides = appBranding.bannerSlides && appBranding.bannerSlides.length > 0
+                            ? appBranding.bannerSlides
+                            : [
+                                {
+                                  id: 'default-1',
+                                  imageUrl: '',
+                                  title: appBranding.title,
+                                  subtitle: appBranding.tagline
+                                }
+                              ];
+                          const activeSlide = slides[currentSlideIndex % slides.length];
+
+                          return (
+                            <div className="relative min-h-[190px] sm:min-h-[240px] flex flex-col justify-end p-5 sm:p-7 overflow-hidden">
+                              {/* Background Image / Gradient Fallback */}
+                              {activeSlide.imageUrl ? (
+                                <img 
+                                  src={activeSlide.imageUrl} 
+                                  alt={activeSlide.title || "Banner"} 
+                                  className="absolute inset-0 w-full h-full object-cover transition-all duration-700"
+                                />
+                              ) : (
+                                <div className="absolute inset-0 bg-gradient-to-r from-pch-surface via-pch-secondary to-pch-purple/20 flex items-center justify-end pr-8 pointer-events-none">
+                                  <div className="w-48 h-48 opacity-15">
+                                    <PanuaCommunitySealSVG />
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Overlay Gradient agar teks selalu kontras terbaca */}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/20 pointer-events-none"></div>
+
+                              {/* Konten Teks & Tombol Cepat di Atas Slide */}
+                              <div className="relative z-10 space-y-2 max-w-xl">
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-pch-gold/20 border border-pch-gold/50 text-[10px] font-bold text-pch-goldLight uppercase tracking-wider backdrop-blur-md">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-pch-gold animate-pulse"></span>
+                                  <span>Panua Pi Network Gorontalo</span>
+                                </div>
+                                <h2 className="text-lg sm:text-2xl font-black text-white tracking-wide uppercase drop-shadow-md">
+                                  {activeSlide.title}
+                                </h2>
+                                <p className="text-xs text-pch-text/90 line-clamp-2 drop-shadow">
+                                  {activeSlide.subtitle}
+                                </p>
+
+                                <div className="pt-2">
+                                  <button 
+                                    onClick={() => setActiveTab("vault")}
+                                    className="px-4 py-2 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight transition-all shadow-gold-glow inline-flex items-center gap-2 active:scale-95"
+                                  >
+                                    <Icons.Lock className="w-3.5 h-3.5" />
+                                    <span>Buka My Secure Vault</span>
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Indikator Titik (Dots) Slide & Kontrol Panah */}
+                              {slides.length > 1 && (
+                                <div className="absolute bottom-3 right-4 z-20 flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10">
+                                  {slides.map((s, idx) => (
+                                    <button
+                                      key={s.id || idx}
+                                      onClick={() => setCurrentSlideIndex(idx)}
+                                      className={`transition-all rounded-full ${
+                                        idx === (currentSlideIndex % slides.length)
+                                          ? "w-5 h-1.5 bg-pch-gold shadow-gold-glow"
+                                          : "w-1.5 h-1.5 bg-white/40 hover:bg-white/80"
+                                      }`}
+                                      title={`Slide ${idx + 1}`}
+                                    />
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
 
-                      {/* Stat Cards Bersih Tanpa Jargon Teknis Supabase */}
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="p-4 rounded-xl bg-pch-surface border border-pch-border">
-                          <span className="text-xs text-pch-muted block">Anggota Komunitas</span>
-                          <span className="text-xl font-bold text-pch-goldLight font-mono">{registeredUsers.length}</span>
-                        </div>
-                        <div className="p-4 rounded-xl bg-pch-surface border border-pch-border">
-                          <span className="text-xs text-pch-muted block">Grup Panua Aktif</span>
-                          <span className="text-xl font-bold text-pch-purpleLight font-mono">{groups.length}</span>
-                        </div>
-                        <div className="p-4 rounded-xl bg-pch-surface border border-pch-border">
-                          <span className="text-xs text-pch-muted block">Status Brankas</span>
-                          <span className={`text-xs font-bold block mt-1.5 ${vaultUnlocked ? "text-pch-success" : "text-pch-warning"}`}>
-                            {vaultUnlocked ? "Terbuka (Sesi 1 Jam)" : "Terkunci (Perlu Redeem Code)"}
+                      {/* REVISI POIN 3A: KOLOM INFORMASI YANG DIINPUT DARI PANEL ADMIN (TEPAT DIBAWAH BANNER GAMBAR) */}
+                      <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-pch-surface via-pch-secondary to-pch-surface border border-pch-gold/40 shadow-card-elevated space-y-2.5">
+                        <div className="flex items-center justify-between border-b border-pch-border pb-2.5">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-lg bg-pch-gold/15 border border-pch-gold/40 text-pch-gold flex items-center justify-center shrink-0">
+                              <Icons.Bell className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-xs sm:text-sm text-pch-goldLight uppercase tracking-wide">
+                                {appBranding.announcementTitle || "Papan Informasi Resmi Komunitas"}
+                              </h3>
+                              <span className="text-[10px] text-pch-muted">
+                                Diperbarui: {appBranding.announcementDate || "Hari Ini"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <span className="text-[9px] px-2 py-0.5 rounded-full bg-amber-950/80 border border-pch-gold/40 text-pch-goldLight font-bold uppercase tracking-wider">
+                            Pemberitahuan
                           </span>
                         </div>
-                        <div className="p-4 rounded-xl bg-pch-surface border border-pch-gold/30">
-                          <span className="text-xs text-pch-muted block">Program Solidaritas</span>
-                          <span className="text-xs font-bold block mt-1.5 text-pch-goldLight flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-pch-gold animate-pulse"></span>
-                            <span>Dana Talangan Aktif</span>
+
+                        <p className="text-xs sm:text-sm text-pch-text/90 leading-relaxed whitespace-pre-wrap pt-0.5">
+                          {appBranding.announcementContent || "Selamat datang di platform resmi Panua Community Gorontalo. Pantau terus informasi penting dan agenda kegiatan di kolom ini."}
+                        </p>
+                      </div>
+
+                      {/* REVISI POIN 3B: KARTU ANGGOTA KOMUNITAS & GRUP PANUA AKTIF (DIGESER KEBAWAH MENGGANTIKAN STATUS BRANKAS & PROGRAM SOLIDARITAS) */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 rounded-xl bg-pch-surface border border-pch-border flex flex-col justify-between">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-pch-muted font-medium">Anggota Komunitas</span>
+                            <Icons.Users className="w-4 h-4 text-pch-gold" />
+                          </div>
+                          <span className="text-2xl sm:text-3xl font-black text-pch-goldLight font-mono">
+                            {registeredUsers.length}
                           </span>
+                          <span className="text-[10px] text-pch-muted mt-1">Pionir Terdaftar di Cloud</span>
+                        </div>
+
+                        <div className="p-4 rounded-xl bg-pch-surface border border-pch-border flex flex-col justify-between">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-pch-muted font-medium">Grup Panua Aktif</span>
+                            <Icons.Users className="w-4 h-4 text-pch-purpleLight" />
+                          </div>
+                          <span className="text-2xl sm:text-3xl font-black text-pch-purpleLight font-mono">
+                            {groups.length}
+                          </span>
+                          <span className="text-[10px] text-pch-muted mt-1">Sub-Grup Wilayah & Edukasi</span>
                         </div>
                       </div>
 
@@ -3711,30 +3952,30 @@
                                 type="text" 
                                 value={brandingDraft.tagline}
                                 onChange={(e) => setBrandingDraft({ ...brandingDraft, tagline: e.target.value })}
-                                className="w-full bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-sm text-pch-text focus:outline-none focus:border-pch-purple"
+                                className="w-full bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
                               />
                             </div>
 
                             <div>
                               <label className="text-xs font-semibold text-pch-muted block mb-1">Nomor WhatsApp Resmi Admin</label>
                               <input 
-                                type="tel" 
+                                type="text" 
                                 value={brandingDraft.adminWhatsapp}
                                 onChange={(e) => setBrandingDraft({ ...brandingDraft, adminWhatsapp: e.target.value })}
-                                className="w-full bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-xs font-mono text-pch-text focus:outline-none focus:border-pch-purple"
+                                className="w-full bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
                               />
                             </div>
 
                             <div>
-                              <label className="text-xs font-semibold text-pch-muted block mb-1.5">Format Tampilan Logo</label>
+                              <label className="text-xs font-semibold text-pch-muted block mb-2">Format Tampilan Logo</label>
                               <div className="grid grid-cols-2 gap-2">
                                 <button
                                   type="button"
-                                  onClick={() => setBrandingDraft({ ...brandingDraft, logoType: "panua", customLogoUrl: "" })}
-                                  className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
+                                  onClick={() => setBrandingDraft({ ...brandingDraft, logoType: "panua" })}
+                                  className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${
                                     brandingDraft.logoType === "panua"
                                       ? "bg-pch-gold text-black border-pch-gold shadow-gold-glow"
-                                      : "bg-pch-secondary border-pch-border text-pch-muted"
+                                      : "bg-pch-secondary border-pch-border text-pch-muted hover:text-pch-text"
                                   }`}
                                 >
                                   Logo Segel Panua Resmi
@@ -3742,85 +3983,77 @@
                                 <button
                                   type="button"
                                   onClick={() => setBrandingDraft({ ...brandingDraft, logoType: "custom" })}
-                                  className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
+                                  className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${
                                     brandingDraft.logoType === "custom"
                                       ? "bg-pch-purple text-white border-pch-purple shadow-purple-glow"
-                                      : "bg-pch-secondary border-pch-border text-pch-muted"
+                                      : "bg-pch-secondary border-pch-border text-pch-muted hover:text-pch-text"
                                   }`}
                                 >
                                   Logo Kustom Bulat
                                 </button>
                               </div>
-
-                              {brandingDraft.logoType === "custom" && (
-                                <div className="p-3.5 rounded-xl bg-pch-secondary border border-pch-purple/50 space-y-3 mt-3">
-                                  <div className="flex items-center justify-between">
-                                    <label className="text-xs font-bold text-pch-purpleLight">
-                                      Unggah Gambar Logo Bulat Kustom
-                                    </label>
-                                    {brandingDraft.customLogoUrl && (
-                                      <button
-                                        type="button"
-                                        onClick={() => setBrandingDraft({ ...brandingDraft, customLogoUrl: "" })}
-                                        className="text-[10px] text-pch-danger hover:underline"
-                                      >
-                                        Hapus Logo
-                                      </button>
-                                    )}
-                                  </div>
-
-                                  <label className="w-full sm:w-auto px-4 py-2 rounded-xl bg-pch-purple text-white text-xs font-bold hover:bg-pch-purpleLight transition-all shadow-purple-glow cursor-pointer text-center flex items-center justify-center gap-2">
-                                    <Icons.Upload className="w-4 h-4" />
-                                    <span>Pilih File Logo (JPG/PNG/SVG)</span>
-                                    <input
-                                      type="file"
-                                      accept="image/*"
-                                      className="hidden"
-                                      onChange={async (e) => {
-                                        const file = e.target.files[0];
-                                        if (file) {
-                                          if (file.size > 3 * 1024 * 1024) {
-                                            triggerToast("Ukuran logo maksimal 3MB!", "danger");
-                                            return;
-                                          }
-                                          const compressed = await compressImageFile(file, 400, 0.85);
-                                          let logoUrl = compressed.base64;
-                                          if (supabase) {
-                                            const uploaded = await uploadFileToSupabaseStorage(compressed, 'branding');
-                                            if (uploaded) logoUrl = uploaded;
-                                          }
-                                          setBrandingDraft(prev => ({ ...prev, customLogoUrl: logoUrl }));
-                                          triggerToast("Logo kustom berhasil dimuat! Pratinjau diperbarui.");
-                                        }
-                                      }}
-                                    />
-                                  </label>
-                                </div>
-                              )}
                             </div>
+
+                            {/* Pilihan Unggah Logo Kustom Bulat */}
+                            {brandingDraft.logoType === "custom" && (
+                              <div className="p-3.5 rounded-xl bg-pch-secondary border border-pch-purple/40 space-y-3 animate-fade-in">
+                                <div>
+                                  <label className="text-xs font-semibold text-pch-purpleLight block mb-1">Unggah Berkas Gambar Logo (PNG/JPG/SVG)</label>
+                                  <input 
+                                    type="file" 
+                                    accept="image/*"
+                                    onChange={async (e) => {
+                                      const file = e.target.files[0];
+                                      if (file) {
+                                        if (file.size > 2 * 1024 * 1024) {
+                                          triggerToast("Ukuran logo maksimal 2MB!", "danger");
+                                          return;
+                                        }
+                                        const compressed = await compressImageFile(file, 400, 0.85);
+                                        let logoUrl = compressed.base64;
+                                        if (supabase) {
+                                          triggerToast("Mengunggah logo ke Supabase...", "warning");
+                                          const cloudUrl = await uploadFileToSupabaseStorage(compressed, 'branding');
+                                          if (cloudUrl) logoUrl = cloudUrl;
+                                        }
+                                        setBrandingDraft(prev => ({ ...prev, customLogoUrl: logoUrl }));
+                                        triggerToast("Logo kustom siap disimpan!", "success");
+                                      }
+                                    }}
+                                    className="w-full text-xs text-pch-muted file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-pch-surface file:text-pch-text file:border file:border-pch-border cursor-pointer"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs font-semibold text-pch-muted block mb-1">Atau Masukkan URL Gambar Logo</label>
+                                  <input 
+                                    type="text" 
+                                    placeholder="https://example.com/logo.png"
+                                    value={brandingDraft.customLogoUrl}
+                                    onChange={(e) => setBrandingDraft({ ...brandingDraft, customLogoUrl: e.target.value })}
+                                    className="w-full bg-pch-surface border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                                  />
+                                </div>
+                              </div>
+                            )}
                           </div>
 
-                          <div className="flex flex-col justify-between p-5 rounded-2xl bg-pch-secondary/50 border border-pch-border space-y-4">
+                          {/* Pratinjau Logo & Simpan */}
+                          <div className="flex flex-col justify-between p-5 rounded-xl bg-pch-secondary border border-pch-border space-y-4">
                             <div>
-                              <span className="text-xs font-semibold text-pch-muted uppercase tracking-wider block mb-3">
-                                Pratinjau Tampilan Header & Avatar
-                              </span>
-                              <div className="p-4 rounded-xl bg-pch-bg border border-pch-gold/40 flex items-center gap-3">
+                              <span className="text-xs font-semibold text-pch-muted block mb-2">Pratinjau Tampilan Header & Avatar</span>
+                              <div className="p-4 rounded-xl bg-pch-surface border border-pch-gold/30 flex items-center gap-3">
                                 <BrandLogo config={brandingDraft} size="lg" />
                                 <div>
-                                  <h4 className="font-bold text-base gold-gradient-text uppercase">
-                                    {brandingDraft.title}
-                                  </h4>
-                                  <p className="text-xs text-pch-muted">
-                                    {brandingDraft.tagline}
-                                  </p>
+                                  <h4 className="font-bold text-sm gold-gradient-text uppercase">{brandingDraft.title || "PANUA COMMUNITY"}</h4>
+                                  <p className="text-[11px] text-pch-muted">{brandingDraft.tagline || "Pi Network Gorontalo - Indonesia"}</p>
                                 </div>
                               </div>
                             </div>
 
-                            <button 
+                            <button
+                              type="button"
                               onClick={handleSaveBranding}
-                              className="w-full py-3 rounded-xl bg-pch-gold text-black font-bold text-sm hover:bg-pch-goldLight transition-all flex items-center justify-center gap-2 shadow-gold-glow"
+                              className="w-full py-2.5 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight transition-all shadow-gold-glow flex items-center justify-center gap-2"
                             >
                               <Icons.Check className="w-4 h-4" />
                               <span>Simpan Perubahan Identitas</span>
@@ -3829,28 +4062,23 @@
                         </div>
                       </div>
 
-                      {/* 1B. PENGATURAN DANA TALANGAN & BARCODE QRIS OLEH ADMIN */}
+                      {/* 1B. Pengaturan Dana Talangan & Barcode QRIS */}
                       <div className="p-6 rounded-2xl bg-pch-surface border border-pch-gold/50 shadow-card-elevated space-y-6">
-                        <div className="border-b border-pch-border pb-3 flex items-center justify-between">
-                          <h3 className="font-bold text-base text-pch-text flex items-center gap-2">
-                            <Icons.Wallet className="w-4 h-4 text-pch-gold" />
-                            <span>1B. Pengaturan Dana Talangan & Barcode QRIS Komunitas</span>
-                          </h3>
-                          <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-950/80 text-pch-goldLight border border-pch-gold/40 font-mono">
-                            Sinkron Realtime
-                          </span>
-                        </div>
+                        <h3 className="font-bold text-base text-pch-text border-b border-pch-border pb-3 flex items-center gap-2">
+                          <Icons.Wallet className="w-4 h-4 text-pch-gold" />
+                          <span>1B. Pengaturan Dana Talangan & Barcode QRIS Komunitas</span>
+                        </h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="space-y-4">
                             <div>
-                              <label className="text-xs font-semibold text-pch-muted block mb-1">Nomor Akun DANA Resmi</label>
+                              <label className="text-xs font-semibold text-pch-muted block mb-1">Nomor Akun Dompet DANA</label>
                               <input 
-                                type="tel" 
+                                type="text" 
                                 value={brandingDraft.danaNumber || ""}
                                 onChange={(e) => setBrandingDraft({ ...brandingDraft, danaNumber: e.target.value })}
                                 placeholder="081299887766"
-                                className="w-full bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-sm font-mono text-pch-text font-bold focus:outline-none focus:border-pch-purple"
+                                className="w-full bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
                               />
                             </div>
 
@@ -3861,356 +4089,441 @@
                                 value={brandingDraft.danaName || ""}
                                 onChange={(e) => setBrandingDraft({ ...brandingDraft, danaName: e.target.value })}
                                 placeholder="PANUA COMMUNITY GORONTALO"
-                                className="w-full bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-sm text-pch-text font-bold focus:outline-none focus:border-pch-purple"
+                                className="w-full bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-xs text-pch-text font-bold focus:outline-none focus:border-pch-purple"
                               />
                             </div>
 
                             <div>
-                              <label className="text-xs font-semibold text-pch-muted block mb-1">Deskripsi / Tujuan Dana Talangan</label>
+                              <label className="text-xs font-semibold text-pch-muted block mb-1">Deskripsi Solidaritas Dana Talangan</label>
                               <textarea 
                                 rows="3"
                                 value={brandingDraft.danaDescription || ""}
                                 onChange={(e) => setBrandingDraft({ ...brandingDraft, danaDescription: e.target.value })}
-                                placeholder="Jelaskan tujuan pengumpulan dana gotong royong bagi anggota..."
+                                placeholder="Wadah dana talangan dan solidaritas gotong royong..."
                                 className="w-full bg-pch-secondary border border-pch-border rounded-xl px-4 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
                               ></textarea>
                             </div>
 
-                            <div className="p-3.5 rounded-xl bg-pch-secondary border border-pch-gold/30 space-y-3">
-                              <div className="flex items-center justify-between">
-                                <label className="text-xs font-bold text-pch-goldLight">
-                                  Unggah Gambar Barcode QRIS Resmi
-                                </label>
-                                {brandingDraft.qrisImageUrl && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setBrandingDraft({ ...brandingDraft, qrisImageUrl: "" })}
-                                    className="text-[10px] text-pch-danger hover:underline"
-                                  >
-                                    Hapus QRIS
-                                  </button>
-                                )}
-                              </div>
-
-                              <label className="w-full px-4 py-2.5 rounded-xl bg-pch-gold text-black text-xs font-bold hover:bg-pch-goldLight transition-all shadow-gold-glow cursor-pointer text-center flex items-center justify-center gap-2">
-                                <Icons.Upload className="w-4 h-4" />
-                                <span>Pilih Gambar QRIS (JPG/PNG)</span>
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  className="hidden"
-                                  onChange={async (e) => {
-                                    const file = e.target.files[0];
-                                    if (file) {
-                                      if (file.size > 5 * 1024 * 1024) {
-                                        triggerToast("Ukuran barcode QRIS maksimal 5MB!", "danger");
-                                        return;
-                                      }
-                                      const compressed = await compressImageFile(file, 800, 0.9);
-                                      let qrisUrl = compressed.base64;
-                                      if (supabase) {
-                                        const uploaded = await uploadFileToSupabaseStorage(compressed, 'qris');
-                                        if (uploaded) qrisUrl = uploaded;
-                                      }
-                                      setBrandingDraft(prev => ({ ...prev, qrisImageUrl: qrisUrl }));
-                                      triggerToast("Barcode QRIS berhasil dimuat! Pratinjau diperbarui.");
+                            <div>
+                              <label className="text-xs font-semibold text-pch-goldLight block mb-1">Unggah Gambar Barcode QRIS (Semua Bank / E-Wallet)</label>
+                              <input 
+                                type="file" 
+                                accept="image/*"
+                                onChange={async (e) => {
+                                  const file = e.target.files[0];
+                                  if (file) {
+                                    if (file.size > 5 * 1024 * 1024) {
+                                      triggerToast("Ukuran QRIS maksimal 5MB!", "danger");
+                                      return;
                                     }
-                                  }}
-                                />
-                              </label>
+                                    const compressed = await compressImageFile(file, 800, 0.85);
+                                    let qrisUrl = compressed.base64;
+                                    if (supabase) {
+                                      triggerToast("Mengunggah barcode QRIS ke Supabase Storage...", "warning");
+                                      const cloudUrl = await uploadFileToSupabaseStorage(compressed, 'qris');
+                                      if (cloudUrl) qrisUrl = cloudUrl;
+                                    }
+                                    setBrandingDraft(prev => ({ ...prev, qrisImageUrl: qrisUrl }));
+                                    triggerToast("Barcode QRIS berhasil disiapkan!", "success");
+                                  }
+                                }}
+                                className="w-full text-xs text-pch-muted file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-pch-secondary file:text-pch-text file:border file:border-pch-border cursor-pointer"
+                              />
                             </div>
                           </div>
 
-                          <div className="flex flex-col justify-between p-5 rounded-2xl bg-pch-secondary/50 border border-pch-border space-y-4">
+                          <div className="flex flex-col justify-between p-5 rounded-xl bg-pch-secondary border border-pch-border space-y-4">
                             <div>
-                              <span className="text-xs font-semibold text-pch-muted uppercase tracking-wider block mb-3">
-                                Pratinjau Tampilan QRIS & Nomor DANA
-                              </span>
-
-                              <div className="p-4 rounded-xl bg-pch-bg border border-pch-gold/40 space-y-3 text-center">
+                              <span className="text-xs font-semibold text-pch-muted block mb-2">Pratinjau Barcode QRIS</span>
+                              <div className="w-48 h-48 mx-auto rounded-xl overflow-hidden border-2 border-pch-gold bg-white p-2 flex items-center justify-center">
                                 {brandingDraft.qrisImageUrl ? (
-                                  <div className="w-48 aspect-square mx-auto rounded-xl overflow-hidden border border-pch-gold p-1 bg-white">
-                                    <img src={brandingDraft.qrisImageUrl} alt="QRIS Preview" className="w-full h-full object-contain" />
-                                  </div>
+                                  <img src={brandingDraft.qrisImageUrl} alt="QRIS" className="w-full h-full object-contain" />
                                 ) : (
-                                  <div className="w-32 h-32 rounded-xl bg-pch-secondary border border-dashed border-pch-border flex items-center justify-center mx-auto text-pch-muted text-xs">
-                                    Belum Ada QRIS
+                                  <div className="text-center text-pch-muted">
+                                    <Icons.QrCode className="w-12 h-12 mx-auto opacity-40 mb-1" />
+                                    <span className="text-[10px]">Belum ada barcode QRIS</span>
                                   </div>
                                 )}
-                                <div>
-                                  <p className="font-mono text-sm font-bold text-cyan-400">{brandingDraft.danaNumber || "Belum ada nomor"}</p>
-                                  <p className="text-xs text-pch-goldLight font-semibold">{brandingDraft.danaName || "Atas Nama Belum Diatur"}</p>
-                                </div>
                               </div>
                             </div>
 
-                            <button 
+                            <button
+                              type="button"
                               onClick={handleSaveBranding}
-                              className="w-full py-3 rounded-xl bg-pch-gold text-black font-bold text-sm hover:bg-pch-goldLight transition-all flex items-center justify-center gap-2 shadow-gold-glow"
+                              className="w-full py-2.5 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight transition-all shadow-gold-glow flex items-center justify-center gap-2"
                             >
                               <Icons.Check className="w-4 h-4" />
-                              <span>Simpan Pengaturan Dana Talangan</span>
+                              <span>Simpan Pengaturan Dana Talangan & QRIS</span>
                             </button>
                           </div>
                         </div>
                       </div>
 
-                      {/* 2. Generator Redeem Code 90 Detik */}
-                      <div className="p-6 rounded-2xl bg-pch-surface border border-pch-purple/50 shadow-card-elevated space-y-6">
+                      {/* 1C. Pengaturan Banner Gambar Auto-Slide & Kolom Informasi Dashboard */}
+                      <div className="p-6 rounded-2xl bg-pch-surface border border-pch-gold/50 shadow-card-elevated space-y-6">
                         <h3 className="font-bold text-base text-pch-text border-b border-pch-border pb-3 flex items-center gap-2">
-                          <Icons.Key className="w-4 h-4 text-pch-purpleLight" />
-                          <span>2. Generator Redeem Code 90 Detik (Auto-Delete Realtime)</span>
+                          <Icons.Upload className="w-4 h-4 text-pch-gold" />
+                          <span>1C. Pengaturan Banner Gambar Auto-Slide & Kolom Informasi Dashboard</span>
                         </h3>
 
-                        <form onSubmit={handleAdminCreateRedeemCode} className="p-4 rounded-xl bg-pch-secondary border border-pch-border space-y-3">
-                          <span className="text-xs font-bold text-pch-goldLight block">Terbitkan Kode Baru untuk Anggota</span>
+                        {/* Pengaturan Kolom Informasi Resmi */}
+                        <div className="space-y-3 pb-6 border-b border-pch-border">
+                          <h4 className="text-xs font-bold text-pch-goldLight uppercase tracking-wider">A. Kolom Informasi Resmi (Tepat di Bawah Banner)</h4>
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div>
-                              <label className="text-[11px] text-pch-muted block mb-1">Target Anggota</label>
-                              <select 
-                                value={newCodeTarget}
-                                onChange={(e) => setNewCodeTarget(e.target.value)}
-                                className="w-full bg-pch-surface border border-pch-border rounded-xl px-3 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
-                              >
-                                <option value="all">Semua Anggota (Umum)</option>
-                                {registeredUsers.filter(u => u.role !== 'admin').map(u => (
-                                  <option key={u.id} value={u.username}>{u.name} (@{u.username})</option>
-                                ))}
-                              </select>
-                            </div>
-
-                            <div>
-                              <label className="text-[11px] text-pch-muted block mb-1">Kode Kustom (Opsional)</label>
+                            <div className="sm:col-span-2">
+                              <label className="text-xs font-semibold text-pch-muted block mb-1">Judul Pengumuman</label>
                               <input 
-                                type="text" 
-                                placeholder="Kosongkan untuk acak"
-                                value={newCodeCustom}
-                                onChange={(e) => setNewCodeCustom(e.target.value)}
-                                className="w-full bg-pch-surface border border-pch-border rounded-xl px-3 py-2 text-xs text-pch-text font-mono uppercase focus:outline-none focus:border-pch-purple"
+                                type="text"
+                                value={brandingDraft.announcementTitle || ""}
+                                onChange={(e) => setBrandingDraft({ ...brandingDraft, announcementTitle: e.target.value })}
+                                placeholder="Informasi Resmi Panua Community"
+                                className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
                               />
                             </div>
-
                             <div>
-                              <label className="text-[11px] text-pch-muted block mb-1">Catatan Akses</label>
+                              <label className="text-xs font-semibold text-pch-muted block mb-1">Label Tanggal / Waktu</label>
                               <input 
-                                type="text" 
-                                placeholder="Misal: Akses Verifikasi KYC"
-                                value={newCodeNote}
-                                onChange={(e) => setNewCodeNote(e.target.value)}
-                                className="w-full bg-pch-surface border border-pch-border rounded-xl px-3 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                                type="text"
+                                value={brandingDraft.announcementDate || ""}
+                                onChange={(e) => setBrandingDraft({ ...brandingDraft, announcementDate: e.target.value })}
+                                placeholder="Hari Ini"
+                                className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
                               />
                             </div>
                           </div>
-
-                          <button 
-                            type="submit"
-                            className="px-4 py-2 rounded-xl bg-pch-purple text-white text-xs font-bold hover:bg-pch-purpleLight flex items-center gap-1.5 shadow-purple-glow"
+                          <div>
+                            <label className="text-xs font-semibold text-pch-muted block mb-1">Isi Pengumuman / Pesan Komunitas</label>
+                            <textarea 
+                              rows="3"
+                              value={brandingDraft.announcementContent || ""}
+                              onChange={(e) => setBrandingDraft({ ...brandingDraft, announcementContent: e.target.value })}
+                              placeholder="Tuliskan informasi penting yang ingin disampaikan kepada seluruh anggota..."
+                              className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                            ></textarea>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleSaveBranding}
+                            className="px-4 py-2 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight shadow-gold-glow flex items-center gap-1.5"
                           >
-                            <Icons.Plus className="w-3.5 h-3.5" />
-                            <span>Terbitkan Kode 90 Detik</span>
+                            <Icons.Check className="w-3.5 h-3.5" />
+                            <span>Simpan Kolom Informasi</span>
                           </button>
+                        </div>
+
+                        {/* Pengaturan Slide Banner */}
+                        <div className="space-y-4">
+                          <h4 className="text-xs font-bold text-pch-goldLight uppercase tracking-wider">B. Daftar Banner Slide Aktif</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {(brandingDraft.bannerSlides || []).map((slide, idx) => (
+                              <div key={slide.id || idx} className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-2 relative group overflow-hidden">
+                                <div className="w-full h-24 rounded-lg bg-pch-surface overflow-hidden border border-pch-border relative">
+                                  {slide.imageUrl ? (
+                                    <img src={slide.imageUrl} alt={slide.title} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-pch-muted text-[11px]">
+                                      Tanpa Gambar (Warna Default)
+                                    </div>
+                                  )}
+                                  <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded bg-black/70 text-[9px] font-mono text-pch-gold">
+                                    Slide {idx + 1}
+                                  </span>
+                                </div>
+                                <div>
+                                  <h5 className="font-bold text-xs text-pch-text truncate">{slide.title}</h5>
+                                  <p className="text-[10px] text-pch-muted truncate">{slide.subtitle}</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteBannerSlide(slide.id)}
+                                  className="w-full py-1 text-[11px] text-pch-danger hover:bg-red-950/40 rounded border border-transparent hover:border-red-800 transition-colors flex items-center justify-center gap-1"
+                                >
+                                  <Icons.Trash className="w-3 h-3" />
+                                  <span>Hapus Slide</span>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Form Tambah Slide Baru */}
+                          <form onSubmit={handleAddBannerSlide} className="p-4 rounded-xl bg-pch-secondary border border-pch-gold/30 space-y-3">
+                            <h5 className="text-xs font-bold text-pch-text flex items-center gap-1.5">
+                              <Icons.Plus className="w-3.5 h-3.5 text-pch-gold" />
+                              <span>Tambah Slide Gambar Baru</span>
+                            </h5>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <label className="text-[11px] font-semibold text-pch-muted block mb-1">Judul Slide</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="Contoh: SEMINAR PI NETWORK"
+                                  value={newSlideTitle}
+                                  onChange={(e) => setNewSlideTitle(e.target.value)}
+                                  className="w-full bg-pch-surface border border-pch-border rounded-xl px-3 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[11px] font-semibold text-pch-muted block mb-1">Sub Judul / Keterangan</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="Contoh: Edukasi & Utilitas Pionir Gorontalo"
+                                  value={newSlideSubtitle}
+                                  onChange={(e) => setNewSlideSubtitle(e.target.value)}
+                                  className="w-full bg-pch-surface border border-pch-border rounded-xl px-3 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-[11px] font-semibold text-pch-goldLight block mb-1">Pilih File Gambar Banner</label>
+                              <input 
+                                type="file" 
+                                accept="image/*"
+                                onChange={(e) => setNewSlideImageFile(e.target.files[0])}
+                                className="w-full text-xs text-pch-muted file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-pch-surface file:text-pch-text file:border file:border-pch-border cursor-pointer"
+                              />
+                            </div>
+                            <button
+                              type="submit"
+                              disabled={isUploadingSlide}
+                              className="px-4 py-2 rounded-xl bg-pch-purple text-white font-bold text-xs hover:bg-pch-purpleLight shadow-purple-glow flex items-center gap-1.5 disabled:opacity-50"
+                            >
+                              <Icons.Upload className="w-3.5 h-3.5" />
+                              <span>{isUploadingSlide ? "Mengunggah Slide..." : "Tambahkan ke Banner Slide"}</span>
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+
+                      {/* 2. Generator Redeem Code 90 Detik */}
+                      <div className="p-6 rounded-2xl bg-pch-surface border border-pch-border shadow-card-elevated space-y-6">
+                        <div className="border-b border-pch-border pb-3 flex items-center justify-between flex-wrap gap-2">
+                          <h3 className="font-bold text-base text-pch-text flex items-center gap-2">
+                            <Icons.Key className="w-4 h-4 text-pch-gold" />
+                            <span>2. Generator Redeem Code 90 Detik (Auto-Delete Realtime)</span>
+                          </h3>
+                          <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-950/80 text-pch-goldLight border border-pch-gold/40 font-mono font-bold">
+                            Berlaku Tepat 90 Detik
+                          </span>
+                        </div>
+
+                        <form onSubmit={handleAdminCreateRedeemCode} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                          <div>
+                            <label className="text-xs font-semibold text-pch-muted block mb-1">Target Pengguna</label>
+                            <select
+                              value={newCodeTarget}
+                              onChange={(e) => setNewCodeTarget(e.target.value)}
+                              className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                            >
+                              <option value="all">Semua Anggota (Publik)</option>
+                              {registeredUsers.map(u => (
+                                <option key={u.id} value={u.username}>@{u.username} — {u.name}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-semibold text-pch-muted block mb-1">Kode Kustom (Opsional)</label>
+                            <input 
+                              type="text" 
+                              placeholder="Otomatis jika kosong"
+                              value={newCodeCustom}
+                              onChange={(e) => setNewCodeCustom(e.target.value)}
+                              className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text uppercase font-mono focus:outline-none focus:border-pch-purple"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-semibold text-pch-muted block mb-1">Catatan Akses</label>
+                            <input 
+                              type="text" 
+                              placeholder="Akses My Secure Vault"
+                              value={newCodeNote}
+                              onChange={(e) => setNewCodeNote(e.target.value)}
+                              className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                            />
+                          </div>
+
+                          <div className="flex items-end">
+                            <button
+                              type="submit"
+                              className="w-full py-2 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight transition-all shadow-gold-glow flex items-center justify-center gap-2"
+                            >
+                              <Icons.Plus className="w-4 h-4" />
+                              <span>Terbitkan Kode (90 Detik)</span>
+                            </button>
+                          </div>
                         </form>
 
+                        {/* Tabel Kode Aktif */}
                         <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-pch-text block">Daftar Kode Aktif (Otomatis Hilang Setelah 90 Detik)</span>
-                            <span className="text-[10px] text-pch-warning font-mono bg-amber-950/40 px-2.5 py-0.5 rounded border border-pch-warning/40">Durasi: 90 Detik (1.5 Menit)</span>
-                          </div>
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-xs text-left">
-                              <thead className="bg-pch-secondary text-pch-muted uppercase border-b border-pch-border">
-                                <tr>
-                                  <th className="p-3">Kode</th>
-                                  <th className="p-3">Target</th>
-                                  <th className="p-3">Sisa Waktu</th>
-                                  <th className="p-3">Catatan</th>
-                                  <th className="p-3">Aksi</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-pch-border">
-                                {activeRedeemCodes.length === 0 ? (
-                                  <tr>
-                                    <td colSpan="5" className="p-4 text-center text-pch-muted italic">
-                                      Tidak ada kode aktif saat ini. Kode otomatis hilang setelah lewat 90 detik.
-                                    </td>
-                                  </tr>
-                                ) : (
-                                  activeRedeemCodes.map((item, idx) => {
-                                    const remainingSeconds = Math.max(0, Math.ceil((item.expiresAt - currentTime) / 1000));
-                                    return (
-                                      <tr key={idx}>
-                                        <td className="p-3 font-mono font-bold text-pch-goldLight">{item.code}</td>
-                                        <td className="p-3 font-mono text-pch-text">@{item.userTarget}</td>
-                                        <td className="p-3">
-                                          <span className={`px-2 py-0.5 rounded-full font-mono font-bold text-[10px] border flex items-center gap-1 w-fit ${
-                                            remainingSeconds <= 20 ? "bg-red-950/80 border-pch-danger text-pch-danger animate-pulse" : "bg-amber-950/80 border-pch-warning text-pch-warning"
-                                          }`}>
-                                            <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
-                                            <span>{remainingSeconds} detik</span>
-                                          </span>
-                                        </td>
-                                        <td className="p-3 text-pch-muted">{item.note}</td>
-                                        <td className="p-3">
-                                          <button 
-                                            onClick={() => {
-                                              safeCopyToClipboard(item.code);
-                                              triggerToast(`Kode [${item.code}] disalin ke clipboard!`);
-                                            }}
-                                            className="px-2.5 py-1 rounded bg-pch-surface border border-pch-border text-pch-muted hover:text-pch-gold text-[11px] flex items-center gap-1"
-                                          >
-                                            <Icons.Copy className="w-3 h-3" />
-                                            <span>Salin</span>
-                                          </button>
-                                        </td>
-                                      </tr>
-                                    );
-                                  })
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-
-                        {/* 3. Arsip Berkas Anggota di Supabase */}
-                        <div className="space-y-2 pt-4 border-t border-pch-border">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <span className="text-xs font-bold text-pch-text block">
-                              Arsip Berkas Brankas Anggota di Cloud Supabase ({submittedDossiers.length} Berkas)
-                            </span>
-                            <span className="text-[10px] text-pch-success font-mono bg-emerald-950/80 px-2.5 py-0.5 rounded border border-pch-success/40 flex items-center gap-1.5 w-fit">
-                              <span className="w-1.5 h-1.5 rounded-full bg-pch-success animate-ping"></span>
-                              <span>Auto-Sync Realtime Aktif (Tiap 3 Detik)</span>
-                            </span>
-                          </div>
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-xs text-left">
-                              <thead className="bg-pch-secondary text-pch-muted uppercase border-b border-pch-border">
-                                <tr>
-                                  <th className="p-3">Nama Anggota</th>
-                                  <th className="p-3">Kontak (WA)</th>
-                                  <th className="p-3">Username Pi / NIK</th>
-                                  <th className="p-3">Status Cloud</th>
-                                  <th className="p-3">Inspeksi Berkas</th>
-                                  <th className="p-3">Kirim Kode / Akses</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-pch-border">
-                                {submittedDossiers.length === 0 ? (
-                                  <tr>
-                                    <td colSpan="6" className="p-4 text-center text-pch-muted italic">
-                                      Belum ada berkas anggota yang diunggah ke Cloud.
-                                    </td>
-                                  </tr>
-                                ) : (
-                                  submittedDossiers.map(dos => (
-                                    <tr key={dos.id}>
-                                      <td className="p-3">
-                                        <span className="font-bold text-pch-text block">{dos.namaLengkap}</span>
-                                        <span className="text-[10px] text-pch-muted font-mono">@{dos.username}</span>
-                                      </td>
-                                      <td className="p-3 font-mono text-pch-text">{dos.noHp}</td>
-                                      <td className="p-3">
-                                        <span className="text-pch-goldLight font-mono block">{dos.usernamePi}</span>
-                                        <span className="text-[10px] text-pch-muted font-mono">NIK: {dos.nik}</span>
-                                      </td>
-                                      <td className="p-3">
-                                        <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-pch-success border border-pch-success/30 font-semibold block w-fit">
-                                          {dos.status} ({dos.docsCount || 5} Berkas)
-                                        </span>
-                                      </td>
-                                      <td className="p-3">
+                          <h4 className="text-xs font-bold text-pch-goldLight uppercase tracking-wider">Kode Akses Yang Sedang Aktif (Realtime Countdown)</h4>
+                          {activeRedeemCodes.length === 0 ? (
+                            <p className="text-xs text-pch-muted italic">Tidak ada kode yang aktif saat ini. Terbitkan kode baru di atas.</p>
+                          ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {activeRedeemCodes.map(c => {
+                                const remainingSec = Math.max(0, Math.ceil((c.expiresAt - currentTime) / 1000));
+                                return (
+                                  <div key={c.code} className="p-3.5 rounded-xl bg-pch-secondary border border-pch-gold/40 flex items-center justify-between">
+                                    <div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-mono font-bold text-sm text-pch-goldLight">{c.code}</span>
                                         <button 
-                                          onClick={() => setSelectedDossierDetail(dos)}
-                                          className="px-2.5 py-1 rounded bg-pch-secondary border border-pch-gold/40 text-pch-goldLight hover:bg-pch-surface text-xs font-semibold flex items-center gap-1"
+                                          type="button" 
+                                          onClick={() => {
+                                            safeCopyToClipboard(c.code);
+                                            triggerToast(`Kode ${c.code} disalin!`, "success");
+                                          }}
+                                          className="text-pch-muted hover:text-pch-text p-0.5"
                                         >
-                                          <Icons.Eye className="w-3.5 h-3.5" />
-                                          <span>Buka Berkas</span>
+                                          <Icons.Copy className="w-3.5 h-3.5" />
                                         </button>
-                                      </td>
-                                      <td className="p-3">
-                                        <button 
-                                          onClick={() => handleAdminSendDossierViaWA(dos, activeRedeemCodes[0]?.code)}
-                                          className="px-3 py-1.5 rounded-lg bg-emerald-950/80 border border-pch-success text-pch-success hover:bg-emerald-900/60 font-semibold text-xs flex items-center gap-1.5"
-                                        >
-                                          <Icons.Phone className="w-3.5 h-3.5" />
-                                          <span>Kirim WA</span>
-                                        </button>
-                                      </td>
-                                    </tr>
-                                  ))
-                                )}
-                              </tbody>
-                            </table>
+                                      </div>
+                                      <p className="text-[10px] text-pch-muted mt-0.5">Target: <strong>{c.userTarget}</strong></p>
+                                    </div>
+                                    <div className="text-right">
+                                      <span className="text-xs font-bold font-mono text-pch-warning animate-pulse">
+                                        {remainingSec}s
+                                      </span>
+                                      <p className="text-[9px] text-pch-muted">Sisa Waktu</p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 3. Arsip 15 Berkas Brankas Anggota */}
+                      <div className="p-6 rounded-2xl bg-pch-surface border border-pch-border shadow-card-elevated space-y-4">
+                        <div className="border-b border-pch-border pb-3 flex items-center justify-between flex-wrap gap-2">
+                          <div>
+                            <h3 className="font-bold text-base text-pch-text flex items-center gap-2">
+                              <Icons.FileText className="w-4 h-4 text-pch-gold" />
+                              <span>3. Arsip 15 Berkas Brankas Anggota (Dossiers)</span>
+                            </h3>
+                            <p className="text-xs text-pch-muted mt-0.5">Seluruh berkas identitas anggota tersimpan di Supabase Realtime Storage.</p>
                           </div>
+                          <span className="text-xs font-mono px-3 py-1 rounded-full bg-pch-secondary border border-pch-border text-pch-goldLight">
+                            {submittedDossiers.length} Berkas Masuk
+                          </span>
                         </div>
 
-                        {/* 4. Direktori & Manajemen Anggota Terdaftar (REALTIME SUPABASE DIRECT) */}
-                        <div className="space-y-2 pt-4 border-t border-pch-border">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                              <span className="text-xs font-bold text-pch-text block">Daftar Akun Anggota di Supabase Realtime ({registeredUsers.length} Orang)</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] text-pch-success font-mono bg-emerald-950/80 px-2 py-0.5 rounded border border-pch-success/30 flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-pch-success animate-pulse"></span>
-                                <span>Sinkron Otomatis Realtime</span>
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => fetchLatestFromSupabase(false)}
-                                className="px-2.5 py-1 rounded-lg bg-pch-secondary border border-pch-border text-[10px] font-semibold text-pch-muted hover:text-pch-goldLight hover:bg-pch-surface flex items-center gap-1"
-                                title="Gunakan hanya jika ingin memicu penarikan instan"
-                              >
-                                <Icons.Zap className="w-3 h-3 text-pch-gold" />
-                                <span>Segarkan Manual (Opsional)</span>
-                              </button>
-                            </div>
+                        {submittedDossiers.length === 0 ? (
+                          <div className="p-8 text-center text-pch-muted space-y-2">
+                            <Icons.FileText className="w-10 h-10 mx-auto opacity-30" />
+                            <p className="text-xs">Belum ada anggota yang mengirimkan berkas brankas ke Cloud.</p>
                           </div>
+                        ) : (
                           <div className="overflow-x-auto">
-                            <table className="w-full text-xs text-left">
-                              <thead className="bg-pch-secondary text-pch-muted uppercase border-b border-pch-border">
-                                <tr>
-                                  <th className="p-3">Nama Anggota</th>
-                                  <th className="p-3">Username</th>
-                                  <th className="p-3">Email</th>
-                                  <th className="p-3">No HP</th>
-                                  <th className="p-3">Tanggal Daftar</th>
-                                  <th className="p-3">Aksi</th>
+                            <table className="w-full text-left text-xs">
+                              <thead>
+                                <tr className="border-b border-pch-border text-pch-muted font-mono">
+                                  <th className="py-2.5 px-3">Anggota</th>
+                                  <th className="py-2.5 px-3">NIK</th>
+                                  <th className="py-2.5 px-3">Rekening Bank</th>
+                                  <th className="py-2.5 px-3">Status Berkas</th>
+                                  <th className="py-2.5 px-3 text-right">Aksi</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-pch-border">
-                                {registeredUsers.length === 0 ? (
-                                  <tr>
-                                    <td colSpan="6" className="p-4 text-center text-pch-muted italic">
-                                      Belum ada anggota baru yang mendaftar di database.
+                              <tbody className="divide-y divide-pch-border/50">
+                                {submittedDossiers.map(dos => (
+                                  <tr key={dos.id} className="hover:bg-pch-secondary/40 transition-colors">
+                                    <td className="py-3 px-3">
+                                      <p className="font-bold text-pch-text">{dos.namaLengkap}</p>
+                                      <p className="text-[10px] text-pch-gold font-mono">@{dos.username} • {dos.noHp || "-"}</p>
+                                    </td>
+                                    <td className="py-3 px-3 font-mono">{dos.nik || "-"}</td>
+                                    <td className="py-3 px-3 font-mono">{dos.rekening || "-"}</td>
+                                    <td className="py-3 px-3">
+                                      <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-pch-success border border-pch-success/40">
+                                        {dos.docsCount} Dokumen
+                                      </span>
+                                    </td>
+                                    <td className="py-3 px-3 text-right space-x-1.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => setSelectedDossierDetail(dos)}
+                                        className="px-2.5 py-1 rounded-lg bg-pch-purple text-white text-[11px] font-semibold hover:bg-pch-purpleLight"
+                                      >
+                                        Buka Berkas
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const activeCode = activeRedeemCodes.find(c => c.userTarget === "all" || c.userTarget?.toLowerCase() === dos.username?.toLowerCase());
+                                          handleAdminSendDossierViaWA(dos, activeCode?.code || "");
+                                        }}
+                                        className="px-2.5 py-1 rounded-lg bg-emerald-950 border border-pch-success text-pch-success text-[11px] font-semibold hover:bg-emerald-900"
+                                      >
+                                        Kirim ke WA
+                                      </button>
                                     </td>
                                   </tr>
-                                ) : (
-                                  registeredUsers.map(u => (
-                                    <tr key={u.id}>
-                                      <td className="p-3 font-semibold text-pch-text">{u.name}</td>
-                                      <td className="p-3 font-mono text-pch-goldLight">@{u.username}</td>
-                                      <td className="p-3 text-pch-muted">{u.email}</td>
-                                      <td className="p-3 font-mono text-pch-text">{u.phone}</td>
-                                      <td className="p-3 text-pch-muted">{u.registeredAt || "Hari ini"}</td>
-                                      <td className="p-3">
-                                        <button
-                                          onClick={() => handleDeleteRegisteredMember(u.id, u.name)}
-                                          className="p-1 rounded bg-red-950/60 border border-pch-danger/60 text-pch-danger hover:bg-red-900/60"
-                                          title="Hapus Akun"
-                                        >
-                                          <Icons.Trash className="w-3.5 h-3.5" />
-                                        </button>
-                                      </td>
-                                    </tr>
-                                  ))
-                                )}
+                                ))}
                               </tbody>
                             </table>
                           </div>
+                        )}
+                      </div>
+
+                      {/* 4. Daftar Akun Anggota Terdaftar */}
+                      <div className="p-6 rounded-2xl bg-pch-surface border border-pch-border shadow-card-elevated space-y-4">
+                        <div className="border-b border-pch-border pb-3 flex items-center justify-between flex-wrap gap-2">
+                          <div>
+                            <h3 className="font-bold text-base text-pch-text flex items-center gap-2">
+                              <Icons.Users className="w-4 h-4 text-pch-gold" />
+                              <span>4. Daftar Seluruh Akun Anggota Terdaftar</span>
+                            </h3>
+                            <p className="text-xs text-pch-muted mt-0.5">Daftar pengguna yang telah terdaftar di database Supabase Cloud.</p>
+                          </div>
+                          <span className="text-xs font-mono px-3 py-1 rounded-full bg-pch-secondary border border-pch-border text-pch-goldLight">
+                            {registeredUsers.length} Anggota
+                          </span>
                         </div>
 
+                        {registeredUsers.length === 0 ? (
+                          <div className="p-8 text-center text-pch-muted">
+                            <p className="text-xs">Belum ada akun anggota yang terdaftar di sistem.</p>
+                          </div>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-xs">
+                              <thead>
+                                <tr className="border-b border-pch-border text-pch-muted font-mono">
+                                  <th className="py-2.5 px-3">Nama</th>
+                                  <th className="py-2.5 px-3">Username</th>
+                                  <th className="py-2.5 px-3">Email</th>
+                                  <th className="py-2.5 px-3">No HP</th>
+                                  <th className="py-2.5 px-3">Tanggal Daftar</th>
+                                  <th className="py-2.5 px-3 text-right">Aksi</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-pch-border/50">
+                                {registeredUsers.map(usr => (
+                                  <tr key={usr.id} className="hover:bg-pch-secondary/40 transition-colors">
+                                    <td className="py-3 px-3 font-semibold text-pch-text">{usr.name}</td>
+                                    <td className="py-3 px-3 font-mono text-pch-gold">@{usr.username}</td>
+                                    <td className="py-3 px-3 text-pch-muted">{usr.email}</td>
+                                    <td className="py-3 px-3 font-mono">{usr.phone || "-"}</td>
+                                    <td className="py-3 px-3 text-pch-muted">{usr.registeredAt}</td>
+                                    <td className="py-3 px-3 text-right">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteRegisteredMember(usr.id, usr.name)}
+                                        className="p-1 rounded-lg bg-red-950/60 border border-pch-danger/60 text-pch-danger hover:bg-red-900/60 transition-colors"
+                                        title="Hapus Akun"
+                                      >
+                                        <Icons.Trash className="w-3.5 h-3.5" />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -4218,8 +4531,8 @@
                 </main>
               </div>
 
-              {/* MOBILE BOTTOM NAVIGATION */}
-              <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-pch-bg/95 backdrop-blur-lg border-t border-pch-border px-1 py-1 flex items-center justify-between overflow-x-auto no-scrollbar">
+              {/* MOBILE BOTTOM NAVIGATION BAR */}
+              <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-pch-secondary/95 backdrop-blur-lg border-t border-pch-border/80 px-2 py-1.5 flex items-center justify-around shadow-card-elevated">
                 {[
                   { id: "dashboard", label: "Beranda", icon: Icons.Home },
                   { id: "dana_talangan", label: "Dana", icon: Icons.Wallet },
@@ -4236,214 +4549,151 @@
                     <button
                       key={item.id}
                       onClick={() => { setActiveTab(item.id); setActiveJitsiRoom(null); }}
-                      className={`flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all relative shrink-0 min-w-[46px] ${
-                        isActive ? "text-pch-gold scale-105 font-bold" : "text-pch-muted hover:text-pch-text"
+                      className={`relative flex flex-col items-center justify-center py-1 px-1.5 rounded-lg min-w-[42px] transition-all ${
+                        isActive ? "text-pch-gold font-bold" : "text-pch-muted hover:text-pch-text"
                       }`}
                     >
-                      <div className="relative">
-                        <Icon className="w-4 h-4" />
-                        {item.id === "chat" && unreadChatCount > 0 && (
-                          <span className="absolute -top-1 -right-2 px-1 rounded-full text-[8px] font-bold bg-pch-purple text-white shadow-purple-glow">
-                            {unreadChatCount}
-                          </span>
-                        )}
-                      </div>
+                      <Icon className="w-4 h-4" />
                       <span className="text-[9px] mt-0.5 truncate">{item.label}</span>
+                      {item.id === "chat" && unreadChatCount > 0 && (
+                        <span className="absolute -top-0.5 right-1 w-2 h-2 rounded-full bg-pch-purple shadow-purple-glow animate-pulse"></span>
+                      )}
                     </button>
                   );
                 })}
               </nav>
+
             </div>
           )}
 
-          {/* MODAL: KONFIGURASI SUPABASE (DAPAT DIAKSES OLEH ADMIN MAUPUN PERANGKAT BARU) */}
-          {showSupabaseSettingsModal && (
+          {/* ==================== GLOBAL MODALS ==================== */}
+
+          {/* 1. Modal Detail Berkas Anggota (Inspeksi 15 Berkas oleh Admin) */}
+          {selectedDossierDetail && (
             <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-pch-surface border border-pch-border rounded-2xl max-w-md w-full p-6 space-y-4 shadow-card-elevated">
-                <div className="flex items-center justify-between pb-2 border-b border-pch-border">
-                  <h3 className="font-bold text-base text-pch-text flex items-center gap-2">
-                    <Icons.Database className="w-4 h-4 text-pch-gold" />
-                    <span>Konfigurasi Supabase Cloud</span>
-                  </h3>
-                  <button onClick={() => setShowSupabaseSettingsModal(false)} className="text-pch-muted hover:text-pch-text">
-                    <Icons.X className="w-5 h-5" />
+              <div className="w-full max-w-2xl bg-pch-surface border border-pch-border rounded-2xl p-6 shadow-card-elevated space-y-4 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between border-b border-pch-border pb-3">
+                  <div>
+                    <h3 className="font-bold text-base text-pch-text">Inspeksi Berkas: {selectedDossierDetail.namaLengkap}</h3>
+                    <p className="text-xs text-pch-gold font-mono">@{selectedDossierDetail.username} • {selectedDossierDetail.noHp}</p>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setSelectedDossierDetail(null)}
+                    className="p-1 rounded-lg bg-pch-secondary border border-pch-border text-pch-muted hover:text-pch-text"
+                  >
+                    <Icons.X className="w-4 h-4" />
                   </button>
                 </div>
 
-                <p className="text-xs text-pch-muted">
-                  Periksa URL Project dan Anon Key Supabase Anda. Aplikasi terhubung ke:
-                  <span className="block font-mono text-[11px] text-pch-goldLight mt-1">{supabaseConfig.url || "Belum terpasang"}</span>
-                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
+                    <span className="text-pch-muted font-semibold block">Identitas Diri:</span>
+                    <p>NIK: <strong className="font-mono text-pch-text">{selectedDossierDetail.nik || "-"}</strong></p>
+                    <p>TTL: <strong className="text-pch-text">{selectedDossierDetail.ttl || "-"}</strong></p>
+                    <p>Alamat: <strong className="text-pch-text">{selectedDossierDetail.alamatLengkap || "-"}</strong></p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
+                    <span className="text-pch-muted font-semibold block">Rekening & Wallet:</span>
+                    <p>Rekening: <strong className="font-mono text-pch-text">{selectedDossierDetail.rekening || "-"}</strong> ({selectedDossierDetail.namaRekening || "-"})</p>
+                    <p>Wallet Pi: <strong className="font-mono text-pch-goldLight truncate block">{selectedDossierDetail.walletPi || "-"}</strong></p>
+                    <p>Wallet OKX: <strong className="font-mono text-pch-purpleLight truncate block">{selectedDossierDetail.walletOkx || "-"}</strong></p>
+                  </div>
+                </div>
 
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs font-semibold text-pch-muted block mb-1">Supabase Project URL</label>
-                    <input 
-                      type="url" 
-                      placeholder="https://xyzprojectid.supabase.co"
-                      id="input-supabase-url"
-                      defaultValue={supabaseConfig.url}
-                      className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3 py-2 text-xs font-mono text-pch-text focus:outline-none focus:border-pch-purple"
-                    />
+                <div className="space-y-2">
+                  <h4 className="font-bold text-xs text-pch-goldLight uppercase">Dokumen Terlampir di Supabase Storage:</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {[
+                      { label: "Foto KTP Elektronik", url: selectedDossierDetail.fotoKtpUrl },
+                      { label: "Foto Kartu Keluarga (KK)", url: selectedDossierDetail.fotoKkUrl },
+                      { label: "Foto NPWP", url: selectedDossierDetail.fotoNpwpUrl },
+                      { label: "Pasfoto Formal", url: selectedDossierDetail.pasfotoUrl },
+                      { label: "Kartu Keanggotaan (KTA)", url: selectedDossierDetail.ktaUrl }
+                    ].map((d, i) => (
+                      <div key={i} className="p-2.5 rounded-xl bg-pch-secondary border border-pch-border flex items-center justify-between text-xs">
+                        <span className="text-pch-text font-medium">{d.label}</span>
+                        {d.url ? (
+                          <a 
+                            href={d.url} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="px-2.5 py-1 rounded bg-pch-gold text-black font-bold text-[10px] hover:bg-pch-goldLight flex items-center gap-1"
+                          >
+                            <Icons.ExternalLink className="w-3 h-3" />
+                            <span>Buka</span>
+                          </a>
+                        ) : (
+                          <span className="text-pch-muted italic text-[10px]">Belum diunggah</span>
+                        )}
+                      </div>
+                    ))}
                   </div>
 
-                  <div>
-                    <label className="text-xs font-semibold text-pch-muted block mb-1">Supabase Anon Public Key</label>
-                    <input 
-                      type="password" 
-                      placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..."
-                      id="input-supabase-key"
-                      defaultValue={supabaseConfig.key}
-                      className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3 py-2 text-xs font-mono text-pch-text focus:outline-none focus:border-pch-purple"
-                    />
-                  </div>
-
-                  {supabaseConfig.url && supabaseConfig.key && (
-                    <div className="space-y-1.5 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const shareUrl = `${window.location.origin}${window.location.pathname}?sb_url=${encodeURIComponent(supabaseConfig.url)}&sb_key=${encodeURIComponent(supabaseConfig.key)}`;
-                          safeCopyToClipboard(shareUrl);
-                          triggerToast("Link Auto-Connect disalin! Bagikan ke anggota via WA agar HP mereka langsung terhubung otomatis.", "success");
-                        }}
-                        className="w-full py-2.5 rounded-xl bg-pch-purple text-white text-xs font-bold hover:bg-pch-purpleLight flex items-center justify-center gap-1.5 shadow-purple-glow"
-                      >
-                        <Icons.Copy className="w-3.5 h-3.5" />
-                        <span>Salin Link Pendaftaran Otomatis (Auto-Connect)</span>
-                      </button>
-                      <p className="text-[10px] text-pch-muted text-center">
-                        Setiap HP anggota yang mengeklik tautan tersebut langsung terhubung ke database tanpa perlu memasukkan key.
-                      </p>
+                  {selectedDossierDetail.extraDocs && selectedDossierDetail.extraDocs.length > 0 && (
+                    <div className="pt-2 space-y-1.5">
+                      <span className="text-xs font-semibold text-pch-muted block">Dokumen Tambahan Lainnya:</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {selectedDossierDetail.extraDocs.map((ex, idx) => (
+                          <div key={idx} className="p-2.5 rounded-xl bg-pch-secondary border border-pch-border flex items-center justify-between text-xs">
+                            <span className="text-pch-text truncate pr-2">{ex.title}</span>
+                            {ex.base64 || ex.driveUrl ? (
+                              <a 
+                                href={ex.base64 || ex.driveUrl} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="px-2 py-0.5 rounded bg-pch-purple text-white text-[10px] font-semibold"
+                              >
+                                Lihat
+                              </a>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
-
-                <div className="pt-2 flex gap-3">
-                  <button 
-                    type="button"
-                    onClick={() => setShowSupabaseSettingsModal(false)}
-                    className="flex-1 py-2.5 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted text-xs font-semibold hover:text-pch-text"
-                  >
-                    Batal
-                  </button>
-                  <button 
-                    type="button"
-                    disabled={isTestingSupabase}
-                    onClick={() => {
-                      const urlEl = document.getElementById('input-supabase-url');
-                      const keyEl = document.getElementById('input-supabase-key');
-                      handleSaveSupabaseConfig(urlEl ? urlEl.value : '', keyEl ? keyEl.value : '');
-                    }}
-                    className="flex-1 py-2.5 rounded-xl bg-pch-gold text-black text-xs font-bold hover:bg-pch-goldLight shadow-gold-glow flex items-center justify-center gap-1.5 disabled:opacity-50"
-                  >
-                    <span>{isTestingSupabase ? "Menguji..." : "Tes Koneksi & Simpan"}</span>
-                  </button>
-                </div>
               </div>
             </div>
           )}
 
-          {/* CONFIRMATION DIALOG */}
-          {confirmDialog && (
-            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-pch-surface border border-pch-border rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-card-elevated">
-                <div className="flex items-center gap-2 text-pch-warning font-semibold">
-                  <Icons.AlertTriangle className="w-5 h-5 shrink-0" />
-                  <h3 className="font-bold text-sm text-pch-text">{confirmDialog.title}</h3>
-                </div>
-                <p className="text-xs text-pch-muted leading-relaxed">
-                  {confirmDialog.message}
-                </p>
-                <div className="pt-2 flex gap-3">
-                  <button 
-                    onClick={() => setConfirmDialog(null)}
-                    className="flex-1 py-2 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted text-xs font-semibold"
-                  >
-                    Batal
-                  </button>
-                  <button 
-                    onClick={confirmDialog.onConfirm}
-                    className="flex-1 py-2 rounded-xl bg-pch-danger text-white text-xs font-semibold hover:bg-red-600 shadow-sm"
-                  >
-                    Konfirmasi
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ================================================================= */}
-          {/* MODAL: JADWALKAN / MULAI RAPAT BARU (DIRECT CONNECT ENGINE) */}
-          {/* ================================================================= */}
+          {/* 2. Modal Buat Jadwal Rapat Baru */}
           {showCreateMeetingModal && (
             <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-pch-surface border border-pch-border rounded-2xl max-w-md w-full p-6 space-y-4 shadow-card-elevated animate-fade-in">
-                <div className="flex items-center justify-between pb-2 border-b border-pch-border">
-                  <h3 className="font-bold text-base text-pch-text flex items-center gap-2">
-                    <Icons.Video className="w-5 h-5 text-pch-gold" />
+              <div className="w-full max-w-md bg-pch-surface border border-pch-border rounded-2xl p-6 shadow-card-elevated space-y-4">
+                <div className="flex items-center justify-between border-b border-pch-border pb-3">
+                  <h3 className="font-bold text-sm text-pch-text flex items-center gap-2">
+                    <Icons.Video className="w-4 h-4 text-pch-gold" />
                     <span>Jadwalkan Rapat Online Baru</span>
                   </h3>
                   <button 
                     type="button" 
-                    onClick={() => setShowCreateMeetingModal(false)} 
-                    className="text-pch-muted hover:text-pch-text p-1"
+                    onClick={() => setShowCreateMeetingModal(false)}
+                    className="p-1 rounded-lg bg-pch-secondary text-pch-muted hover:text-pch-text"
                   >
-                    <Icons.X className="w-5 h-5" />
+                    <Icons.X className="w-4 h-4" />
                   </button>
                 </div>
 
-                <form onSubmit={handleCreateNewMeeting} className="space-y-3.5">
+                <form onSubmit={handleCreateNewMeeting} className="space-y-3">
                   <div>
                     <label className="text-xs font-semibold text-pch-muted block mb-1">Judul / Topik Rapat</label>
                     <input 
                       type="text" 
                       required
-                      placeholder="Contoh: Diskusi Edukasi Pionir Panua"
+                      placeholder="Contoh: Rapat Koordinasi Wilayah Kota"
                       value={newMeetingTitle}
                       onChange={(e) => setNewMeetingTitle(e.target.value)}
-                      className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2.5 text-xs text-pch-text focus:outline-none focus:border-pch-gold"
+                      className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
                     />
                   </div>
 
-                  <div>
-                    <label className="text-xs font-semibold text-pch-muted block mb-1">Pilihan Platform Rapat</label>
-                    <select
-                      value={newMeetingProvider}
-                      onChange={(e) => setNewMeetingProvider(e.target.value)}
-                      className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2.5 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
-                    >
-                      <option value="mirotalk">MiroTalk P2P WebRTC (Sangat Ringan, 100% Tanpa Login/Moderator)</option>
-                      <option value="google-meet">Google Meet (meet.google.com/new)</option>
-                      <option value="custom">Tautan Rapat Kustom (Zoom / Link Rapat Sendiri)</option>
-                    </select>
-                    <span className="text-[10px] text-pch-muted block mt-1">
-                      {newMeetingProvider === "mirotalk" && "Direkomendasikan: Kamera, mikrofon, dan layar langsung aktif tanpa perlu akun apa pun."}
-                      {newMeetingProvider === "google-meet" && "Akan membuat tautan Google Meet baru secara instan."}
-                      {newMeetingProvider === "custom" && "Masukkan tautan Zoom, Teams, atau room rapat yang Anda miliki."}
-                    </span>
-                  </div>
-
-                  {newMeetingProvider === "custom" && (
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-semibold text-pch-muted block mb-1">Tautan / Link Rapat</label>
-                      <input 
-                        type="url" 
-                        required
-                        placeholder="https://zoom.us/j/... atau link rapat Anda"
-                        value={newMeetingCustomUrl}
-                        onChange={(e) => setNewMeetingCustomUrl(e.target.value)}
-                        className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
-                      />
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-semibold text-pch-muted block mb-1">Host / Penyelenggara</label>
+                      <label className="text-xs font-semibold text-pch-muted block mb-1">Nama Host / Pemandu</label>
                       <input 
                         type="text" 
-                        placeholder={user?.name || "Nama Anda"}
+                        placeholder={user?.name || "Host Rapat"}
                         value={newMeetingHost}
                         onChange={(e) => setNewMeetingHost(e.target.value)}
                         className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
@@ -4451,7 +4701,7 @@
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-pch-muted block mb-1">Durasi</label>
-                      <select 
+                      <select
                         value={newMeetingDuration}
                         onChange={(e) => setNewMeetingDuration(e.target.value)}
                         className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
@@ -4459,37 +4709,62 @@
                         <option value="30 Menit">30 Menit</option>
                         <option value="60 Menit">60 Menit</option>
                         <option value="90 Menit">90 Menit</option>
-                        <option value="120 Menit">2 Jam</option>
-                        <option value="Tanpa Batas">Tanpa Batas (Bebas)</option>
+                        <option value="120 Menit">120 Menit</option>
                       </select>
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-pch-muted block mb-1">Jadwal / Waktu Pelaksanaan</label>
+                    <label className="text-xs font-semibold text-pch-muted block mb-1">Jadwal Pelaksanaan</label>
                     <input 
                       type="text" 
-                      placeholder="Contoh: Hari Ini, 20:00 WITA atau Sekarang"
+                      placeholder="Contoh: Malam Ini, 20:00 WITA"
                       value={newMeetingDate}
                       onChange={(e) => setNewMeetingDate(e.target.value)}
                       className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
                     />
                   </div>
 
-                  <div className="pt-2 flex flex-col sm:flex-row gap-2">
-                    <button 
+                  <div>
+                    <label className="text-xs font-semibold text-pch-muted block mb-1">Platform Video Conference</label>
+                    <select
+                      value={newMeetingProvider}
+                      onChange={(e) => setNewMeetingProvider(e.target.value)}
+                      className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                    >
+                      <option value="mirotalk">MiroTalk WebRTC (Ringan, Tanpa Login Moderator)</option>
+                      <option value="google-meet">Google Meet (Tab Terbuka Otomatis)</option>
+                      <option value="custom">Tautan Kustom (Zoom / URL Lain)</option>
+                    </select>
+                  </div>
+
+                  {newMeetingProvider === "custom" && (
+                    <div>
+                      <label className="text-xs font-semibold text-pch-purpleLight block mb-1">Masukkan URL Rapat Kustom</label>
+                      <input 
+                        type="url" 
+                        required
+                        placeholder="https://zoom.us/j/... atau URL lainnya"
+                        value={newMeetingCustomUrl}
+                        onChange={(e) => setNewMeetingCustomUrl(e.target.value)}
+                        className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                      />
+                    </div>
+                  )}
+
+                  <div className="pt-2 flex gap-3">
+                    <button
                       type="button"
                       onClick={() => setShowCreateMeetingModal(false)}
-                      className="flex-1 py-2.5 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted text-xs font-semibold hover:text-pch-text"
+                      className="flex-1 py-2 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted hover:text-pch-text text-xs"
                     >
                       Batal
                     </button>
-                    <button 
+                    <button
                       type="submit"
-                      className="flex-1 py-2.5 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight transition-all shadow-gold-glow flex items-center justify-center gap-1.5"
+                      className="flex-1 py-2 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight shadow-gold-glow"
                     >
-                      <Icons.Check className="w-4 h-4" />
-                      <span>Buat & Simpan Rapat</span>
+                      Simpan Rapat
                     </button>
                   </div>
                 </form>
@@ -4497,33 +4772,31 @@
             </div>
           )}
 
-          {/* ================================================================= */}
-          {/* MODAL: BUAT GRUP KOMUNITAS BARU */}
-          {/* ================================================================= */}
+          {/* 3. Modal Buat Grup Panua Baru */}
           {showCreateGroupModal && (
             <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-pch-surface border border-pch-border rounded-2xl max-w-md w-full p-6 space-y-4 shadow-card-elevated animate-fade-in">
-                <div className="flex items-center justify-between pb-2 border-b border-pch-border">
-                  <h3 className="font-bold text-base text-pch-text flex items-center gap-2">
-                    <Icons.Users className="w-5 h-5 text-pch-purpleLight" />
-                    <span>Buat Grup Panua Baru</span>
+              <div className="w-full max-w-md bg-pch-surface border border-pch-border rounded-2xl p-6 shadow-card-elevated space-y-4">
+                <div className="flex items-center justify-between border-b border-pch-border pb-3">
+                  <h3 className="font-bold text-sm text-pch-text flex items-center gap-2">
+                    <Icons.Users className="w-4 h-4 text-pch-purpleLight" />
+                    <span>Buat Grup Komunitas Panua Baru</span>
                   </h3>
                   <button 
                     type="button" 
-                    onClick={() => setShowCreateGroupModal(false)} 
-                    className="text-pch-muted hover:text-pch-text p-1"
+                    onClick={() => setShowCreateGroupModal(false)}
+                    className="p-1 rounded-lg bg-pch-secondary text-pch-muted hover:text-pch-text"
                   >
-                    <Icons.X className="w-5 h-5" />
+                    <Icons.X className="w-4 h-4" />
                   </button>
                 </div>
 
-                <form onSubmit={handleCreateNewGroup} className="space-y-3.5">
+                <form onSubmit={handleCreateNewGroup} className="space-y-3">
                   <div>
                     <label className="text-xs font-semibold text-pch-muted block mb-1">Nama Grup</label>
                     <input 
                       type="text" 
                       required
-                      placeholder="Contoh: Pionir Panua Suwawa"
+                      placeholder="Contoh: Pionir Bone Bolango"
                       value={newGroupName}
                       onChange={(e) => setNewGroupName(e.target.value)}
                       className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
@@ -4532,24 +4805,24 @@
 
                   <div>
                     <label className="text-xs font-semibold text-pch-muted block mb-1">Kategori</label>
-                    <select 
+                    <select
                       value={newGroupCategory}
                       onChange={(e) => setNewGroupCategory(e.target.value)}
                       className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
                     >
-                      <option value="Umum">Umum</option>
                       <option value="Wilayah">Wilayah</option>
                       <option value="Edukasi">Edukasi</option>
                       <option value="Bisnis">Bisnis</option>
+                      <option value="Umum">Umum</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-pch-muted block mb-1">Deskripsi Grup</label>
+                    <label className="text-xs font-semibold text-pch-muted block mb-1">Deskripsi Singkat</label>
                     <textarea 
-                      required
                       rows="3"
-                      placeholder="Jelaskan tujuan dan aturan grup ini..."
+                      required
+                      placeholder="Tuliskan tujuan dan cakupan anggota grup..."
                       value={newGroupDesc}
                       onChange={(e) => setNewGroupDesc(e.target.value)}
                       className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
@@ -4557,16 +4830,16 @@
                   </div>
 
                   <div className="pt-2 flex gap-3">
-                    <button 
+                    <button
                       type="button"
                       onClick={() => setShowCreateGroupModal(false)}
-                      className="flex-1 py-2.5 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted text-xs font-semibold hover:text-pch-text"
+                      className="flex-1 py-2 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted hover:text-pch-text text-xs"
                     >
                       Batal
                     </button>
-                    <button 
+                    <button
                       type="submit"
-                      className="flex-1 py-2.5 rounded-xl bg-pch-purple text-white font-bold text-xs hover:bg-pch-purpleLight transition-all shadow-purple-glow"
+                      className="flex-1 py-2 rounded-xl bg-pch-purple text-white font-bold text-xs hover:bg-pch-purpleLight shadow-purple-glow"
                     >
                       Buat Grup
                     </button>
@@ -4576,111 +4849,105 @@
             </div>
           )}
 
-          {/* MODAL: DETAIL INSPEKSI 15 BERKAS DOSSIER ANGGOTA OLEH ADMIN */}
-          {selectedDossierDetail && (
-            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-              <div className="bg-pch-surface border border-pch-gold/50 rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-card-elevated my-8">
-                <div className="flex items-center justify-between pb-3 border-b border-pch-border">
-                  <div>
-                    <h3 className="font-bold text-base text-pch-text flex items-center gap-2">
-                      <Icons.Shield className="w-4 h-4 text-pch-gold" />
-                      <span>Arsip Lengkap Brankas: {selectedDossierDetail.namaLengkap}</span>
-                    </h3>
-                    <p className="text-xs text-pch-muted font-mono">@{selectedDossierDetail.username} • Kontak: {selectedDossierDetail.noHp}</p>
+          {/* 4. Modal Pengaturan Koneksi Supabase (Khusus Admin) */}
+          {showSupabaseSettingsModal && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="w-full max-w-lg bg-pch-surface border border-pch-gold/50 rounded-2xl p-6 shadow-card-elevated space-y-4">
+                <div className="flex items-center justify-between border-b border-pch-border pb-3">
+                  <div className="flex items-center gap-2">
+                    <Icons.Database className="w-5 h-5 text-pch-gold" />
+                    <h3 className="font-bold text-base text-pch-text">Pengaturan Koneksi Cloud Supabase</h3>
                   </div>
-                  <button onClick={() => setSelectedDossierDetail(null)} className="text-pch-muted hover:text-pch-text">
-                    <Icons.X className="w-5 h-5" />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowSupabaseSettingsModal(false)}
+                    className="p-1 rounded-lg bg-pch-secondary text-pch-muted hover:text-pch-text"
+                  >
+                    <Icons.X className="w-4 h-4" />
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
-                    <span className="text-pch-muted block font-semibold">Username Pi Network</span>
-                    <span className="text-pch-goldLight font-mono font-bold">
-                      {selectedDossierDetail?.usernamePi || "-"}
-                    </span>
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="font-semibold text-pch-muted block mb-1">Project URL Supabase</label>
+                    <input 
+                      type="text" 
+                      id="input_sb_url"
+                      defaultValue={supabaseConfig.url}
+                      placeholder="https://xxxx.supabase.co"
+                      className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 font-mono text-pch-text focus:outline-none focus:border-pch-gold"
+                    />
                   </div>
-                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
-                    <span className="text-pch-muted block font-semibold">NIK (Nomor Induk Kependudukan)</span>
-                    <span className="text-pch-text font-mono font-bold">
-                      {selectedDossierDetail?.nik || "-"}
-                    </span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
-                    <span className="text-pch-muted block font-semibold">Tempat & Tanggal Lahir (TTL)</span>
-                    <span className="text-pch-text">
-                      {selectedDossierDetail?.ttl || "-"}
-                    </span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
-                    <span className="text-pch-muted block font-semibold">Rekening Bank</span>
-                    <span className="text-pch-text font-mono">
-                      {selectedDossierDetail?.rekening || "-"}
-                    </span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
-                    <span className="text-pch-muted block font-semibold">Alamat Wallet Pi</span>
-                    <span className="text-pch-goldLight font-mono truncate block">
-                      {selectedDossierDetail?.walletPi || "-"}
-                    </span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
-                    <span className="text-pch-muted block font-semibold">Alamat Wallet OKX</span>
-                    <span className="text-pch-purpleLight font-mono truncate block">
-                      {selectedDossierDetail?.walletOkx || "-"}
-                    </span>
-                  </div>
-                  <div className="sm:col-span-2 p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
-                    <span className="text-pch-muted block font-semibold">Alamat Domisili Lengkap</span>
-                    <span className="text-pch-text">
-                      {selectedDossierDetail?.alamatLengkap || "-"}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="space-y-2">
-                  <span className="text-xs font-bold text-pch-goldLight block">Berkas Fisik Tersimpan di Supabase Storage:</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                    {[
-                      { label: "Foto KTP Elektronik", url: selectedDossierDetail?.fotoKtpUrl },
-                      { label: "Foto Kartu Keluarga (KK)", url: selectedDossierDetail?.fotoKkUrl },
-                      { label: "Foto NPWP", url: selectedDossierDetail?.fotoNpwpUrl },
-                      { label: "Pasfoto Formal (4x6)", url: selectedDossierDetail?.pasfotoUrl },
-                      { label: "Kartu Keanggotaan Panua", url: selectedDossierDetail?.ktaUrl }
-                    ].map((f, idx) => (
-                      <div key={idx} className="p-2.5 rounded-lg bg-pch-secondary border border-pch-border flex items-center justify-between">
-                        <span className="text-pch-text">{f.label}</span>
-                        {f.url && f.url.startsWith("http") ? (
-                          <a 
-                            href={f.url} 
-                            target="_blank" 
-                            rel="noreferrer" 
-                            className="text-pch-success underline font-semibold flex items-center gap-1"
-                          >
-                            <Icons.ExternalLink className="w-3.5 h-3.5" />
-                            <span>Buka di Storage</span>
-                          </a>
-                        ) : (
-                          <span className="text-pch-muted italic">Belum diunggah</span>
-                        )}
-                      </div>
-                    ))}
+                  <div>
+                    <label className="font-semibold text-pch-muted block mb-1">Anon Public Key</label>
+                    <input 
+                      type="text" 
+                      id="input_sb_key"
+                      defaultValue={supabaseConfig.key}
+                      placeholder="sb_publishable_... atau eyJhbGci..."
+                      className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 font-mono text-pch-text focus:outline-none focus:border-pch-gold"
+                    />
                   </div>
+
+                  <p className="text-[11px] text-pch-muted leading-relaxed">
+                    Kredensial ini digunakan untuk menghubungkan seluruh database anggota, 15 berkas brankas, chat forum, dan grup ke server Supabase secara realtime.
+                  </p>
                 </div>
 
                 <div className="pt-2 flex flex-col sm:flex-row gap-3">
-                  <button 
-                    onClick={() => handleAdminSendDossierViaWA(selectedDossierDetail, activeRedeemCodes[0]?.code)}
-                    className="flex-1 py-2.5 rounded-xl bg-emerald-950/80 border border-pch-success text-pch-success hover:bg-emerald-900/60 font-semibold text-xs flex items-center justify-center gap-2"
+                  <button
+                    type="button"
+                    disabled={isTestingSupabase}
+                    onClick={() => {
+                      const u = document.getElementById('input_sb_url')?.value;
+                      const k = document.getElementById('input_sb_key')?.value;
+                      handleSaveSupabaseConfig(u, k);
+                    }}
+                    className="flex-1 py-2.5 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight shadow-gold-glow flex items-center justify-center gap-2 disabled:opacity-50"
                   >
-                    <Icons.Phone className="w-3.5 h-3.5" />
-                    <span>Kirim Informasi Lengkap via WhatsApp Anggota</span>
+                    <Icons.Check className="w-4 h-4" />
+                    <span>{isTestingSupabase ? "Menguji Koneksi..." : "Tes Koneksi & Simpan"}</span>
                   </button>
-                  <button 
-                    onClick={() => setSelectedDossierDetail(null)}
-                    className="px-5 py-2.5 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted text-xs font-semibold hover:text-pch-text"
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      fetchLatestFromSupabase(false);
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-pch-secondary border border-pch-border text-pch-text text-xs hover:border-pch-purple flex items-center justify-center gap-1.5"
                   >
-                    Tutup
+                    <Icons.Database className="w-3.5 h-3.5 text-pch-purpleLight" />
+                    <span>Tarik Data Terbaru</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 5. Modal Konfirmasi Dialog Global */}
+          {confirmDialog && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="w-full max-w-sm bg-pch-surface border border-pch-danger/60 rounded-2xl p-5 shadow-card-elevated space-y-4">
+                <div className="flex items-center gap-2.5 text-pch-danger">
+                  <Icons.AlertTriangle className="w-5 h-5 shrink-0" />
+                  <h4 className="font-bold text-sm text-pch-text">{confirmDialog.title || "Konfirmasi"}</h4>
+                </div>
+                <p className="text-xs text-pch-muted leading-relaxed">{confirmDialog.message}</p>
+                <div className="pt-2 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDialog(null)}
+                    className="flex-1 py-2 rounded-xl bg-pch-secondary border border-pch-border text-pch-muted hover:text-pch-text text-xs"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmDialog.onConfirm}
+                    className="flex-1 py-2 rounded-xl bg-pch-danger text-white font-bold text-xs hover:bg-red-600 shadow-sm"
+                  >
+                    Ya, Lanjutkan
                   </button>
                 </div>
               </div>
@@ -4691,7 +4958,8 @@
       );
     }
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
+    // Mount Aplikasi React
+    const root = ReactDOM.createRoot(document.getElementById("root"));
     root.render(<App />);
   </script>
 </body>
