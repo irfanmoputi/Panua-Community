@@ -47,10 +47,10 @@
     }
   </script>
 
-  <!-- React, ReactDOM, Babel -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- React, ReactDOM, Babel — Menggunakan jsDelivr & cdnjs Berkecepatan Tinggi (Optimal di Indonesia) -->
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.24.4/babel.min.js"></script>
 
   <!-- Supabase JS Client v2 (Realtime Database & Storage) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -87,56 +87,73 @@
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
+    @keyframes panuaSpin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 
   <link rel="manifest" id="pwa-manifest-link" />
 </head>
 <body class="bg-pch-bg text-pch-text antialiased selection:bg-pch-purple selection:text-white">
-  <div id="root"></div>
+  <!-- Container Root dengan Fallback Loader Elegan (Menghilangkan Layar Putih) -->
+  <div id="root">
+    <div style="min-height: 100vh; background-color: #08090D; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #F5D77A; font-family: sans-serif; gap: 16px; padding: 24px; text-align: center;">
+      <div style="width: 52px; height: 52px; border: 4px solid #181922; border-top-color: #D4AF37; border-radius: 50%; animation: panuaSpin 0.8s linear infinite;"></div>
+      <div style="font-weight: 800; font-size: 15px; letter-spacing: 1.5px; color: #F5D77A; text-transform: uppercase;">PANUA COMMUNITY GORONTALO</div>
+      <div style="font-size: 12px; color: #AAA6B5;">Memuat sistem & menyinkronkan database cloud...</div>
+    </div>
+  </div>
 
-  <!-- PWA Manifest & Service Worker -->
+  <!-- Pembersihan Stale Service Worker & Global Error Guard -->
   <script>
-    const manifestObject = {
-      name: "PANUA COMMUNITY",
-      short_name: "PanuaPi",
-      description: "PANUA COMMUNITY — Pi Network Gorontalo - Indonesia. Platform Komunitas Independen Realtime",
-      start_url: "./",
-      display: "standalone",
-      background_color: "#08090D",
-      theme_color: "#08090D",
-      orientation: "portrait",
-      icons: [
-        {
-          src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%2308090D' stroke='%23D4AF37' stroke-width='4'/%3E%3Ccircle cx='50' cy='50' r='38' fill='%23181922' stroke='%238B2CFF' stroke-width='2'/%3E%3Ctext x='50' y='57' font-family='sans-serif' font-weight='bold' font-size='22' fill='%23F5D77A' text-anchor='middle'%3E%CF%80%3C/text%3E%3C/svg%3E",
-          sizes: "192x192",
-          type: "image/svg+xml",
-          purpose: "any maskable"
-        }
-      ]
-    };
-    const stringManifest = JSON.stringify(manifestObject);
-    const blobManifest = new Blob([stringManifest], { type: 'application/json' });
-    const manifestURL = URL.createObjectURL(blobManifest);
-    const pwaLink = document.getElementById('pwa-manifest-link');
-    if (pwaLink) pwaLink.setAttribute('href', manifestURL);
-
+    // 1. Bersihkan service worker lama yang sempat menahan respons kosong
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        const swBlob = new Blob([`
-          const CACHE_NAME = 'panua-realtime-v3.0';
-          self.addEventListener('install', (e) => self.skipWaiting());
-          self.addEventListener('activate', (e) => self.clients.claim());
-          self.addEventListener('fetch', (e) => {
-            const url = new URL(e.request.url);
-            if (url.hostname.includes('supabase.co') || url.pathname.includes('/rest/') || url.pathname.includes('/realtime/')) {
-              return;
-            }
-            e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-          });
-        `], { type: 'application/javascript' });
-        navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(err => console.log('SW:', err));
-      });
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      }).catch(function() {});
     }
+
+    // 2. Dynamic PWA Manifest
+    try {
+      const manifestObject = {
+        name: "PANUA COMMUNITY",
+        short_name: "PanuaPi",
+        description: "PANUA COMMUNITY — Pi Network Gorontalo - Indonesia. Platform Komunitas Independen Realtime",
+        start_url: "./",
+        display: "standalone",
+        background_color: "#08090D",
+        theme_color: "#08090D",
+        orientation: "portrait",
+        icons: [
+          {
+            src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%2308090D' stroke='%23D4AF37' stroke-width='4'/%3E%3Ccircle cx='50' cy='50' r='38' fill='%23181922' stroke='%238B2CFF' stroke-width='2'/%3E%3Ctext x='50' y='57' font-family='sans-serif' font-weight='bold' font-size='22' fill='%23F5D77A' text-anchor='middle'%3E%CF%80%3C/text%3E%3C/svg%3E",
+            sizes: "192x192",
+            type: "image/svg+xml",
+            purpose: "any maskable"
+          }
+        ]
+      };
+      const stringManifest = JSON.stringify(manifestObject);
+      const blobManifest = new Blob([stringManifest], { type: 'application/json' });
+      const manifestURL = URL.createObjectURL(blobManifest);
+      const pwaLink = document.getElementById('pwa-manifest-link');
+      if (pwaLink) pwaLink.setAttribute('href', manifestURL);
+    } catch(e) {}
+
+    // 3. Penangkal Crash Global: Jika terjadi kendala jaringan saat unduh skrip eksternal
+    window.addEventListener('error', function(e) {
+      var rootEl = document.getElementById('root');
+      if (rootEl && (!rootEl.firstElementChild || rootEl.innerText.includes('MEMUAT PANUA COMMUNITY'))) {
+        rootEl.innerHTML = '<div style="min-height:100vh;background:#08090D;color:#F7F5FA;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:sans-serif;">' +
+          '<div style="font-size:32px;margin-bottom:12px;">⚠️</div>' +
+          '<h2 style="font-size:16px;font-weight:bold;color:#F5D77A;margin-bottom:8px;">Penyelarasan Sistem Diperlukan</h2>' +
+          '<p style="font-size:12px;color:#AAA6B5;max-width:380px;margin-bottom:16px;">Sistem sedang memperbarui berkas aplikasi. Silakan tekan tombol di bawah untuk memuat ulang.</p>' +
+          '<button onclick="window.location.reload(true)" style="padding:10px 22px;background:#D4AF37;color:#000;border:none;border-radius:12px;font-weight:bold;font-size:12px;cursor:pointer;">Muat Ulang Aplikasi</button>' +
+        '</div>';
+      }
+    });
   </script>
 
   <!-- React Application -->
@@ -167,7 +184,7 @@
       return false;
     })();
 
-    // Safe Realtime Transport Guard (Mencegah unhandled SecurityError di Canvas)
+    // Safe Realtime Transport Guard (Kompatibel Penuh dengan @supabase/realtime-js)
     const NativeWebSocket = typeof window !== 'undefined' ? window.WebSocket : null;
     class SafeRealtimeTransport {
       constructor(url, protocols) {
@@ -179,6 +196,7 @@
         this.onerror = null;
         this.onmessage = null;
         this.binaryType = 'blob';
+        this.listeners = {};
 
         if (SafeRealtimeTransport.isRestricted || !NativeWebSocket) {
           this.simulateSafeClosed();
@@ -191,16 +209,20 @@
           this.socket.onopen = (e) => {
             this.readyState = this.socket.readyState;
             if (typeof this.onopen === 'function') this.onopen(e);
+            this.emit('open', e);
           };
           this.socket.onclose = (e) => {
             this.readyState = this.socket.readyState;
             if (typeof this.onclose === 'function') this.onclose(e);
+            this.emit('close', e);
           };
           this.socket.onerror = (e) => {
             if (typeof this.onerror === 'function') this.onerror(e);
+            this.emit('error', e);
           };
           this.socket.onmessage = (e) => {
             if (typeof this.onmessage === 'function') this.onmessage(e);
+            this.emit('message', e);
           };
           this.readyState = this.socket.readyState;
         } catch (err) {
@@ -210,14 +232,33 @@
         }
       }
 
+      addEventListener(event, callback) {
+        if (!this.listeners[event]) this.listeners[event] = [];
+        this.listeners[event].push(callback);
+      }
+
+      removeEventListener(event, callback) {
+        if (!this.listeners[event]) return;
+        this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
+      }
+
+      emit(event, data) {
+        if (this.listeners[event]) {
+          this.listeners[event].forEach(cb => {
+            try { cb(data); } catch(e) {}
+          });
+        }
+      }
+
       simulateSafeClosed() {
         this.readyState = 3;
         setTimeout(() => {
           if (typeof this.onclose === 'function') {
             try {
-              this.onclose({ wasClean: true, code: 1000, reason: 'WebSocket restricted in Canvas preview' });
+              this.onclose({ wasClean: true, code: 1000, reason: 'WebSocket restricted in preview' });
             } catch (e) {}
           }
+          this.emit('close', { wasClean: true, code: 1000, reason: 'WebSocket restricted in preview' });
         }, 50);
       }
 
@@ -234,6 +275,10 @@
         }
       }
     }
+    SafeRealtimeTransport.CONNECTING = 0;
+    SafeRealtimeTransport.OPEN = 1;
+    SafeRealtimeTransport.CLOSING = 2;
+    SafeRealtimeTransport.CLOSED = 3;
     SafeRealtimeTransport.isRestricted = isWebSocketRestricted;
 
     // --- CRYPTOGRAPHICALLY OBFUSCATED ADMIN AUTHENTICATION GATEWAY ---
@@ -523,18 +568,22 @@
       const [showSupabaseSettingsModal, setShowSupabaseSettingsModal] = useState(false);
       const [isTestingSupabase, setIsTestingSupabase] = useState(false);
 
-      // Memoized Supabase Client Hook
+      // Memoized Supabase Client Hook — Menggunakan Native WebSocket di Vercel/Produksi
       const supabase = useMemo(() => {
         const targetUrl = cleanSupabaseUrl(supabaseConfig.url);
         if (targetUrl && supabaseConfig.key && window.supabase) {
           try {
-            return window.supabase.createClient(targetUrl, supabaseConfig.key, {
+            const clientOptions = {
               auth: { persistSession: true, autoRefreshToken: true },
               realtime: {
-                transport: SafeRealtimeTransport,
                 params: { eventsPerSecond: 10 }
               }
-            });
+            };
+            // Hanya aktifkan SafeRealtimeTransport jika berada di lingkungan iframe sandbox
+            if (isWebSocketRestricted) {
+              clientOptions.realtime.transport = SafeRealtimeTransport;
+            }
+            return window.supabase.createClient(targetUrl, supabaseConfig.key, clientOptions);
           } catch (err) {
             console.error("Supabase client init error:", err);
           }
@@ -5660,9 +5709,55 @@
       );
     }
 
+    // React Error Boundary Component (Mencegah Layar Putih Jika Terjadi Kendala Runtime)
+    class ErrorBoundary extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+      }
+      static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+      }
+      componentDidCatch(error, errorInfo) {
+        console.error("PANUA Community Runtime Error:", error, errorInfo);
+      }
+      render() {
+        if (this.state.hasError) {
+          return (
+            <div className="min-h-screen bg-pch-bg text-pch-text flex flex-col items-center justify-center p-6 text-center space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-amber-950/80 border border-pch-warning flex items-center justify-center text-pch-warning shadow-gold-glow">
+                <Icons.AlertTriangle className="w-8 h-8" />
+              </div>
+              <div className="space-y-1">
+                <h2 className="text-lg font-bold text-white">Sesi Aplikasi Perlu Diperbarui</h2>
+                <p className="text-xs text-pch-muted max-w-sm mx-auto">
+                  Terjadi pembaruan berkas aplikasi di server. Silakan tekan tombol di bawah untuk menyegarkan tampilan.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  try { localStorage.removeItem('panua_active_session'); } catch(e) {}
+                  window.location.reload();
+                }}
+                className="px-5 py-2.5 bg-pch-gold text-black rounded-xl font-bold text-xs hover:bg-pch-goldLight transition-all shadow-gold-glow"
+              >
+                Segarkan & Masuk Kembali
+              </button>
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
+
     // Mount Aplikasi React
     const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(<App />);
+    root.render(
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    );
   </script>
 </body>
 </html>
