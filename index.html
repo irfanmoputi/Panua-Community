@@ -806,6 +806,75 @@
         lastSynced: "Belum tersinkronisasi"
       });
 
+      // State Modal Pratinjau Berkas Dokumen
+      const [previewModalDoc, setPreviewModalDoc] = useState(null);
+
+      // Helper Salin Nilai Input ke Clipboard
+      const copyFieldValue = (val, label) => {
+        if (!val || !String(val).trim()) {
+          triggerToast(`Kolom ${label} masih kosong!`, "warning");
+          return;
+        }
+        safeCopyToClipboard(String(val).trim());
+        triggerToast(`${label} berhasil disalin ke clipboard!`, "success");
+      };
+
+      // Helper Unduh Berkas Dokumen (Mendukung Base64 & Cloud Supabase Storage)
+      const handleDownloadDocument = (fileData, defaultFileName = "dokumen") => {
+        const url = fileData?.driveUrl || fileData?.base64 || (typeof fileData === 'string' ? fileData : null);
+        if (!url) {
+          triggerToast("Belum ada berkas untuk diunduh!", "warning");
+          return;
+        }
+
+        const fileName = fileData?.name || `${defaultFileName}.jpg`;
+
+        if (url.startsWith('data:') || url.startsWith('blob:')) {
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          triggerToast(`Mengunduh ${fileName}...`, "success");
+          return;
+        }
+
+        fetch(url)
+          .then(res => res.blob())
+          .then(blob => {
+            const blobUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(blobUrl);
+            triggerToast(`Mengunduh ${fileName}...`, "success");
+          })
+          .catch(() => {
+            window.open(url, '_blank');
+            triggerToast("Membuka berkas untuk diunduh...", "normal");
+          });
+      };
+
+      // Helper Salin Tautan / Nama Berkas
+      const handleCopyDocLink = (fileData, label) => {
+        const url = fileData?.driveUrl || fileData?.base64;
+        if (!url) {
+          triggerToast(`Belum ada berkas ${label} untuk disalin!`, "warning");
+          return;
+        }
+        if (fileData?.driveUrl) {
+          safeCopyToClipboard(fileData.driveUrl);
+          triggerToast(`Tautan Cloud ${label} berhasil disalin!`, "success");
+        } else {
+          safeCopyToClipboard(fileData.name || label);
+          triggerToast(`Nama berkas ${label} berhasil disalin!`, "success");
+        }
+      };
+
       // Ref Pelindung Input My Secure Vault (Mencegah Karakter Terhapus Sendiri oleh Auto-Sync)
       const isDossierDirtyRef = useRef(false);
       const dossierLoadedOnceRef = useRef(false);
@@ -3679,76 +3748,223 @@
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                               <div>
-                                <label className="text-xs font-semibold text-pch-muted block mb-1">Nama Lengkap</label>
-                                <input 
-                                  type="text" 
-                                  value={memberDossier.namaLengkap || ""}
-                                  onChange={(e) => updateDossierField("namaLengkap", e.target.value)}
-                                  className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
-                                />
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="text-xs font-semibold text-pch-muted">Nama Lengkap</label>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.namaLengkap, "Nama Lengkap")}
+                                    className="text-[10px] text-pch-gold hover:text-pch-goldLight flex items-center gap-1 font-semibold"
+                                    title="Salin Nama Lengkap"
+                                  >
+                                    <Icons.Copy className="w-2.5 h-2.5" />
+                                    <span>Salin</span>
+                                  </button>
+                                </div>
+                                <div className="relative">
+                                  <input 
+                                    type="text" 
+                                    value={memberDossier.namaLengkap || ""}
+                                    onChange={(e) => updateDossierField("namaLengkap", e.target.value)}
+                                    className="w-full bg-pch-secondary border border-pch-border rounded-xl pl-3.5 pr-9 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.namaLengkap, "Nama Lengkap")}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-pch-muted hover:text-pch-gold transition-colors"
+                                    title="Salin Nama Lengkap"
+                                  >
+                                    <Icons.Copy className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
 
                               <div>
-                                <label className="text-xs font-semibold text-pch-muted block mb-1">Email</label>
-                                <input 
-                                  type="email" 
-                                  value={memberDossier.email || ""}
-                                  onChange={(e) => updateDossierField("email", e.target.value)}
-                                  className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
-                                />
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="text-xs font-semibold text-pch-muted">Email</label>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.email, "Email")}
+                                    className="text-[10px] text-pch-gold hover:text-pch-goldLight flex items-center gap-1 font-semibold"
+                                    title="Salin Email"
+                                  >
+                                    <Icons.Copy className="w-2.5 h-2.5" />
+                                    <span>Salin</span>
+                                  </button>
+                                </div>
+                                <div className="relative">
+                                  <input 
+                                    type="email" 
+                                    value={memberDossier.email || ""}
+                                    onChange={(e) => updateDossierField("email", e.target.value)}
+                                    className="w-full bg-pch-secondary border border-pch-border rounded-xl pl-3.5 pr-9 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.email, "Email")}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-pch-muted hover:text-pch-gold transition-colors"
+                                    title="Salin Email"
+                                  >
+                                    <Icons.Copy className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
 
                               <div>
-                                <label className="text-xs font-semibold text-pch-muted block mb-1">No HP / WhatsApp</label>
-                                <input 
-                                  type="tel" 
-                                  value={memberDossier.noHp || ""}
-                                  onChange={(e) => updateDossierField("noHp", e.target.value)}
-                                  className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
-                                />
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="text-xs font-semibold text-pch-muted">No HP / WhatsApp</label>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.noHp, "No HP")}
+                                    className="text-[10px] text-pch-gold hover:text-pch-goldLight flex items-center gap-1 font-semibold"
+                                    title="Salin No HP"
+                                  >
+                                    <Icons.Copy className="w-2.5 h-2.5" />
+                                    <span>Salin</span>
+                                  </button>
+                                </div>
+                                <div className="relative">
+                                  <input 
+                                    type="tel" 
+                                    value={memberDossier.noHp || ""}
+                                    onChange={(e) => updateDossierField("noHp", e.target.value)}
+                                    className="w-full bg-pch-secondary border border-pch-border rounded-xl pl-3.5 pr-9 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple font-mono"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.noHp, "No HP")}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-pch-muted hover:text-pch-gold transition-colors"
+                                    title="Salin No HP"
+                                  >
+                                    <Icons.Copy className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
 
                               <div>
-                                <label className="text-xs font-semibold text-pch-muted block mb-1">Username Pi Network</label>
-                                <input 
-                                  type="text" 
-                                  value={memberDossier.usernamePi || ""}
-                                  onChange={(e) => updateDossierField("usernamePi", e.target.value)}
-                                  placeholder="@username_pi"
-                                  className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
-                                />
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="text-xs font-semibold text-pch-muted">Username Pi Network</label>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.usernamePi, "Username Pi")}
+                                    className="text-[10px] text-pch-gold hover:text-pch-goldLight flex items-center gap-1 font-semibold"
+                                    title="Salin Username Pi"
+                                  >
+                                    <Icons.Copy className="w-2.5 h-2.5" />
+                                    <span>Salin</span>
+                                  </button>
+                                </div>
+                                <div className="relative">
+                                  <input 
+                                    type="text" 
+                                    value={memberDossier.usernamePi || ""}
+                                    onChange={(e) => updateDossierField("usernamePi", e.target.value)}
+                                    placeholder="@username_pi"
+                                    className="w-full bg-pch-secondary border border-pch-border rounded-xl pl-3.5 pr-9 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.usernamePi, "Username Pi")}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-pch-muted hover:text-pch-gold transition-colors"
+                                    title="Salin Username Pi"
+                                  >
+                                    <Icons.Copy className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
 
                               <div>
-                                <label className="text-xs font-semibold text-pch-muted block mb-1">Tempat & Tanggal Lahir (TTL)</label>
-                                <input 
-                                  type="text" 
-                                  value={memberDossier.ttl || ""}
-                                  onChange={(e) => updateDossierField("ttl", e.target.value)}
-                                  placeholder="Gorontalo, 17 Agustus 1990"
-                                  className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
-                                />
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="text-xs font-semibold text-pch-muted">Tempat & Tanggal Lahir (TTL)</label>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.ttl, "TTL")}
+                                    className="text-[10px] text-pch-gold hover:text-pch-goldLight flex items-center gap-1 font-semibold"
+                                    title="Salin TTL"
+                                  >
+                                    <Icons.Copy className="w-2.5 h-2.5" />
+                                    <span>Salin</span>
+                                  </button>
+                                </div>
+                                <div className="relative">
+                                  <input 
+                                    type="text" 
+                                    value={memberDossier.ttl || ""}
+                                    onChange={(e) => updateDossierField("ttl", e.target.value)}
+                                    placeholder="Gorontalo, 17 Agustus 1990"
+                                    className="w-full bg-pch-secondary border border-pch-border rounded-xl pl-3.5 pr-9 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.ttl, "TTL")}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-pch-muted hover:text-pch-gold transition-colors"
+                                    title="Salin TTL"
+                                  >
+                                    <Icons.Copy className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
 
                               <div>
-                                <label className="text-xs font-semibold text-pch-muted block mb-1">NIK (16 Digit)</label>
-                                <input 
-                                  type="text" 
-                                  value={memberDossier.nik || ""}
-                                  onChange={(e) => updateDossierField("nik", e.target.value)}
-                                  placeholder="7501..."
-                                  className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
-                                />
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="text-xs font-semibold text-pch-muted">NIK (16 Digit)</label>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.nik, "NIK")}
+                                    className="text-[10px] text-pch-gold hover:text-pch-goldLight flex items-center gap-1 font-semibold"
+                                    title="Salin NIK"
+                                  >
+                                    <Icons.Copy className="w-2.5 h-2.5" />
+                                    <span>Salin</span>
+                                  </button>
+                                </div>
+                                <div className="relative">
+                                  <input 
+                                    type="text" 
+                                    value={memberDossier.nik || ""}
+                                    onChange={(e) => updateDossierField("nik", e.target.value)}
+                                    placeholder="7501..."
+                                    className="w-full bg-pch-secondary border border-pch-border rounded-xl pl-3.5 pr-9 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.nik, "NIK")}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-pch-muted hover:text-pch-gold transition-colors"
+                                    title="Salin NIK"
+                                  >
+                                    <Icons.Copy className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
 
                               <div className="sm:col-span-2 lg:col-span-3">
-                                <label className="text-xs font-semibold text-pch-muted block mb-1">Alamat Lengkap Domisili</label>
-                                <textarea 
-                                  rows="2"
-                                  value={memberDossier.alamatLengkap || ""}
-                                  onChange={(e) => updateDossierField("alamatLengkap", e.target.value)}
-                                  className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
-                                ></textarea>
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="text-xs font-semibold text-pch-muted">Alamat Lengkap Domisili</label>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.alamatLengkap, "Alamat")}
+                                    className="text-[10px] text-pch-gold hover:text-pch-goldLight flex items-center gap-1 font-semibold"
+                                    title="Salin Alamat"
+                                  >
+                                    <Icons.Copy className="w-2.5 h-2.5" />
+                                    <span>Salin</span>
+                                  </button>
+                                </div>
+                                <div className="relative">
+                                  <textarea 
+                                    rows="2"
+                                    value={memberDossier.alamatLengkap || ""}
+                                    onChange={(e) => updateDossierField("alamatLengkap", e.target.value)}
+                                    className="w-full bg-pch-secondary border border-pch-border rounded-xl pl-3.5 pr-9 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                                  ></textarea>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.alamatLengkap, "Alamat")}
+                                    className="absolute right-2 top-2 p-1 text-pch-muted hover:text-pch-gold transition-colors"
+                                    title="Salin Alamat"
+                                  >
+                                    <Icons.Copy className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -3762,46 +3978,130 @@
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div>
-                                <label className="text-xs font-semibold text-pch-muted block mb-1">Nama Pemilik Rekening</label>
-                                <input 
-                                  type="text" 
-                                  value={memberDossier.namaRekening || ""}
-                                  onChange={(e) => updateDossierField("namaRekening", e.target.value)}
-                                  className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
-                                />
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="text-xs font-semibold text-pch-muted">Nama Pemilik Rekening</label>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.namaRekening, "Nama Pemilik Rekening")}
+                                    className="text-[10px] text-pch-gold hover:text-pch-goldLight flex items-center gap-1 font-semibold"
+                                    title="Salin Nama Rekening"
+                                  >
+                                    <Icons.Copy className="w-2.5 h-2.5" />
+                                    <span>Salin</span>
+                                  </button>
+                                </div>
+                                <div className="relative">
+                                  <input 
+                                    type="text" 
+                                    value={memberDossier.namaRekening || ""}
+                                    onChange={(e) => updateDossierField("namaRekening", e.target.value)}
+                                    className="w-full bg-pch-secondary border border-pch-border rounded-xl pl-3.5 pr-9 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.namaRekening, "Nama Pemilik Rekening")}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-pch-muted hover:text-pch-gold transition-colors"
+                                    title="Salin Nama Rekening"
+                                  >
+                                    <Icons.Copy className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
 
                               <div>
-                                <label className="text-xs font-semibold text-pch-muted block mb-1">Bank & Nomor Rekening</label>
-                                <input 
-                                  type="text" 
-                                  value={memberDossier.noRekening || ""}
-                                  onChange={(e) => updateDossierField("noRekening", e.target.value)}
-                                  placeholder="Contoh: Bank SulutGo / BCA - 1234567890"
-                                  className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
-                                />
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="text-xs font-semibold text-pch-muted">Bank & Nomor Rekening</label>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.noRekening, "Nomor Rekening")}
+                                    className="text-[10px] text-pch-gold hover:text-pch-goldLight flex items-center gap-1 font-semibold"
+                                    title="Salin Nomor Rekening"
+                                  >
+                                    <Icons.Copy className="w-2.5 h-2.5" />
+                                    <span>Salin</span>
+                                  </button>
+                                </div>
+                                <div className="relative">
+                                  <input 
+                                    type="text" 
+                                    value={memberDossier.noRekening || ""}
+                                    onChange={(e) => updateDossierField("noRekening", e.target.value)}
+                                    placeholder="Contoh: Bank SulutGo / BCA - 1234567890"
+                                    className="w-full bg-pch-secondary border border-pch-border rounded-xl pl-3.5 pr-9 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.noRekening, "Nomor Rekening")}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-pch-muted hover:text-pch-gold transition-colors"
+                                    title="Salin Nomor Rekening"
+                                  >
+                                    <Icons.Copy className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
 
                               <div>
-                                <label className="text-xs font-semibold text-pch-muted block mb-1">Alamat Wallet Publik Pi Network</label>
-                                <input 
-                                  type="text" 
-                                  value={memberDossier.walletPi || ""}
-                                  onChange={(e) => updateDossierField("walletPi", e.target.value)}
-                                  placeholder="Public Address (G...)"
-                                  className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
-                                />
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="text-xs font-semibold text-pch-muted">Alamat Wallet Publik Pi Network</label>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.walletPi, "Wallet Pi")}
+                                    className="text-[10px] text-pch-gold hover:text-pch-goldLight flex items-center gap-1 font-semibold"
+                                    title="Salin Wallet Pi"
+                                  >
+                                    <Icons.Copy className="w-2.5 h-2.5" />
+                                    <span>Salin</span>
+                                  </button>
+                                </div>
+                                <div className="relative">
+                                  <input 
+                                    type="text" 
+                                    value={memberDossier.walletPi || ""}
+                                    onChange={(e) => updateDossierField("walletPi", e.target.value)}
+                                    placeholder="Public Address (G...)"
+                                    className="w-full bg-pch-secondary border border-pch-border rounded-xl pl-3.5 pr-9 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.walletPi, "Wallet Pi")}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-pch-muted hover:text-pch-gold transition-colors"
+                                    title="Salin Wallet Pi"
+                                  >
+                                    <Icons.Copy className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
 
                               <div>
-                                <label className="text-xs font-semibold text-pch-muted block mb-1">Alamat Wallet Publik OKX</label>
-                                <input 
-                                  type="text" 
-                                  value={memberDossier.walletOkx || ""}
-                                  onChange={(e) => updateDossierField("walletOkx", e.target.value)}
-                                  placeholder="Public Address OKX (0x...)"
-                                  className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
-                                />
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="text-xs font-semibold text-pch-muted">Alamat Wallet Publik OKX</label>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.walletOkx, "Wallet OKX")}
+                                    className="text-[10px] text-pch-gold hover:text-pch-goldLight flex items-center gap-1 font-semibold"
+                                    title="Salin Wallet OKX"
+                                  >
+                                    <Icons.Copy className="w-2.5 h-2.5" />
+                                    <span>Salin</span>
+                                  </button>
+                                </div>
+                                <div className="relative">
+                                  <input 
+                                    type="text" 
+                                    value={memberDossier.walletOkx || ""}
+                                    onChange={(e) => updateDossierField("walletOkx", e.target.value)}
+                                    placeholder="Public Address OKX (0x...)"
+                                    className="w-full bg-pch-secondary border border-pch-border rounded-xl pl-3.5 pr-9 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => copyFieldValue(memberDossier.walletOkx, "Wallet OKX")}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-pch-muted hover:text-pch-gold transition-colors"
+                                    title="Salin Wallet OKX"
+                                  >
+                                    <Icons.Copy className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -3820,52 +4120,99 @@
                                 { key: 'fotoNpwp', label: 'Foto NPWP', data: memberDossier.fotoNpwp },
                                 { key: 'pasfoto', label: 'Pasfoto Formal (4x6)', data: memberDossier.pasfoto },
                                 { key: 'kartuKeanggotaan', label: 'Kartu Anggota Panua Community', data: memberDossier.kartuKeanggotaan }
-                              ].map(item => (
-                                <div key={item.key} className="p-3.5 rounded-xl bg-pch-secondary border border-pch-border flex flex-col justify-between space-y-3">
-                                  <div>
-                                    <span className="text-[11px] font-bold text-pch-text block">{item.label}</span>
-                                    <div className="mt-2 flex items-center gap-2">
-                                      <Icons.FileText className="w-4 h-4 text-pch-gold shrink-0" />
-                                      <span className="text-xs font-mono text-pch-goldLight truncate">{item.data?.name || "Belum ada berkas"}</span>
-                                    </div>
-                                    <span className="text-[10px] text-pch-muted mt-1 block">
-                                      {item.data?.driveUrl ? (
-                                        <a href={item.data.driveUrl} target="_blank" rel="noreferrer" className="text-pch-success underline font-semibold flex items-center gap-1">
-                                          <Icons.Check className="w-3 h-3" /> Ada di Cloud (Klik Lihat)
-                                        </a>
-                                      ) : item.data?.base64 ? (
-                                        <span className="text-pch-goldLight">Siap upload ({item.data.size})</span>
-                                      ) : (
-                                        `Ukuran: ${item.data?.size || "-"}`
-                                      )}
-                                    </span>
-                                  </div>
+                              ].map(item => {
+                                const fileUrl = item.data?.driveUrl || item.data?.base64 || (typeof item.data === 'string' ? item.data : null);
+                                const hasFile = Boolean(fileUrl);
 
-                                  <label className="text-[11px] px-2.5 py-1 rounded-lg bg-pch-purple/20 border border-pch-purple text-pch-purpleLight hover:bg-pch-purple/30 cursor-pointer text-center font-medium block">
-                                    <span>Pilih / Ganti File</span>
-                                    <input 
-                                      type="file" 
-                                      accept=".pdf,image/*" 
-                                      className="hidden"
-                                      onChange={async (e) => {
-                                        const file = e.target.files[0];
-                                        if (file) {
-                                          if (file.size > 15 * 1024 * 1024) {
-                                            triggerToast("Ukuran file maksimal 15MB!", "danger");
-                                            return;
-                                          }
-                                          const compressed = await compressImageFile(file);
-                                          setMemberDossier(prev => ({
-                                            ...prev,
-                                            [item.key]: compressed
-                                          }));
-                                          triggerToast(`File ${item.label} siap disimpan!`);
-                                        }
-                                      }}
-                                    />
-                                  </label>
-                                </div>
-                              ))}
+                                return (
+                                  <div key={item.key} className="p-3.5 rounded-xl bg-pch-secondary border border-pch-border flex flex-col justify-between space-y-3 shadow-sm">
+                                    <div>
+                                      <div className="flex items-center justify-between gap-1">
+                                        <span className="text-[11px] font-bold text-pch-text block truncate">{item.label}</span>
+                                        {hasFile && (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleCopyDocLink(item.data, item.label)}
+                                            className="text-[10px] text-pch-gold hover:text-pch-goldLight flex items-center gap-0.5"
+                                            title="Salin Info / Tautan Berkas"
+                                          >
+                                            <Icons.Copy className="w-2.5 h-2.5" />
+                                            <span>Salin</span>
+                                          </button>
+                                        )}
+                                      </div>
+                                      <div className="mt-2 flex items-center gap-2">
+                                        <Icons.FileText className="w-4 h-4 text-pch-gold shrink-0" />
+                                        <span className="text-xs font-mono text-pch-goldLight truncate">{item.data?.name || "Belum ada berkas"}</span>
+                                      </div>
+                                      <span className="text-[10px] text-pch-muted mt-1 block">
+                                        {item.data?.driveUrl ? (
+                                          <span className="text-pch-success font-semibold flex items-center gap-1">
+                                            <Icons.Check className="w-3 h-3" /> Ada di Cloud Supabase
+                                          </span>
+                                        ) : item.data?.base64 ? (
+                                          <span className="text-pch-goldLight">Siap upload ({item.data.size || "file"})</span>
+                                        ) : (
+                                          `Ukuran: ${item.data?.size || "-"}`
+                                        )}
+                                      </span>
+                                    </div>
+
+                                    <div className="space-y-2 pt-2 border-t border-pch-border/60">
+                                      {/* Tombol Preview & Download jika file tersedia */}
+                                      {hasFile && (
+                                        <div className="grid grid-cols-2 gap-2">
+                                          <button
+                                            type="button"
+                                            onClick={() => setPreviewModalDoc({ title: item.label, url: fileUrl, name: item.data?.name })}
+                                            className="py-1.5 px-2 rounded-lg bg-pch-gold/15 border border-pch-gold/40 text-pch-goldLight hover:bg-pch-gold/25 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                                            title="Lihat Pratinjau Berkas"
+                                          >
+                                            <Icons.Eye className="w-3.5 h-3.5 text-pch-gold" />
+                                            <span>Preview</span>
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDownloadDocument(item.data, item.label)}
+                                            className="py-1.5 px-2 rounded-lg bg-emerald-950/70 border border-pch-success/50 text-pch-success hover:bg-emerald-900/60 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                                            title="Unduh Berkas ke Perangkat"
+                                          >
+                                            <Icons.Download className="w-3.5 h-3.5" />
+                                            <span>Download</span>
+                                          </button>
+                                        </div>
+                                      )}
+
+                                      {/* Tombol Pilih / Ganti Berkas */}
+                                      <label className="text-[11px] py-1.5 px-2.5 rounded-lg bg-pch-purple/20 border border-pch-purple text-pch-purpleLight hover:bg-pch-purple/30 cursor-pointer text-center font-medium block transition-colors">
+                                        <span>{hasFile ? "Ganti File Berkas" : "Pilih File Berkas"}</span>
+                                        <input 
+                                          type="file" 
+                                          accept=".pdf,image/*" 
+                                          className="hidden"
+                                          onChange={async (e) => {
+                                            const file = e.target.files[0];
+                                            if (file) {
+                                              if (file.size > 15 * 1024 * 1024) {
+                                                triggerToast("Ukuran file maksimal 15MB!", "danger");
+                                                return;
+                                              }
+                                              const compressed = await compressImageFile(file);
+                                              isDossierDirtyRef.current = true;
+                                              setMemberDossier(prev => ({
+                                                ...prev,
+                                                [item.key]: compressed
+                                              }));
+                                              triggerToast(`File ${item.label} siap disimpan!`, "success");
+                                            }
+                                          }}
+                                        />
+                                      </label>
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
 
@@ -3878,27 +4225,56 @@
 
                             {memberDossier.extraDocs && memberDossier.extraDocs.length > 0 ? (
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {memberDossier.extraDocs.map(doc => (
-                                  <div key={doc.id} className="p-3 rounded-xl bg-pch-secondary border border-pch-border flex items-center justify-between">
-                                    <div className="space-y-0.5 truncate pr-2">
-                                      <h5 className="text-xs font-bold text-pch-text truncate">{doc.title}</h5>
-                                      <p className="text-[10px] text-pch-muted font-mono">{doc.fileName} • {doc.size}</p>
+                                {memberDossier.extraDocs.map(doc => {
+                                  const exUrl = doc.driveUrl || doc.base64;
+                                  return (
+                                    <div key={doc.id} className="p-3 rounded-xl bg-pch-secondary border border-pch-border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                      <div className="space-y-0.5 truncate pr-2">
+                                        <h5 className="text-xs font-bold text-pch-text truncate">{doc.title}</h5>
+                                        <p className="text-[10px] text-pch-muted font-mono">{doc.fileName} • {doc.size}</p>
+                                      </div>
+                                      <div className="flex items-center gap-1.5 shrink-0">
+                                        {exUrl && (
+                                          <>
+                                            <button
+                                              type="button"
+                                              onClick={() => setPreviewModalDoc({ title: doc.title, url: exUrl, name: doc.fileName })}
+                                              className="px-2 py-1 rounded-lg bg-pch-gold/15 border border-pch-gold/40 text-pch-goldLight text-[11px] font-semibold flex items-center gap-1"
+                                              title="Preview Dokumen"
+                                            >
+                                              <Icons.Eye className="w-3 h-3 text-pch-gold" />
+                                              <span>Preview</span>
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => handleDownloadDocument(doc, doc.title)}
+                                              className="px-2 py-1 rounded-lg bg-emerald-950/70 border border-pch-success/50 text-pch-success text-[11px] font-semibold flex items-center gap-1"
+                                              title="Download Dokumen"
+                                            >
+                                              <Icons.Download className="w-3 h-3" />
+                                              <span>Download</span>
+                                            </button>
+                                          </>
+                                        )}
+                                        <button 
+                                          type="button"
+                                          onClick={() => {
+                                            isDossierDirtyRef.current = true;
+                                            setMemberDossier(prev => ({
+                                              ...prev,
+                                              extraDocs: prev.extraDocs.filter(d => d.id !== doc.id)
+                                            }));
+                                            triggerToast(`Dokumen "${doc.title}" dihapus.`, "warning");
+                                          }}
+                                          className="p-1.5 rounded-lg bg-pch-surface border border-pch-border text-pch-danger hover:bg-red-950/40"
+                                          title="Hapus"
+                                        >
+                                          <Icons.Trash className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
                                     </div>
-                                    <button 
-                                      onClick={() => {
-                                        setMemberDossier(prev => ({
-                                          ...prev,
-                                          extraDocs: prev.extraDocs.filter(d => d.id !== doc.id)
-                                        }));
-                                        triggerToast(`Dokumen "${doc.title}" dihapus.`);
-                                      }}
-                                      className="p-1.5 rounded-lg bg-pch-surface border border-pch-border text-pch-danger hover:bg-red-950/40"
-                                      title="Hapus"
-                                    >
-                                      <Icons.Trash className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             ) : (
                               <p className="text-xs text-pch-muted italic">Belum ada dokumen tambahan.</p>
@@ -5181,6 +5557,100 @@
                   >
                     Ya, Lanjutkan
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 6. Modal Pratinjau Dokumen / Preview File */}
+          {previewModalDoc && (
+            <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 animate-fade-in">
+              <div className="w-full max-w-3xl bg-pch-surface border border-pch-gold/50 rounded-2xl overflow-hidden shadow-card-elevated flex flex-col max-h-[92vh]">
+                {/* Modal Header */}
+                <div className="p-4 bg-pch-secondary border-b border-pch-border flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 truncate">
+                    <div className="w-8 h-8 rounded-lg bg-pch-gold/15 border border-pch-gold/40 text-pch-gold flex items-center justify-center shrink-0">
+                      <Icons.FileText className="w-4 h-4" />
+                    </div>
+                    <div className="truncate">
+                      <h3 className="font-bold text-sm text-pch-text truncate">{previewModalDoc.title}</h3>
+                      <p className="text-[10px] text-pch-muted font-mono truncate">{previewModalDoc.name || "Berkas Tersimpan"}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadDocument(previewModalDoc, previewModalDoc.title)}
+                      className="px-3 py-1.5 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight transition-all shadow-gold-glow flex items-center gap-1.5"
+                      title="Download Berkas"
+                    >
+                      <Icons.Download className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Download</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewModalDoc(null)}
+                      className="p-1.5 rounded-xl bg-pch-surface border border-pch-border text-pch-muted hover:text-pch-text hover:border-pch-danger transition-colors"
+                      title="Tutup"
+                    >
+                      <Icons.X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Modal Content Preview */}
+                <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-black/60 min-h-[300px]">
+                  {previewModalDoc.url ? (
+                    (previewModalDoc.url.startsWith('data:image') || previewModalDoc.url.match(/\.(jpeg|jpg|gif|png|webp|svg)/i) || !previewModalDoc.url.includes('.pdf')) ? (
+                      <img 
+                        src={previewModalDoc.url} 
+                        alt={previewModalDoc.title} 
+                        className="max-h-[72vh] w-auto max-w-full rounded-xl object-contain shadow-2xl border border-pch-border"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <iframe 
+                        src={previewModalDoc.url} 
+                        className="w-full h-[70vh] rounded-xl border border-pch-border"
+                        title={previewModalDoc.title}
+                      ></iframe>
+                    )
+                  ) : (
+                    <div className="text-center text-pch-muted py-12">
+                      <Icons.AlertTriangle className="w-10 h-10 mx-auto text-pch-warning mb-2" />
+                      <p className="text-xs">Berkas tidak dapat dipratinjau langsung.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Modal Footer */}
+                <div className="p-3 bg-pch-secondary border-t border-pch-border flex items-center justify-between gap-3 text-xs">
+                  <span className="text-[11px] text-pch-muted truncate">
+                    {previewModalDoc.url?.startsWith('http') ? "Tersimpan aman di Cloud Supabase Storage" : "Berkas terenkripsi siap disinkronkan"}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {previewModalDoc.url?.startsWith('http') && (
+                      <a
+                        href={previewModalDoc.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3 py-1.5 rounded-lg bg-pch-surface border border-pch-border hover:border-pch-gold text-pch-goldLight text-[11px] font-semibold flex items-center gap-1"
+                      >
+                        <Icons.ExternalLink className="w-3.5 h-3.5" />
+                        <span>Buka Tab Baru</span>
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setPreviewModalDoc(null)}
+                      className="px-3 py-1.5 rounded-lg bg-pch-surface border border-pch-border text-pch-muted hover:text-pch-text text-[11px]"
+                    >
+                      Tutup
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
