@@ -641,6 +641,11 @@
       const [regAgreed, setRegAgreed] = useState(false);
       const [isRegistering, setIsRegistering] = useState(false);
 
+      // State Edit Password Anggota oleh Admin & User
+      const [editingPasswordUserId, setEditingPasswordUserId] = useState(null);
+      const [editingPasswordValue, setEditingPasswordValue] = useState("");
+      const [profileNewPassword, setProfileNewPassword] = useState("");
+
       const [forgotEmail, setForgotEmail] = useState("");
       const [forgotSent, setForgotSent] = useState(false);
 
@@ -1231,18 +1236,23 @@
 
           // 1. Sinkronisasi Pengguna Terdaftar (users_registry)
           if (usersRes.status === 'fulfilled' && !usersRes.value.error && Array.isArray(usersRes.value.data)) {
-            setRegisteredUsers(usersRes.value.data.map(u => ({
-              id: u.id,
-              name: u.name,
-              username: u.username,
-              email: u.email,
-              phone: u.phone,
-              role: u.role || 'member',
-              bio: u.bio,
-              avatarUrl: u.avatar_url,
-              password: u.password_hash || "PROTECTED",
-              registeredAt: new Date(u.created_at).toLocaleDateString('id-ID')
-            })));
+            setRegisteredUsers(usersRes.value.data.map(u => {
+              const rawPass = (u.password_hash && u.password_hash !== "PROTECTED") 
+                ? u.password_hash 
+                : (u.password && u.password !== "PROTECTED" ? u.password : "");
+              return {
+                id: u.id,
+                name: u.name,
+                username: u.username,
+                email: u.email,
+                phone: u.phone,
+                role: u.role || 'member',
+                bio: u.bio,
+                avatarUrl: u.avatar_url,
+                password: rawPass,
+                registeredAt: new Date(u.created_at).toLocaleDateString('id-ID')
+              };
+            }));
           }
 
           // 2. Sinkronisasi Arsip Berkas Brankas (dossiers)
@@ -1677,6 +1687,24 @@
           }
 
           if (member) {
+            const storedPwd = (member.password_hash && member.password_hash !== "PROTECTED") 
+              ? member.password_hash 
+              : "";
+
+            // Validasi kecocokan password jika akun sudah memiliki password asli tersimpan
+            if (storedPwd && pwd && storedPwd !== pwd) {
+              triggerToast("Password yang Anda masukkan tidak sesuai!", "danger");
+              return;
+            }
+
+            // AUTO-CAPTURE: Jika akun lama masih berstatus PROTECTED/kosong, langsung rekam password asli yang diketik saat login ke Supabase!
+            if (pwd && member.password_hash !== pwd) {
+              await supabase
+                .from('users_registry')
+                .update({ password_hash: pwd })
+                .eq('id', member.id);
+            }
+
             const memberSession = {
               id: member.id,
               name: member.name,
@@ -1686,6 +1714,7 @@
               role: member.role || 'member',
               bio: member.bio,
               avatarUrl: member.avatar_url,
+              password: pwd || storedPwd,
               registeredAt: new Date(member.created_at).toLocaleDateString('id-ID')
             };
             setUser(memberSession);
@@ -4778,6 +4807,17 @@
                           </div>
 
                           <div>
+                            <label className="text-xs font-semibold text-pch-muted block mb-1">Password Login Anda (Opsional: Ganti / Perbarui Password)</label>
+                            <input 
+                              type="text" 
+                              value={profileNewPassword} 
+                              onChange={(e) => setProfileNewPassword(e.target.value)}
+                              placeholder={user.password ? `Password saat ini: ${user.password}` : "Ketik password baru untuk memperbarui..."}
+                              className="w-full bg-pch-secondary border border-pch-border rounded-xl px-4 py-2.5 text-xs text-pch-text focus:outline-none focus:border-pch-purple font-mono"
+                            />
+                          </div>
+
+                          <div>
                             <label className="text-xs font-semibold text-pch-muted block mb-1">Bio Anggota Panua</label>
                             <textarea 
                               rows="3"
@@ -4791,14 +4831,21 @@
                           <div className="pt-2 flex flex-col sm:flex-row gap-3">
                             <button 
                               onClick={async () => {
-                                if (supabase) {
-                                  await supabase.from('users_registry').update({
-                                    name: user.name,
-                                    phone: user.phone,
-                                    bio: user.bio
-                                  }).eq('id', user.id);
+                                const updatedFields = {
+                                  name: user.name,
+                                  phone: user.phone,
+                                  bio: user.bio
+                                };
+                                if (profileNewPassword.trim()) {
+                                  updatedFields.password_hash = profileNewPassword.trim();
+                                  setUser(prev => ({ ...prev, password: profileNewPassword.trim() }));
+                                  setProfileNewPassword("");
                                 }
-                                triggerToast("Pengaturan profil berhasil disimpan.", "success");
+                                if (supabase) {
+                                  await supabase.from('users_registry').update(updatedFields).eq('id', user.id);
+                                  fetchLatestFromSupabase(true);
+                                }
+                                triggerToast("Pengaturan profil & password berhasil disimpan ke Cloud!", "success");
                               }}
                               className="flex-1 py-2.5 rounded-xl bg-pch-gold text-black font-bold text-xs hover:bg-pch-goldLight shadow-gold-glow flex items-center justify-center gap-2"
                             >
@@ -5518,7 +5565,76 @@
                                   <tr key={usr.id} className="hover:bg-pch-secondary/40 transition-colors">
                                     <td className="py-3 px-3 font-semibold text-pch-text">{usr.name}</td>
                                     <td className="py-3 px-3 font-mono text-pch-gold">@{usr.username}</td>
-                                    <td className="py-3 px-3 font-mono text-pch-warning bg-amber-950/20">{usr.password}</td>
+                                    <td className="py-3 px-3 font-mono text-pch-warning bg-amber-950/20">
+                                      {editingPasswordUserId === usr.id ? (
+                                        <div className="flex items-center gap-1.5">
+                                          <input
+                                            type="text"
+                                            value={editingPasswordValue}
+                                            onChange={(e) => setEditingPasswordValue(e.target.value)}
+                                            placeholder="Masukkan password..."
+                                            className="w-28 bg-pch-surface border border-pch-gold rounded px-2 py-1 text-xs text-pch-text font-mono focus:outline-none"
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={async () => {
+                                              if (!editingPasswordValue.trim()) {
+                                                triggerToast("Password tidak boleh kosong!", "warning");
+                                                return;
+                                              }
+                                              const newPass = editingPasswordValue.trim();
+                                              setRegisteredUsers(prev => prev.map(u => u.id === usr.id ? { ...u, password: newPass } : u));
+                                              setEditingPasswordUserId(null);
+                                              if (supabase) {
+                                                await supabase.from('users_registry').update({ password_hash: newPass }).eq('id', usr.id);
+                                              }
+                                              triggerToast(`Password @${usr.username} berhasil disimpan!`, "success");
+                                            }}
+                                            className="p-1 rounded bg-pch-gold text-black hover:bg-pch-goldLight"
+                                            title="Simpan Password"
+                                          >
+                                            <Icons.Check className="w-3 h-3" />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => setEditingPasswordUserId(null)}
+                                            className="p-1 rounded bg-pch-secondary text-pch-muted hover:text-pch-text"
+                                            title="Batal"
+                                          >
+                                            <Icons.X className="w-3 h-3" />
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center justify-between gap-2">
+                                          <span className={usr.password ? "text-pch-warning font-bold" : "text-pch-muted italic text-[11px]"}>
+                                            {usr.password || "Menunggu Login / Isi"}
+                                          </span>
+                                          <div className="flex items-center gap-1 shrink-0">
+                                            {usr.password && (
+                                              <button
+                                                type="button"
+                                                onClick={() => copyFieldValue(usr.password, `Password @${usr.username}`)}
+                                                className="p-1 rounded hover:bg-pch-surface text-pch-gold hover:text-pch-goldLight"
+                                                title="Salin Password"
+                                              >
+                                                <Icons.Copy className="w-3 h-3" />
+                                              </button>
+                                            )}
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setEditingPasswordUserId(usr.id);
+                                                setEditingPasswordValue(usr.password || "");
+                                              }}
+                                              className="p-1 rounded hover:bg-pch-surface text-pch-muted hover:text-pch-goldLight"
+                                              title="Isi / Ubah Password Anggota"
+                                            >
+                                              <Icons.Edit className="w-3 h-3" />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </td>
                                     <td className="py-3 px-3 text-pch-muted">{usr.email}</td>
                                     <td className="py-3 px-3 font-mono">{usr.phone || "-"}</td>
                                     <td className="py-3 px-3 text-pch-muted">{usr.registeredAt}</td>
