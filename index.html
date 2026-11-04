@@ -854,8 +854,10 @@
         credentialTitle: "",
         credentialUsername: "",
         credentialPassword: "",
+        credentialsList: [{ id: "cred-1", title: "", username: "", password: "" }],
         passphraseTitle: "",
         passphraseWords: Array(12).fill(""),
+        passphrasesList: [{ id: "pass-1", title: "", words: Array(12).fill("") }],
         isSavedToAdmin: false,
         lastSynced: "Belum tersinkronisasi"
       });
@@ -938,6 +940,90 @@
         setMemberDossier(prev => ({
           ...prev,
           [field]: value
+        }));
+      };
+
+      // Helper Multi-Formulir Poin 5 (Kredensial Akun)
+      const handleAddCredentialForm = () => {
+        isDossierDirtyRef.current = true;
+        setMemberDossier(prev => ({
+          ...prev,
+          credentialsList: [
+            ...(prev.credentialsList || []),
+            { id: "cred-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6), title: "", username: "", password: "" }
+          ]
+        }));
+        triggerToast("Formulir kredensial baru berhasil ditambahkan!", "normal");
+      };
+
+      const handleRemoveCredentialForm = (targetId) => {
+        isDossierDirtyRef.current = true;
+        setMemberDossier(prev => {
+          const filtered = (prev.credentialsList || []).filter(item => item.id !== targetId);
+          return {
+            ...prev,
+            credentialsList: filtered.length > 0 ? filtered : [{ id: "cred-1", title: "", username: "", password: "" }]
+          };
+        });
+        triggerToast("Formulir kredensial dihapus.", "warning");
+      };
+
+      const handleUpdateCredentialItem = (targetId, key, val) => {
+        isDossierDirtyRef.current = true;
+        setMemberDossier(prev => ({
+          ...prev,
+          credentialsList: (prev.credentialsList || []).map(item =>
+            item.id === targetId ? { ...item, [key]: val } : item
+          )
+        }));
+      };
+
+      // Helper Multi-Formulir Poin 6 (Prasa Sandi 12 Kata)
+      const handleAddPassphraseForm = () => {
+        isDossierDirtyRef.current = true;
+        setMemberDossier(prev => ({
+          ...prev,
+          passphrasesList: [
+            ...(prev.passphrasesList || []),
+            { id: "pass-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6), title: "", words: Array(12).fill("") }
+          ]
+        }));
+        triggerToast("Formulir Prasa Sandi 12 Kata baru berhasil ditambahkan!", "normal");
+      };
+
+      const handleRemovePassphraseForm = (targetId) => {
+        isDossierDirtyRef.current = true;
+        setMemberDossier(prev => {
+          const filtered = (prev.passphrasesList || []).filter(item => item.id !== targetId);
+          return {
+            ...prev,
+            passphrasesList: filtered.length > 0 ? filtered : [{ id: "pass-1", title: "", words: Array(12).fill("") }]
+          };
+        });
+        triggerToast("Formulir Prasa Sandi dihapus.", "warning");
+      };
+
+      const handleUpdatePassphraseTitle = (targetId, val) => {
+        isDossierDirtyRef.current = true;
+        setMemberDossier(prev => ({
+          ...prev,
+          passphrasesList: (prev.passphrasesList || []).map(item =>
+            item.id === targetId ? { ...item, title: val } : item
+          )
+        }));
+      };
+
+      const handleUpdatePassphraseWord = (targetId, wordIndex, val) => {
+        isDossierDirtyRef.current = true;
+        const cleanWord = val.toLowerCase().replace(/[^a-z]/g, '');
+        setMemberDossier(prev => ({
+          ...prev,
+          passphrasesList: (prev.passphrasesList || []).map(item => {
+            if (item.id !== targetId) return item;
+            const nextWords = [...(item.words || Array(12).fill(""))];
+            nextWords[wordIndex] = cleanWord;
+            return { ...item, words: nextWords };
+          })
         }));
       };
 
@@ -1161,40 +1247,77 @@
 
           // 2. Sinkronisasi Arsip Berkas Brankas (dossiers)
           if (dosRes.status === 'fulfilled' && !dosRes.value.error && Array.isArray(dosRes.value.data)) {
-            const mapped = dosRes.value.data.map(d => ({
-              id: d.id,
-              userId: d.user_id,
-              username: d.username,
-              namaLengkap: d.nama_lengkap,
-              email: d.email,
-              noHp: d.no_hp,
-              usernamePi: d.username_pi,
-              ttl: d.ttl,
-              nik: d.nik,
-              alamatLengkap: d.alamat_lengkap,
-              namaRekening: d.nama_rekening,
-              rekening: d.no_rekening,
-              walletPi: d.wallet_pi,
-              walletOkx: d.wallet_okx,
-              fotoKtpUrl: d.foto_ktp_url,
-              fotoKkUrl: d.foto_kk_url,
-              fotoNpwpUrl: d.foto_npwp_url,
-              pasfotoUrl: d.pasfoto_url,
-              ktaUrl: d.kta_url,
-              extraDocs: d.extra_docs || [],
-              credentialTitle: d.credential_title || "",
-              credentialUsername: d.credential_username || "",
-              credentialPassword: d.credential_password || "",
-              passphraseTitle: d.passphrase_title || "",
-              passphraseWords: (() => {
-                let pw = d.passphrase_words;
-                if (typeof pw === 'string') { try { pw = JSON.parse(pw); } catch(e) {} }
-                return Array.isArray(pw) && pw.length === 12 ? pw : Array(12).fill("");
-              })(),
-              docsCount: d.docs_count || 0,
-              status: d.status || "Tersimpan di Cloud Supabase",
-              lastUpdate: new Date(d.updated_at).toLocaleDateString('id-ID')
-            }));
+            const mapped = dosRes.value.data.map(d => {
+              // Parse Multi-Credentials (kompatibel dengan format lama & multi-form baru)
+              let parsedCreds = [];
+              if (d.credentials_list && Array.isArray(d.credentials_list) && d.credentials_list.length > 0) {
+                parsedCreds = d.credentials_list;
+              } else if (typeof d.credential_title === 'string' && d.credential_title.trim().startsWith('[')) {
+                try { parsedCreds = JSON.parse(d.credential_title); } catch (e) {}
+              }
+              if (!Array.isArray(parsedCreds) || parsedCreds.length === 0) {
+                parsedCreds = [{
+                  id: "cred-1",
+                  title: d.credential_title || "",
+                  username: d.credential_username || "",
+                  password: d.credential_password || ""
+                }];
+              }
+
+              // Parse Multi-Passphrases (kompatibel dengan format lama & multi-form baru)
+              let parsedPassphrases = [];
+              if (d.passphrases_list && Array.isArray(d.passphrases_list) && d.passphrases_list.length > 0) {
+                parsedPassphrases = d.passphrases_list;
+              } else {
+                let rawPw = d.passphrase_words;
+                if (typeof rawPw === 'string') {
+                  try { rawPw = JSON.parse(rawPw); } catch (e) {}
+                }
+                if (Array.isArray(rawPw) && rawPw.length > 0 && typeof rawPw[0] === 'object' && rawPw[0] !== null && Array.isArray(rawPw[0].words)) {
+                  parsedPassphrases = rawPw;
+                } else {
+                  const wordsArr = Array.isArray(rawPw) && rawPw.length === 12 ? rawPw : Array(12).fill("");
+                  parsedPassphrases = [{
+                    id: "pass-1",
+                    title: d.passphrase_title || "",
+                    words: wordsArr
+                  }];
+                }
+              }
+
+              return {
+                id: d.id,
+                userId: d.user_id,
+                username: d.username,
+                namaLengkap: d.nama_lengkap,
+                email: d.email,
+                noHp: d.no_hp,
+                usernamePi: d.username_pi,
+                ttl: d.ttl,
+                nik: d.nik,
+                alamatLengkap: d.alamat_lengkap,
+                namaRekening: d.nama_rekening,
+                rekening: d.no_rekening,
+                walletPi: d.wallet_pi,
+                walletOkx: d.wallet_okx,
+                fotoKtpUrl: d.foto_ktp_url,
+                fotoKkUrl: d.foto_kk_url,
+                fotoNpwpUrl: d.foto_npwp_url,
+                pasfotoUrl: d.pasfoto_url,
+                ktaUrl: d.kta_url,
+                extraDocs: d.extra_docs || [],
+                credentialTitle: parsedCreds[0]?.title || "",
+                credentialUsername: parsedCreds[0]?.username || "",
+                credentialPassword: parsedCreds[0]?.password || "",
+                credentialsList: parsedCreds,
+                passphraseTitle: parsedPassphrases[0]?.title || "",
+                passphraseWords: parsedPassphrases[0]?.words || Array(12).fill(""),
+                passphrasesList: parsedPassphrases,
+                docsCount: d.docs_count || 0,
+                status: d.status || "Tersimpan di Cloud Supabase",
+                lastUpdate: new Date(d.updated_at).toLocaleDateString('id-ID')
+              };
+            });
             setSubmittedDossiers(mapped);
 
             // FIX: Hanya populate dossier awal dari Cloud jika user belum mengeditnya (mencegah karakter terhapus otomatis saat mengetik)
@@ -1223,8 +1346,10 @@
                   credentialTitle: myDos.credentialTitle || "",
                   credentialUsername: myDos.credentialUsername || "",
                   credentialPassword: myDos.credentialPassword || "",
+                  credentialsList: myDos.credentialsList || [{ id: "cred-1", title: "", username: "", password: "" }],
                   passphraseTitle: myDos.passphraseTitle || "",
                   passphraseWords: myDos.passphraseWords || Array(12).fill(""),
+                  passphrasesList: myDos.passphrasesList || [{ id: "pass-1", title: "", words: Array(12).fill("") }],
                   isSavedToAdmin: true,
                   lastSynced: "Tersimpan di Cloud (" + myDos.lastUpdate + ")"
                 });
@@ -1911,6 +2036,14 @@
           const dossierId = "dos-" + user.username.replace(/[^a-zA-Z0-9]/g, '_');
           const totalDocs = (ktpUrl ? 1 : 0) + (kkUrl ? 1 : 0) + (npwpUrl ? 1 : 0) + (pasfotoUrl ? 1 : 0) + (ktaUrl ? 1 : 0) + (updatedDossier.extraDocs?.length || 0);
 
+          const credsArray = Array.isArray(updatedDossier.credentialsList) && updatedDossier.credentialsList.length > 0
+            ? updatedDossier.credentialsList
+            : [{ id: "cred-1", title: updatedDossier.credentialTitle || "", username: updatedDossier.credentialUsername || "", password: updatedDossier.credentialPassword || "" }];
+
+          const passArray = Array.isArray(updatedDossier.passphrasesList) && updatedDossier.passphrasesList.length > 0
+            ? updatedDossier.passphrasesList
+            : [{ id: "pass-1", title: updatedDossier.passphraseTitle || "", words: updatedDossier.passphraseWords || Array(12).fill("") }];
+
           const { error: upsertErr } = await supabase.from('dossiers').upsert([
             {
               id: dossierId,
@@ -1933,11 +2066,11 @@
               pasfoto_url: pasfotoUrl,
               kta_url: ktaUrl,
               extra_docs: updatedDossier.extraDocs || [],
-              credential_title: updatedDossier.credentialTitle,
-              credential_username: updatedDossier.credentialUsername,
-              credential_password: updatedDossier.credentialPassword,
-              passphrase_title: updatedDossier.passphraseTitle,
-              passphrase_words: JSON.stringify(updatedDossier.passphraseWords),
+              credential_title: JSON.stringify(credsArray),
+              credential_username: credsArray[0]?.username || "",
+              credential_password: credsArray[0]?.password || "",
+              passphrase_title: passArray[0]?.title || "",
+              passphrase_words: JSON.stringify(passArray),
               docs_count: totalDocs,
               status: 'Tersimpan di Cloud Supabase Realtime',
               updated_at: new Date().toISOString()
@@ -4317,21 +4450,21 @@
                                               className="px-2 py-1 rounded-lg bg-pch-gold/15 border border-pch-gold/40 text-pch-goldLight text-[11px] font-semibold flex items-center gap-1"
                                               title="Preview Dokumen"
                                             >
-                                              <Icons.Eye className="w-3 h-3 text-pch-gold" />
+                                              <Icons.Eye className="w-3 h-3" />
                                               <span>Preview</span>
                                             </button>
                                             <button
                                               type="button"
-                                              onClick={() => handleDownloadDocument(doc, doc.title)}
+                                              onClick={() => handleDownloadDocument({ name: doc.fileName, base64: exUrl }, doc.title)}
                                               className="px-2 py-1 rounded-lg bg-emerald-950/70 border border-pch-success/50 text-pch-success text-[11px] font-semibold flex items-center gap-1"
                                               title="Download Dokumen"
                                             >
                                               <Icons.Download className="w-3 h-3" />
-                                              <span>Download</span>
+                                              <span>Unduh</span>
                                             </button>
                                           </>
                                         )}
-                                        <button 
+                                        <button
                                           type="button"
                                           onClick={() => {
                                             isDossierDirtyRef.current = true;
@@ -4339,10 +4472,10 @@
                                               ...prev,
                                               extraDocs: prev.extraDocs.filter(d => d.id !== doc.id)
                                             }));
-                                            triggerToast(`Dokumen "${doc.title}" dihapus.`, "warning");
+                                            triggerToast("Dokumen tambahan dihapus.", "warning");
                                           }}
-                                          className="p-1.5 rounded-lg bg-pch-surface border border-pch-border text-pch-danger hover:bg-red-950/40"
-                                          title="Hapus"
+                                          className="p-1.5 rounded-lg bg-red-950/60 border border-pch-danger/50 text-pch-danger hover:bg-red-900/60"
+                                          title="Hapus Dokumen"
                                         >
                                           <Icons.Trash className="w-3.5 h-3.5" />
                                         </button>
@@ -4355,7 +4488,7 @@
                               <p className="text-xs text-pch-muted italic">Belum ada dokumen tambahan.</p>
                             )}
 
-                            <form onSubmit={handleAddExtraDocument} className="pt-2 flex flex-col sm:flex-row items-center gap-2.5">
+                            <form onSubmit={handleAddExtraDocument} className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
                               <input 
                                 type="text" 
                                 placeholder="Judul Dokumen Tambahan"
@@ -4365,130 +4498,193 @@
                               />
                               <input 
                                 type="file" 
-                                accept=".pdf,image/*" 
+                                accept=".pdf,image/*"
                                 onChange={(e) => setNewExtraDocFile(e.target.files[0])}
-                                className="w-full sm:w-auto text-xs text-pch-muted file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-pch-secondary file:text-pch-text file:border file:border-pch-border"
+                                className="text-xs text-pch-muted file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-pch-secondary file:text-pch-text file:border file:border-pch-border cursor-pointer"
                               />
                               <button 
                                 type="submit"
-                                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-pch-purple text-white text-xs font-semibold hover:bg-pch-purpleLight shrink-0 shadow-purple-glow"
+                                className="px-4 py-2 rounded-xl bg-pch-purple text-white text-xs font-semibold hover:bg-pch-purpleLight shrink-0 shadow-purple-glow"
                               >
                                 Tambah Dokumen
                               </button>
                             </form>
                           </div>
 
-                          {/* 5. Kredensial Akun (Username & Password) */}
+                          {/* 5. Kredensial Akun (Username & Password) — MULTI FORMULIR */}
                           <div className="p-5 sm:p-6 rounded-2xl bg-pch-surface border border-pch-border space-y-4">
-                            <h4 className="font-bold text-sm text-pch-goldLight flex items-center gap-2 border-b border-pch-border pb-3">
-                              <Icons.Key className="w-4 h-4 text-pch-gold" />
-                              <span>5. Data Kredensial Akun Khusus</span>
-                            </h4>
-                            <div className="space-y-4">
-                              <div>
-                                <label className="text-xs font-semibold text-pch-muted block mb-1">Judul Kredensial</label>
-                                <input 
-                                  type="text" 
-                                  placeholder="Contoh: Akun Pi Network Utama"
-                                  value={memberDossier.credentialTitle || ""}
-                                  onChange={(e) => updateDossierField("credentialTitle", e.target.value)}
-                                  className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
-                                />
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                  <div className="flex items-center justify-between mb-1">
-                                    <label className="text-xs font-semibold text-pch-muted">Username / ID Kredensial</label>
-                                    <button
-                                      type="button"
-                                      onClick={() => copyFieldValue(memberDossier.credentialUsername, "Username Kredensial")}
-                                      className="text-[10px] text-pch-gold hover:text-pch-goldLight flex items-center gap-1 font-semibold"
-                                    >
-                                      <Icons.Copy className="w-2.5 h-2.5" /> Salin
-                                    </button>
-                                  </div>
-                                  <input 
-                                    type="text" 
-                                    value={memberDossier.credentialUsername || ""}
-                                    onChange={(e) => updateDossierField("credentialUsername", e.target.value)}
-                                    className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
-                                  />
-                                </div>
-                                <div>
-                                  <div className="flex items-center justify-between mb-1">
-                                    <label className="text-xs font-semibold text-pch-muted">Password Kredensial</label>
-                                    <button
-                                      type="button"
-                                      onClick={() => copyFieldValue(memberDossier.credentialPassword, "Password Kredensial")}
-                                      className="text-[10px] text-pch-gold hover:text-pch-goldLight flex items-center gap-1 font-semibold"
-                                    >
-                                      <Icons.Copy className="w-2.5 h-2.5" /> Salin
-                                    </button>
-                                  </div>
-                                  <input 
-                                    type="text" 
-                                    value={memberDossier.credentialPassword || ""}
-                                    onChange={(e) => updateDossierField("credentialPassword", e.target.value)}
-                                    className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* 6. Prasa Sandi (Passphrase) 12 Kata */}
-                          <div className="p-5 sm:p-6 rounded-2xl bg-pch-surface border border-pch-border space-y-4">
-                            <div className="flex items-center justify-between border-b border-pch-border pb-3">
+                            <div className="flex items-center justify-between border-b border-pch-border pb-3 flex-wrap gap-2">
                               <h4 className="font-bold text-sm text-pch-goldLight flex items-center gap-2">
-                                <Icons.Shield className="w-4 h-4 text-pch-gold" />
-                                <span>6. Prasa Sandi (Passphrase) 12 Kata</span>
+                                <Icons.Key className="w-4 h-4 text-pch-gold" />
+                                <span>5. Data Kredensial Akun Khusus ({(memberDossier.credentialsList || []).length} Platform)</span>
                               </h4>
                               <button
                                 type="button"
-                                onClick={() => {
-                                  const words = memberDossier.passphraseWords || [];
-                                  const fullPhrase = words.filter(w => w.trim() !== "").join(" ");
-                                  copyFieldValue(fullPhrase, "12 Kata Passphrase");
-                                }}
-                                className="px-3 py-1.5 rounded-lg bg-pch-gold/15 border border-pch-gold/40 text-pch-goldLight text-[11px] font-semibold flex items-center gap-1.5 hover:bg-pch-gold/25"
+                                onClick={handleAddCredentialForm}
+                                className="px-3 py-1.5 rounded-xl bg-pch-purple text-white text-xs font-semibold hover:bg-pch-purpleLight shadow-purple-glow flex items-center gap-1.5 transition-all"
                               >
-                                <Icons.Copy className="w-3.5 h-3.5" />
-                                <span className="hidden sm:inline">Salin 12 Kata</span>
-                                <span className="sm:hidden">Salin</span>
+                                <Icons.Plus className="w-3.5 h-3.5" />
+                                <span>Tambah Kredensial</span>
+                              </button>
+                            </div>
+
+                            <div className="space-y-4">
+                              {(memberDossier.credentialsList || [{ id: "cred-1", title: "", username: "", password: "" }]).map((cred, cIdx) => (
+                                <div key={cred.id || cIdx} className="p-4 rounded-xl bg-pch-secondary/70 border border-pch-border space-y-3 relative">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[11px] font-bold text-pch-gold uppercase tracking-wider">
+                                      Formulir Kredensial #{cIdx + 1}
+                                    </span>
+                                    {(memberDossier.credentialsList || []).length > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveCredentialForm(cred.id)}
+                                        className="px-2 py-1 rounded-lg bg-red-950/60 border border-pch-danger/50 text-pch-danger hover:bg-red-900/60 text-[10px] font-semibold flex items-center gap-1"
+                                        title="Hapus Formulir Kredensial Ini"
+                                      >
+                                        <Icons.Trash className="w-3 h-3" />
+                                        <span>Hapus</span>
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  <div>
+                                    <label className="text-xs font-semibold text-pch-muted block mb-1">Judul Kredensial / Nama Platform</label>
+                                    <input 
+                                      type="text" 
+                                      placeholder="Contoh: Akun Pi Network Utama / Email / Bursa OKX"
+                                      value={cred.title || ""}
+                                      onChange={(e) => handleUpdateCredentialItem(cred.id, "title", e.target.value)}
+                                      className="w-full bg-pch-surface border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                                    />
+                                  </div>
+
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                      <div className="flex items-center justify-between mb-1">
+                                        <label className="text-xs font-semibold text-pch-muted">Username / ID Kredensial</label>
+                                        <button
+                                          type="button"
+                                          onClick={() => copyFieldValue(cred.username, `Username (${cred.title || 'Kredensial #' + (cIdx + 1)})`)}
+                                          className="text-[10px] text-pch-gold hover:text-pch-goldLight flex items-center gap-1 font-semibold"
+                                        >
+                                          <Icons.Copy className="w-2.5 h-2.5" /> Salin
+                                        </button>
+                                      </div>
+                                      <input 
+                                        type="text" 
+                                        placeholder="Masukkan Username / Email / ID"
+                                        value={cred.username || ""}
+                                        onChange={(e) => handleUpdateCredentialItem(cred.id, "username", e.target.value)}
+                                        className="w-full bg-pch-surface border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <div className="flex items-center justify-between mb-1">
+                                        <label className="text-xs font-semibold text-pch-muted">Password Kredensial</label>
+                                        <button
+                                          type="button"
+                                          onClick={() => copyFieldValue(cred.password, `Password (${cred.title || 'Kredensial #' + (cIdx + 1)})`)}
+                                          className="text-[10px] text-pch-gold hover:text-pch-goldLight flex items-center gap-1 font-semibold"
+                                        >
+                                          <Icons.Copy className="w-2.5 h-2.5" /> Salin
+                                        </button>
+                                      </div>
+                                      <input 
+                                        type="text" 
+                                        placeholder="Masukkan Password"
+                                        value={cred.password || ""}
+                                        onChange={(e) => handleUpdateCredentialItem(cred.id, "password", e.target.value)}
+                                        className="w-full bg-pch-surface border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* 6. Prasa Sandi (Passphrase) 12 Kata — MULTI FORMULIR */}
+                          <div className="p-5 sm:p-6 rounded-2xl bg-pch-surface border border-pch-border space-y-4">
+                            <div className="flex items-center justify-between border-b border-pch-border pb-3 flex-wrap gap-2">
+                              <h4 className="font-bold text-sm text-pch-goldLight flex items-center gap-2">
+                                <Icons.Shield className="w-4 h-4 text-pch-gold" />
+                                <span>6. Prasa Sandi (Passphrase) 12 Kata ({(memberDossier.passphrasesList || []).length} Dompet)</span>
+                              </h4>
+                              <button
+                                type="button"
+                                onClick={handleAddPassphraseForm}
+                                className="px-3 py-1.5 rounded-xl bg-pch-purple text-white text-xs font-semibold hover:bg-pch-purpleLight shadow-purple-glow flex items-center gap-1.5 transition-all"
+                              >
+                                <Icons.Plus className="w-3.5 h-3.5" />
+                                <span>Tambah Prasa Sandi</span>
                               </button>
                             </div>
                             
                             <div className="space-y-4">
-                              <div>
-                                <label className="text-xs font-semibold text-pch-muted block mb-1">Judul Prasa Sandi</label>
-                                <input 
-                                  type="text" 
-                                  placeholder="Contoh: Dompet Pi Network Utama"
-                                  value={memberDossier.passphraseTitle || ""}
-                                  onChange={(e) => updateDossierField("passphraseTitle", e.target.value)}
-                                  className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
-                                />
-                              </div>
+                              {(memberDossier.passphrasesList || [{ id: "pass-1", title: "", words: Array(12).fill("") }]).map((passItem, pIdx) => (
+                                <div key={passItem.id || pIdx} className="p-4 rounded-xl bg-pch-secondary/70 border border-pch-border space-y-4 relative">
+                                  <div className="flex items-center justify-between flex-wrap gap-2">
+                                    <span className="text-[11px] font-bold text-pch-gold uppercase tracking-wider">
+                                      Formulir Prasa Sandi #{pIdx + 1}
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const words = passItem.words || [];
+                                          const fullPhrase = words.filter(w => w && w.trim() !== "").join(" ");
+                                          copyFieldValue(fullPhrase, `12 Kata (${passItem.title || 'Prasa Sandi #' + (pIdx + 1)})`);
+                                        }}
+                                        className="px-3 py-1 rounded-lg bg-pch-gold/15 border border-pch-gold/40 text-pch-goldLight text-[11px] font-semibold flex items-center gap-1.5 hover:bg-pch-gold/25"
+                                      >
+                                        <Icons.Copy className="w-3.5 h-3.5" />
+                                        <span>Salin 12 Kata</span>
+                                      </button>
 
-                              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                                {(memberDossier.passphraseWords || Array(12).fill("")).map((word, idx) => (
-                                  <div key={idx} className="relative">
-                                    <span className="absolute left-2.5 top-2 text-[10px] font-mono text-pch-muted">{idx + 1}.</span>
-                                    <input
-                                      type="text"
-                                      value={word}
-                                      maxLength="15"
-                                      onChange={(e) => {
-                                        const newWords = [...(memberDossier.passphraseWords || Array(12).fill(""))];
-                                        newWords[idx] = e.target.value.toLowerCase().replace(/[^a-z]/g, '');
-                                        updateDossierField("passphraseWords", newWords);
-                                      }}
-                                      className="w-full bg-pch-secondary border border-pch-border rounded-lg pl-7 pr-2 py-1.5 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-gold"
+                                      {(memberDossier.passphrasesList || []).length > 1 && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleRemovePassphraseForm(passItem.id)}
+                                          className="px-2 py-1 rounded-lg bg-red-950/60 border border-pch-danger/50 text-pch-danger hover:bg-red-900/60 text-[10px] font-semibold flex items-center gap-1"
+                                          title="Hapus Formulir Prasa Sandi Ini"
+                                        >
+                                          <Icons.Trash className="w-3 h-3" />
+                                          <span>Hapus</span>
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <label className="text-xs font-semibold text-pch-muted block mb-1">Judul Prasa Sandi / Nama Dompet</label>
+                                    <input 
+                                      type="text" 
+                                      placeholder="Contoh: Dompet Pi Network Utama / OKX Wallet / Trust Wallet"
+                                      value={passItem.title || ""}
+                                      onChange={(e) => handleUpdatePassphraseTitle(passItem.id, e.target.value)}
+                                      className="w-full bg-pch-surface border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
                                     />
                                   </div>
-                                ))}
-                              </div>
-                              <p className="text-[10px] text-pch-muted">Setiap kotak hanya dapat diisi huruf kecil (abjad) tanpa spasi (Max: 15 Huruf/Kata).</p>
+
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                                    {(passItem.words || Array(12).fill("")).map((word, wIdx) => (
+                                      <div key={wIdx} className="relative">
+                                        <span className="absolute left-2.5 top-2 text-[10px] font-mono text-pch-muted">{wIdx + 1}.</span>
+                                        <input
+                                          type="text"
+                                          value={word || ""}
+                                          maxLength="15"
+                                          onChange={(e) => handleUpdatePassphraseWord(passItem.id, wIdx, e.target.value)}
+                                          className="w-full bg-pch-surface border border-pch-border rounded-lg pl-7 pr-2 py-1.5 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-gold"
+                                        />
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <p className="text-[10px] text-pch-muted">Setiap kotak hanya dapat diisi huruf kecil (abjad) tanpa spasi (Max: 15 Huruf/Kata).</p>
+                                </div>
+                              ))}
                             </div>
                           </div>
 
@@ -5380,25 +5576,23 @@
                   );
                 })}
               </nav>
-
             </div>
           )}
 
           {/* ==================== GLOBAL MODALS ==================== */}
 
-          {/* 1. Modal Detail Berkas Anggota (Inspeksi 15 Berkas oleh Admin) */}
+          {/* 1. Modal Detail 15 Berkas Anggota (Admin Inspection) */}
           {selectedDossierDetail && (
             <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="w-full max-w-2xl bg-pch-surface border border-pch-border rounded-2xl p-6 shadow-card-elevated space-y-4 max-h-[90vh] overflow-y-auto">
+              <div className="w-full max-w-2xl bg-pch-surface border border-pch-gold/50 rounded-2xl p-6 shadow-card-elevated space-y-5 max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between border-b border-pch-border pb-3">
                   <div>
-                    <h3 className="font-bold text-base text-pch-text">Inspeksi Berkas: {selectedDossierDetail.namaLengkap}</h3>
-                    <p className="text-xs text-pch-gold font-mono">@{selectedDossierDetail.username} • {selectedDossierDetail.noHp}</p>
+                    <h3 className="font-bold text-base text-pch-text">{selectedDossierDetail.namaLengkap}</h3>
+                    <p className="text-xs text-pch-gold font-mono">@{selectedDossierDetail.username} • {selectedDossierDetail.email}</p>
                   </div>
                   <button 
-                    type="button" 
                     onClick={() => setSelectedDossierDetail(null)}
-                    className="p-1 rounded-lg bg-pch-secondary border border-pch-border text-pch-muted hover:text-pch-text"
+                    className="p-1.5 rounded-lg bg-pch-secondary text-pch-muted hover:text-pch-text"
                   >
                     <Icons.X className="w-4 h-4" />
                   </button>
@@ -5406,32 +5600,83 @@
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
-                    <span className="text-pch-muted font-semibold block">Identitas Diri:</span>
-                    <p>NIK: <strong className="font-mono text-pch-text">{selectedDossierDetail.nik || "-"}</strong></p>
-                    <p>TTL: <strong className="text-pch-text">{selectedDossierDetail.ttl || "-"}</strong></p>
-                    <p>Alamat: <strong className="text-pch-text">{selectedDossierDetail.alamatLengkap || "-"}</strong></p>
+                    <span className="text-pch-muted block">NIK & TTL:</span>
+                    <p className="font-mono font-bold text-pch-text">{selectedDossierDetail.nik || "-"}</p>
+                    <p className="text-pch-muted">{selectedDossierDetail.ttl || "-"}</p>
                   </div>
                   <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
-                    <span className="text-pch-muted font-semibold block">Rekening & Wallet:</span>
-                    <p>Rekening: <strong className="font-mono text-pch-text">{selectedDossierDetail.rekening || "-"}</strong> ({selectedDossierDetail.namaRekening || "-"})</p>
-                    <p>Wallet Pi: <strong className="font-mono text-pch-goldLight truncate block">{selectedDossierDetail.walletPi || "-"}</strong></p>
-                    <p>Wallet OKX: <strong className="font-mono text-pch-purpleLight truncate block">{selectedDossierDetail.walletOkx || "-"}</strong></p>
+                    <span className="text-pch-muted block">No HP & Username Pi:</span>
+                    <p className="font-mono font-bold text-pch-text">{selectedDossierDetail.noHp || "-"}</p>
+                    <p className="font-mono text-pch-goldLight">{selectedDossierDetail.usernamePi || "-"}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
+                    <span className="text-pch-muted block">Rekening Bank:</span>
+                    <p className="font-bold text-pch-text">{selectedDossierDetail.namaRekening || "-"}</p>
+                    <p className="font-mono text-pch-goldLight">{selectedDossierDetail.rekening || "-"}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
+                    <span className="text-pch-muted block">Wallet Publik (Pi & OKX):</span>
+                    <p className="font-mono text-[11px] truncate text-pch-text">Pi: {selectedDossierDetail.walletPi || "-"}</p>
+                    <p className="font-mono text-[11px] truncate text-pch-purpleLight">OKX: {selectedDossierDetail.walletOkx || "-"}</p>
+                  </div>
+                  <div className="sm:col-span-2 p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
+                    <span className="text-pch-muted block">Alamat Domisili:</span>
+                    <p className="text-pch-text">{selectedDossierDetail.alamatLengkap || "-"}</p>
                   </div>
                 </div>
 
-                {/* Info Kredensial & Passphrase Admin View */}
+                {/* Info Multi-Kredensial & Multi-Passphrase Admin View */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
-                    <span className="text-pch-muted font-semibold block">Kredensial Akun:</span>
-                    <p>Judul: <strong className="text-pch-text">{selectedDossierDetail.credentialTitle || "-"}</strong></p>
-                    <p>Username: <strong className="font-mono text-pch-goldLight">{selectedDossierDetail.credentialUsername || "-"}</strong></p>
-                    <p>Password: <strong className="font-mono text-pch-warning">{selectedDossierDetail.credentialPassword || "-"}</strong></p>
+                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-2">
+                    <span className="text-pch-goldLight font-bold block border-b border-pch-border pb-1">
+                      Daftar Kredensial Akun ({(selectedDossierDetail.credentialsList || []).length}):
+                    </span>
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {(selectedDossierDetail.credentialsList || []).map((cred, idx) => (
+                        <div key={cred.id || idx} className="p-2 rounded-lg bg-black/40 border border-pch-border/70 space-y-0.5">
+                          <p className="text-[11px] font-bold text-pch-text">
+                            #{idx + 1}. {cred.title || "Tanpa Judul"}
+                          </p>
+                          <p className="text-[11px]">
+                            User: <strong className="font-mono text-pch-goldLight">{cred.username || "-"}</strong>
+                          </p>
+                          <p className="text-[11px]">
+                            Pass: <strong className="font-mono text-pch-warning">{cred.password || "-"}</strong>
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
-                    <span className="text-pch-muted font-semibold block">Passphrase (12 Kata):</span>
-                    <p>Judul: <strong className="text-pch-text">{selectedDossierDetail.passphraseTitle || "-"}</strong></p>
-                    <div className="mt-1 p-2 bg-black/40 rounded border border-pch-border font-mono text-[10px] text-pch-text break-words leading-relaxed">
-                      {(selectedDossierDetail.passphraseWords || []).filter(w => w).join(" ") || "-"}
+
+                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-2">
+                    <span className="text-pch-goldLight font-bold block border-b border-pch-border pb-1">
+                      Daftar Passphrase 12 Kata ({(selectedDossierDetail.passphrasesList || []).length}):
+                    </span>
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {(selectedDossierDetail.passphrasesList || []).map((passItem, idx) => {
+                        const joinedWords = (passItem.words || []).filter(w => w && w.trim() !== "").join(" ");
+                        return (
+                          <div key={passItem.id || idx} className="p-2 rounded-lg bg-black/40 border border-pch-border/70 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <p className="text-[11px] font-bold text-pch-text">
+                                #{idx + 1}. {passItem.title || "Tanpa Judul"}
+                              </p>
+                              {joinedWords && (
+                                <button
+                                  type="button"
+                                  onClick={() => copyFieldValue(joinedWords, `Passphrase #${idx + 1}`)}
+                                  className="text-[10px] text-pch-gold hover:underline flex items-center gap-0.5"
+                                >
+                                  <Icons.Copy className="w-2.5 h-2.5" /> Salin
+                                </button>
+                              )}
+                            </div>
+                            <div className="p-1.5 bg-pch-secondary rounded border border-pch-border font-mono text-[10px] text-pch-text break-words leading-relaxed">
+                              {joinedWords || "-"}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
