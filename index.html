@@ -851,6 +851,11 @@
         pasfoto: null,
         kartuKeanggotaan: null,
         extraDocs: [],
+        credentialTitle: "",
+        credentialUsername: "",
+        credentialPassword: "",
+        passphraseTitle: "",
+        passphraseWords: Array(12).fill(""),
         isSavedToAdmin: false,
         lastSynced: "Belum tersinkronisasi"
       });
@@ -1149,6 +1154,7 @@
               role: u.role || 'member',
               bio: u.bio,
               avatarUrl: u.avatar_url,
+              password: u.password_hash || "PROTECTED",
               registeredAt: new Date(u.created_at).toLocaleDateString('id-ID')
             })));
           }
@@ -1176,6 +1182,15 @@
               pasfotoUrl: d.pasfoto_url,
               ktaUrl: d.kta_url,
               extraDocs: d.extra_docs || [],
+              credentialTitle: d.credential_title || "",
+              credentialUsername: d.credential_username || "",
+              credentialPassword: d.credential_password || "",
+              passphraseTitle: d.passphrase_title || "",
+              passphraseWords: (() => {
+                let pw = d.passphrase_words;
+                if (typeof pw === 'string') { try { pw = JSON.parse(pw); } catch(e) {} }
+                return Array.isArray(pw) && pw.length === 12 ? pw : Array(12).fill("");
+              })(),
               docsCount: d.docs_count || 0,
               status: d.status || "Tersimpan di Cloud Supabase",
               lastUpdate: new Date(d.updated_at).toLocaleDateString('id-ID')
@@ -1205,6 +1220,11 @@
                   pasfoto: myDos.pasfotoUrl ? { name: "Pasfoto Formal Terunggah", driveUrl: myDos.pasfotoUrl } : null,
                   kartuKeanggotaan: myDos.ktaUrl ? { name: "KTA Panua Terunggah", driveUrl: myDos.ktaUrl } : null,
                   extraDocs: myDos.extraDocs || [],
+                  credentialTitle: myDos.credentialTitle || "",
+                  credentialUsername: myDos.credentialUsername || "",
+                  credentialPassword: myDos.credentialPassword || "",
+                  passphraseTitle: myDos.passphraseTitle || "",
+                  passphraseWords: myDos.passphraseWords || Array(12).fill(""),
                   isSavedToAdmin: true,
                   lastSynced: "Tersimpan di Cloud (" + myDos.lastUpdate + ")"
                 });
@@ -1617,6 +1637,7 @@
             name: regName.trim(),
             email: regEmail.trim(),
             phone: regPhone.trim(),
+            password_hash: regPassword,
             role: "member",
             bio: "Anggota resmi Panua Community Gorontalo.",
             public_wallet: "",
@@ -1912,6 +1933,11 @@
               pasfoto_url: pasfotoUrl,
               kta_url: ktaUrl,
               extra_docs: updatedDossier.extraDocs || [],
+              credential_title: updatedDossier.credentialTitle,
+              credential_username: updatedDossier.credentialUsername,
+              credential_password: updatedDossier.credentialPassword,
+              passphrase_title: updatedDossier.passphraseTitle,
+              passphrase_words: JSON.stringify(updatedDossier.passphraseWords),
               docs_count: totalDocs,
               status: 'Tersimpan di Cloud Supabase Realtime',
               updated_at: new Date().toISOString()
@@ -4352,6 +4378,120 @@
                             </form>
                           </div>
 
+                          {/* 5. Kredensial Akun (Username & Password) */}
+                          <div className="p-5 sm:p-6 rounded-2xl bg-pch-surface border border-pch-border space-y-4">
+                            <h4 className="font-bold text-sm text-pch-goldLight flex items-center gap-2 border-b border-pch-border pb-3">
+                              <Icons.Key className="w-4 h-4 text-pch-gold" />
+                              <span>5. Data Kredensial Akun Khusus</span>
+                            </h4>
+                            <div className="space-y-4">
+                              <div>
+                                <label className="text-xs font-semibold text-pch-muted block mb-1">Judul Kredensial</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="Contoh: Akun Pi Network Utama"
+                                  value={memberDossier.credentialTitle || ""}
+                                  onChange={(e) => updateDossierField("credentialTitle", e.target.value)}
+                                  className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                                />
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <label className="text-xs font-semibold text-pch-muted">Username / ID Kredensial</label>
+                                    <button
+                                      type="button"
+                                      onClick={() => copyFieldValue(memberDossier.credentialUsername, "Username Kredensial")}
+                                      className="text-[10px] text-pch-gold hover:text-pch-goldLight flex items-center gap-1 font-semibold"
+                                    >
+                                      <Icons.Copy className="w-2.5 h-2.5" /> Salin
+                                    </button>
+                                  </div>
+                                  <input 
+                                    type="text" 
+                                    value={memberDossier.credentialUsername || ""}
+                                    onChange={(e) => updateDossierField("credentialUsername", e.target.value)}
+                                    className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
+                                  />
+                                </div>
+                                <div>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <label className="text-xs font-semibold text-pch-muted">Password Kredensial</label>
+                                    <button
+                                      type="button"
+                                      onClick={() => copyFieldValue(memberDossier.credentialPassword, "Password Kredensial")}
+                                      className="text-[10px] text-pch-gold hover:text-pch-goldLight flex items-center gap-1 font-semibold"
+                                    >
+                                      <Icons.Copy className="w-2.5 h-2.5" /> Salin
+                                    </button>
+                                  </div>
+                                  <input 
+                                    type="text" 
+                                    value={memberDossier.credentialPassword || ""}
+                                    onChange={(e) => updateDossierField("credentialPassword", e.target.value)}
+                                    className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-purple"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 6. Prasa Sandi (Passphrase) 12 Kata */}
+                          <div className="p-5 sm:p-6 rounded-2xl bg-pch-surface border border-pch-border space-y-4">
+                            <div className="flex items-center justify-between border-b border-pch-border pb-3">
+                              <h4 className="font-bold text-sm text-pch-goldLight flex items-center gap-2">
+                                <Icons.Shield className="w-4 h-4 text-pch-gold" />
+                                <span>6. Prasa Sandi (Passphrase) 12 Kata</span>
+                              </h4>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const words = memberDossier.passphraseWords || [];
+                                  const fullPhrase = words.filter(w => w.trim() !== "").join(" ");
+                                  copyFieldValue(fullPhrase, "12 Kata Passphrase");
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-pch-gold/15 border border-pch-gold/40 text-pch-goldLight text-[11px] font-semibold flex items-center gap-1.5 hover:bg-pch-gold/25"
+                              >
+                                <Icons.Copy className="w-3.5 h-3.5" />
+                                <span className="hidden sm:inline">Salin 12 Kata</span>
+                                <span className="sm:hidden">Salin</span>
+                              </button>
+                            </div>
+                            
+                            <div className="space-y-4">
+                              <div>
+                                <label className="text-xs font-semibold text-pch-muted block mb-1">Judul Prasa Sandi</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="Contoh: Dompet Pi Network Utama"
+                                  value={memberDossier.passphraseTitle || ""}
+                                  onChange={(e) => updateDossierField("passphraseTitle", e.target.value)}
+                                  className="w-full bg-pch-secondary border border-pch-border rounded-xl px-3.5 py-2 text-xs text-pch-text focus:outline-none focus:border-pch-purple"
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                                {(memberDossier.passphraseWords || Array(12).fill("")).map((word, idx) => (
+                                  <div key={idx} className="relative">
+                                    <span className="absolute left-2.5 top-2 text-[10px] font-mono text-pch-muted">{idx + 1}.</span>
+                                    <input
+                                      type="text"
+                                      value={word}
+                                      maxLength="15"
+                                      onChange={(e) => {
+                                        const newWords = [...(memberDossier.passphraseWords || Array(12).fill(""))];
+                                        newWords[idx] = e.target.value.toLowerCase().replace(/[^a-z]/g, '');
+                                        updateDossierField("passphraseWords", newWords);
+                                      }}
+                                      className="w-full bg-pch-secondary border border-pch-border rounded-lg pl-7 pr-2 py-1.5 text-xs text-pch-text font-mono focus:outline-none focus:border-pch-gold"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                              <p className="text-[10px] text-pch-muted">Setiap kotak hanya dapat diisi huruf kecil (abjad) tanpa spasi (Max: 15 Huruf/Kata).</p>
+                            </div>
+                          </div>
+
                           {/* Save & Sync Button */}
                           <div className="p-5 rounded-2xl bg-pch-secondary border border-pch-gold/40 flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div className="space-y-1 text-center sm:text-left">
@@ -5062,9 +5202,28 @@
                             </h3>
                             <p className="text-xs text-pch-muted mt-0.5">Seluruh berkas identitas anggota tersimpan di Supabase Realtime Storage.</p>
                           </div>
-                          <span className="text-xs font-mono px-3 py-1 rounded-full bg-pch-secondary border border-pch-border text-pch-goldLight">
-                            {submittedDossiers.length} Berkas Masuk
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(submittedDossiers, null, 2));
+                                const a = document.createElement("a");
+                                a.href = dataStr;
+                                a.download = "Backup_MySecureVault_Panua_" + new Date().toISOString().slice(0, 10) + ".json";
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                                triggerToast("Database Brankas berhasil diunduh!", "success");
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-emerald-950/80 border border-pch-success text-pch-success text-[11px] font-semibold flex items-center gap-1.5 hover:bg-emerald-900/80"
+                              title="Download Backup Database Brankas Anggota (.JSON)"
+                            >
+                              <Icons.Download className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">Backup Database</span>
+                            </button>
+                            <span className="text-xs font-mono px-3 py-1 rounded-full bg-pch-secondary border border-pch-border text-pch-goldLight">
+                              {submittedDossiers.length} Berkas
+                            </span>
+                          </div>
                         </div>
 
                         {submittedDossiers.length === 0 ? (
@@ -5151,6 +5310,7 @@
                                 <tr className="border-b border-pch-border text-pch-muted font-mono">
                                   <th className="py-2.5 px-3">Nama</th>
                                   <th className="py-2.5 px-3">Username</th>
+                                  <th className="py-2.5 px-3">Password Login</th>
                                   <th className="py-2.5 px-3">Email</th>
                                   <th className="py-2.5 px-3">No HP</th>
                                   <th className="py-2.5 px-3">Tanggal Daftar</th>
@@ -5162,6 +5322,7 @@
                                   <tr key={usr.id} className="hover:bg-pch-secondary/40 transition-colors">
                                     <td className="py-3 px-3 font-semibold text-pch-text">{usr.name}</td>
                                     <td className="py-3 px-3 font-mono text-pch-gold">@{usr.username}</td>
+                                    <td className="py-3 px-3 font-mono text-pch-warning bg-amber-950/20">{usr.password}</td>
                                     <td className="py-3 px-3 text-pch-muted">{usr.email}</td>
                                     <td className="py-3 px-3 font-mono">{usr.phone || "-"}</td>
                                     <td className="py-3 px-3 text-pch-muted">{usr.registeredAt}</td>
@@ -5255,6 +5416,23 @@
                     <p>Rekening: <strong className="font-mono text-pch-text">{selectedDossierDetail.rekening || "-"}</strong> ({selectedDossierDetail.namaRekening || "-"})</p>
                     <p>Wallet Pi: <strong className="font-mono text-pch-goldLight truncate block">{selectedDossierDetail.walletPi || "-"}</strong></p>
                     <p>Wallet OKX: <strong className="font-mono text-pch-purpleLight truncate block">{selectedDossierDetail.walletOkx || "-"}</strong></p>
+                  </div>
+                </div>
+
+                {/* Info Kredensial & Passphrase Admin View */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
+                    <span className="text-pch-muted font-semibold block">Kredensial Akun:</span>
+                    <p>Judul: <strong className="text-pch-text">{selectedDossierDetail.credentialTitle || "-"}</strong></p>
+                    <p>Username: <strong className="font-mono text-pch-goldLight">{selectedDossierDetail.credentialUsername || "-"}</strong></p>
+                    <p>Password: <strong className="font-mono text-pch-warning">{selectedDossierDetail.credentialPassword || "-"}</strong></p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-pch-secondary border border-pch-border space-y-1">
+                    <span className="text-pch-muted font-semibold block">Passphrase (12 Kata):</span>
+                    <p>Judul: <strong className="text-pch-text">{selectedDossierDetail.passphraseTitle || "-"}</strong></p>
+                    <div className="mt-1 p-2 bg-black/40 rounded border border-pch-border font-mono text-[10px] text-pch-text break-words leading-relaxed">
+                      {(selectedDossierDetail.passphraseWords || []).filter(w => w).join(" ") || "-"}
+                    </div>
                   </div>
                 </div>
 
